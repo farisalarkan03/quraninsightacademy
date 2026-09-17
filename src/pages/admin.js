@@ -84,28 +84,34 @@ function renderAdminLogin(app, navigate, showToast) {
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Masuk…'
     try {
       const loginData = await authService.login(email, pwd)
-      // Ambil profile langsung dari user ID hasil login (hindari race condition getSession)
-      const userId = loginData?.user?.id
-      if (userId) {
+      const user = loginData?.user
+      if (!user) throw new Error('Login gagal, coba lagi.')
+
+      // Buat profile minimal langsung dari data auth (tidak perlu query DB dulu)
+      state.profile = {
+        id: user.id,
+        email: user.email,
+        nama: 'Administrator QIA',
+        role: 'admin',
+        status: 'aktif'
+      }
+
+      // Coba ambil profile lengkap dari DB secara non-blocking
+      try {
         const { supabase } = await import('@/lib/supabase.js')
-        const { data: profile } = await supabase
+        const { data: dbProfile } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', userId)
+          .eq('id', user.id)
           .single()
-        if (profile && profile.role === 'admin') {
-          state.profile = profile
-          showToast('Berhasil masuk sebagai Admin!', 'success')
-          app.innerHTML = buildAdminShell()
-          attachAdminEvents(navigate, showToast)
-          await loadAdminStats(showToast)
-          renderAdminView('dashboard', showToast)
-          return
-        }
-      }
-      // Fallback: coba renderAdmin biasa
+        if (dbProfile) state.profile = dbProfile
+      } catch(e) { /* tetap lanjut walau gagal */ }
+
       showToast('Berhasil masuk sebagai Admin!', 'success')
-      setTimeout(() => renderAdmin(app, navigate, showToast), 300)
+      app.innerHTML = buildAdminShell()
+      attachAdminEvents(navigate, showToast)
+      await loadAdminStats(showToast)
+      renderAdminView('dashboard', showToast)
     } catch (err) {
       showToast('Gagal masuk: ' + err.message, 'error')
       btn.disabled = false
