@@ -1,31 +1,23 @@
 // ============================================================
-// QIA — Supabase Client & API Services + Resilient Demo Mode
+// QIA — Supabase Client & API Services
 // src/lib/supabase.js
 // ============================================================
 
 import { createClient } from '@supabase/supabase-js'
 
-const RAW_URL  = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SUPABASE_URL) || localStorage.getItem('qia_supabase_url') || ''
-const RAW_ANON = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY) || localStorage.getItem('qia_supabase_anon_key') || ''
+// Konfigurasi Supabase — hardcoded untuk memastikan berjalan di semua environment
+const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL  || 'https://wawamhpdthlttfttwjyc.supabase.co'
+const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indhd2FtaHBkdGhsdHRmdHR3anljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk2MjE4MzYsImV4cCI6MjEwNTE5NzgzNn0.zx35_sMK7z4CSw6b9OXzkFwpp3AsnVO1hOjQa42lAtg'
 
-// Deteksi apakah Supabase sudah dikonfigurasi secara riil
-export const isConfigured = Boolean(
-  RAW_URL &&
-  RAW_ANON &&
-  RAW_URL.startsWith('http') &&
-  !RAW_URL.includes('placeholder')
-)
+export const isConfigured = true
 
-// Gunakan URL & Key aman agar createClient tidak pernah melempar uncaught exception
-const SAFE_URL  = isConfigured ? RAW_URL : 'https://placeholder-qia.supabase.co'
-const SAFE_ANON = isConfigured ? RAW_ANON : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy-anon-key'
-
-export const supabase = createClient(SAFE_URL, SAFE_ANON, {
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON, {
   auth: {
     persistSession: true,
-    autoRefreshToken: isConfigured,
+    autoRefreshToken: true,
   }
 })
+
 
 // ────────────────────────────────────────────────────────────
 // DEMO MOCK STORE (Untuk pengujian & fallback saat offline / belum konek Supabase)
@@ -62,9 +54,6 @@ function setLocalStore(key, val) {
 
 export const authService = {
   async login(email, password) {
-    if (!isConfigured) {
-      throw new Error('Supabase belum dikonfigurasi. Hubungi administrator.')
-    }
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
     return data
@@ -76,7 +65,6 @@ export const authService = {
   },
 
   async getSession() {
-    if (!isConfigured) return null
     try {
       const { data: { session } } = await supabase.auth.getSession()
       return session || null
@@ -100,10 +88,7 @@ export const authService = {
   },
 
   onAuthStateChange(callback) {
-    if (isConfigured) {
-      return supabase.auth.onAuthStateChange(callback)
-    }
-    return { data: { subscription: { unsubscribe: () => {} } } }
+    return supabase.auth.onAuthStateChange(callback)
   },
 }
 
