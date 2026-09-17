@@ -682,85 +682,111 @@ function openPesertaDetail(pesertaId, main, showToast) {
     <!-- Left: Forms -->
     <div style="display:flex;flex-direction:column;gap:16px;">
 
-      <!-- Kemajuan Hafalan -->
-      <div class="card">
-        <h4 style="color:var(--cream-100);margin-bottom:16px;"><i class="fa-solid fa-book-quran" style="color:#F0AF43;"></i> Input Kemajuan Hafalan</h4>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-          <div class="form-group">
-            <label class="form-label">Kitab / Surah</label>
-            <input type="text" class="form-control" id="inp-kitab" placeholder="cth: Al-Baqarah, Jilid 2" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Halaman / Ayat</label>
-            <input type="text" class="form-control" id="inp-halaman" placeholder="cth: Ayat 1-10, Hal. 12" />
-          </div>
+      <!-- Form Laporan Sesi TERPADU (Kemajuan + Penilaian + Catatan dalam 1 card) -->
+      <div class="card" id="card-laporan-sesi">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+          <h4 style="color:var(--cream-100);margin:0;">
+            <i class="fa-solid fa-clipboard-list" style="color:#F0AF43;margin-right:8px;"></i>
+            Laporan Sesi Peserta Didik
+          </h4>
+          <span style="font-size:12px;color:var(--text-card-muted);">Isi sesuai kebutuhan, lalu simpan sekaligus</span>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-          <div class="form-group">
-            <label class="form-label">Status Kelancaran</label>
-            <select class="form-control" id="inp-kelancaran">
-              <option value="lancar">✅ Lancar</option>
-              <option value="cukup">⚠️ Cukup</option>
-              <option value="perlu_ulang">🔄 Perlu Diulang</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Tanggal</label>
-            <input type="date" class="form-control" id="inp-tgl-kemajuan" value="${new Date().toISOString().slice(0,10)}" />
-          </div>
-        </div>
-        <div class="form-group" style="margin-bottom:14px;">
-          <label class="form-label">Catatan Hafalan</label>
-          <textarea class="form-control" id="inp-catatan-hafalan" rows="2" placeholder="Catatan perkembangan hafalan…"></textarea>
-        </div>
-        <button class="btn btn-primary btn-sm" id="btn-save-kemajuan">
-          <i class="fa-solid fa-floppy-disk"></i> Simpan Kemajuan
-        </button>
-      </div>
 
-      <!-- Penilaian -->
-      <div class="card">
-        <h4 style="color:var(--cream-100);margin-bottom:16px;"><i class="fa-solid fa-star" style="color:#F0AF43;"></i> Input Penilaian</h4>
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:12px;">
-          <div class="form-group">
-            <label class="form-label">Nilai Angka (0–100)</label>
-            <input type="number" class="form-control" id="inp-nilai" min="0" max="100" placeholder="85" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Tanggal</label>
-            <input type="date" class="form-control" id="inp-tgl-nilai" value="${new Date().toISOString().slice(0,10)}" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Adab (1–5)</label>
-            <input type="number" class="form-control" id="inp-adab" min="1" max="5" placeholder="5" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Tajwid (1–5)</label>
-            <input type="number" class="form-control" id="inp-tajwid" min="1" max="5" placeholder="4" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Kelancaran (1–5)</label>
-            <input type="number" class="form-control" id="inp-kelancaran-nilai" min="1" max="5" placeholder="4" />
-          </div>
+        <!-- Tab navigation -->
+        <div style="display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:18px;" id="laporan-tabs">
+          <button class="laporan-tab-btn active" data-tab="kemajuan" onclick="switchLaporanTab('kemajuan')"
+            style="padding:8px 18px;background:none;border:none;border-bottom:2px solid #F0AF43;color:#F0AF43;font-weight:700;font-size:13px;cursor:pointer;">
+            <i class="fa-solid fa-book-quran"></i> Hafalan
+          </button>
+          <button class="laporan-tab-btn" data-tab="penilaian" onclick="switchLaporanTab('penilaian')"
+            style="padding:8px 18px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-card-muted);font-weight:600;font-size:13px;cursor:pointer;">
+            <i class="fa-solid fa-star"></i> Penilaian
+          </button>
+          <button class="laporan-tab-btn" data-tab="catatan" onclick="switchLaporanTab('catatan')"
+            style="padding:8px 18px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-card-muted);font-weight:600;font-size:13px;cursor:pointer;">
+            <i class="fa-solid fa-comment-dots"></i> Catatan
+          </button>
         </div>
-        <div class="form-group" style="margin-bottom:14px;">
-          <label class="form-label">Catatan Penilaian</label>
-          <textarea class="form-control" id="inp-catatan-nilai" rows="2" placeholder="Catatan nilai…"></textarea>
-        </div>
-        <button class="btn btn-primary btn-sm" id="btn-save-nilai">
-          <i class="fa-solid fa-floppy-disk"></i> Simpan Penilaian
-        </button>
-      </div>
 
-      <!-- Catatan Mentor -->
-      <div class="card">
-        <h4 style="color:var(--cream-100);margin-bottom:14px;"><i class="fa-solid fa-comment-dots" style="color:#60a5fa;"></i> Catatan Mentor</h4>
-        <div class="form-group" style="margin-bottom:14px;">
-          <textarea class="form-control" id="inp-catatan" rows="3" placeholder="Catatan perkembangan, observasi, atau pesan untuk orang tua / wali…"></textarea>
+        <!-- Tab: Kemajuan Hafalan -->
+        <div id="tab-kemajuan" class="laporan-tab-content">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div class="form-group">
+              <label class="form-label">Kitab / Surah</label>
+              <input type="text" class="form-control" id="inp-kitab" placeholder="cth: Al-Baqarah, Jilid 2" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Halaman / Ayat</label>
+              <input type="text" class="form-control" id="inp-halaman" placeholder="cth: Ayat 1-10, Hal. 12" />
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div class="form-group">
+              <label class="form-label">Status Kelancaran</label>
+              <select class="form-control" id="inp-kelancaran">
+                <option value="lancar">✅ Lancar</option>
+                <option value="cukup">⚠️ Cukup</option>
+                <option value="perlu_ulang">🔄 Perlu Diulang</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tanggal</label>
+              <input type="date" class="form-control" id="inp-tgl-kemajuan" value="${new Date().toISOString().slice(0,10)}" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Catatan Hafalan</label>
+            <textarea class="form-control" id="inp-catatan-hafalan" rows="2" placeholder="Catatan perkembangan hafalan…"></textarea>
+          </div>
         </div>
-        <button class="btn btn-secondary btn-sm" id="btn-save-catatan">
-          <i class="fa-solid fa-floppy-disk"></i> Simpan Catatan
-        </button>
+
+        <!-- Tab: Penilaian -->
+        <div id="tab-penilaian" class="laporan-tab-content" style="display:none;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div class="form-group">
+              <label class="form-label">Nilai Angka (0–100)</label>
+              <input type="number" class="form-control" id="inp-nilai" min="0" max="100" placeholder="85" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tanggal</label>
+              <input type="date" class="form-control" id="inp-tgl-nilai" value="${new Date().toISOString().slice(0,10)}" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Adab (1–5)</label>
+              <input type="number" class="form-control" id="inp-adab" min="1" max="5" placeholder="5" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tajwid (1–5)</label>
+              <input type="number" class="form-control" id="inp-tajwid" min="1" max="5" placeholder="4" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Kelancaran (1–5)</label>
+              <input type="number" class="form-control" id="inp-kelancaran-nilai" min="1" max="5" placeholder="4" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Catatan Penilaian</label>
+            <textarea class="form-control" id="inp-catatan-nilai" rows="2" placeholder="Catatan nilai…"></textarea>
+          </div>
+        </div>
+
+        <!-- Tab: Catatan Mentor -->
+        <div id="tab-catatan" class="laporan-tab-content" style="display:none;">
+          <div class="form-group">
+            <label class="form-label">Catatan untuk Wali / Orang Tua</label>
+            <textarea class="form-control" id="inp-catatan" rows="4" placeholder="Catatan perkembangan, observasi, atau pesan untuk orang tua / wali…"></textarea>
+          </div>
+        </div>
+
+        <!-- Divider + Single Save Button -->
+        <div style="border-top:1px solid rgba(255,255,255,0.08);margin-top:18px;padding-top:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <button class="btn btn-primary" id="btn-save-laporan" style="flex:1;min-width:200px;padding:12px;">
+            <i class="fa-solid fa-floppy-disk"></i> Simpan Laporan Sesi
+          </button>
+          <span id="laporan-save-hint" style="font-size:12px;color:var(--text-card-muted);">
+            Data yang diisi akan tersimpan sekaligus
+          </span>
+        </div>
       </div>
     </div>
 
@@ -777,61 +803,113 @@ function openPesertaDetail(pesertaId, main, showToast) {
 
   window.renderMentorView = (v) => renderView(v, showToast)
 
+  // Tab switcher
+  window.switchLaporanTab = (tab) => {
+    document.querySelectorAll('.laporan-tab-content').forEach(el => el.style.display = 'none')
+    document.getElementById('tab-' + tab).style.display = ''
+    document.querySelectorAll('.laporan-tab-btn').forEach(btn => {
+      const isActive = btn.dataset.tab === tab
+      btn.style.borderBottom = isActive ? '2px solid #F0AF43' : '2px solid transparent'
+      btn.style.color = isActive ? '#F0AF43' : 'var(--text-card-muted)'
+    })
+  }
+
   // Load history
   loadPesertaHistory(pesertaId, showToast)
 
-  // Save kemajuan
-  document.getElementById('btn-save-kemajuan').addEventListener('click', async () => {
-    const data = {
-      id_peserta: pesertaId,
-      id_mentor:  state.profile.id,
-      tanggal:    document.getElementById('inp-tgl-kemajuan').value,
-      kitab_surat:  document.getElementById('inp-kitab').value.trim(),
-      halaman_ayat: document.getElementById('inp-halaman').value.trim(),
-      status_kelancaran: document.getElementById('inp-kelancaran').value,
-      catatan_hafalan:   document.getElementById('inp-catatan-hafalan').value.trim(),
+  // SINGLE SAVE: simpan semua data sekaligus
+  document.getElementById('btn-save-laporan').addEventListener('click', async () => {
+    const btn  = document.getElementById('btn-save-laporan')
+    const hint = document.getElementById('laporan-save-hint')
+    const today = new Date().toISOString().slice(0,10)
+
+    // Kumpulkan data dari semua tab
+    const kitab   = document.getElementById('inp-kitab').value.trim()
+    const halaman  = document.getElementById('inp-halaman').value.trim()
+    const nilaiStr = document.getElementById('inp-nilai').value
+    const catatan  = document.getElementById('inp-catatan').value.trim()
+
+    const hasKemajuan  = !!kitab
+    const hasPenilaian = !!nilaiStr
+    const hasCatatan   = !!catatan
+
+    if (!hasKemajuan && !hasPenilaian && !hasCatatan) {
+      showToast('Isi minimal satu bagian (Hafalan, Penilaian, atau Catatan).', 'info')
+      return
     }
-    if (!data.kitab_surat) { showToast('Isi kitab/surah terlebih dahulu.', 'info'); return }
-    try {
-      await mentorService.addKemajuan(data)
-      showToast('Kemajuan hafalan tersimpan! ✅', 'success')
-      document.getElementById('inp-kitab').value = ''
-      document.getElementById('inp-halaman').value = ''
-      document.getElementById('inp-catatan-hafalan').value = ''
-      loadPesertaHistory(pesertaId, showToast)
-    } catch(e) { showToast('Gagal: ' + e.message, 'error') }
-  })
 
-  // Save penilaian
-  document.getElementById('btn-save-nilai').addEventListener('click', async () => {
-    const nilai = parseFloat(document.getElementById('inp-nilai').value)
-    if (isNaN(nilai)) { showToast('Isi nilai angka.', 'info'); return }
-    try {
-      await mentorService.addPenilaian({
-        id_peserta: pesertaId, id_mentor: state.profile.id,
-        tanggal: document.getElementById('inp-tgl-nilai').value,
-        nilai_angka: nilai,
-        nilai_adab:  parseInt(document.getElementById('inp-adab').value)||null,
-        nilai_tajwid:parseInt(document.getElementById('inp-tajwid').value)||null,
-        nilai_kelancaran:parseInt(document.getElementById('inp-kelancaran-nilai').value)||null,
-        catatan: document.getElementById('inp-catatan-nilai').value.trim(),
-      })
-      showToast('Penilaian tersimpan! ✅', 'success')
-      document.getElementById('inp-nilai').value = ''
-      loadPesertaHistory(pesertaId, showToast)
-    } catch(e) { showToast('Gagal: ' + e.message, 'error') }
-  })
+    btn.disabled = true
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan…'
 
-  // Save catatan
-  document.getElementById('btn-save-catatan').addEventListener('click', async () => {
-    const isi = document.getElementById('inp-catatan').value.trim()
-    if (!isi) { showToast('Tulis catatan terlebih dahulu.', 'info'); return }
-    try {
-      await mentorService.addCatatan({ id_peserta: pesertaId, id_mentor: state.profile.id, isi_catatan: isi })
-      showToast('Catatan tersimpan! ✅', 'success')
-      document.getElementById('inp-catatan').value = ''
+    const errors = []
+    const saved  = []
+
+    // Simpan Kemajuan Hafalan
+    if (hasKemajuan) {
+      try {
+        await mentorService.addKemajuan({
+          id_peserta: pesertaId,
+          id_mentor:  state.profile.id,
+          tanggal:    document.getElementById('inp-tgl-kemajuan').value || today,
+          kitab_surat:       kitab,
+          halaman_ayat:      halaman,
+          status_kelancaran: document.getElementById('inp-kelancaran').value,
+          catatan_hafalan:   document.getElementById('inp-catatan-hafalan').value.trim() || null,
+        })
+        saved.push('Kemajuan Hafalan')
+        document.getElementById('inp-kitab').value = ''
+        document.getElementById('inp-halaman').value = ''
+        document.getElementById('inp-catatan-hafalan').value = ''
+      } catch(e) { errors.push('Hafalan: ' + e.message) }
+    }
+
+    // Simpan Penilaian
+    if (hasPenilaian) {
+      const nilai = parseFloat(nilaiStr)
+      if (isNaN(nilai)) {
+        errors.push('Penilaian: nilai angka tidak valid')
+      } else {
+        try {
+          await mentorService.addPenilaian({
+            id_peserta:       pesertaId,
+            id_mentor:        state.profile.id,
+            tanggal:          document.getElementById('inp-tgl-nilai').value || today,
+            nilai_angka:      nilai,
+            nilai_adab:       parseInt(document.getElementById('inp-adab').value) || null,
+            nilai_tajwid:     parseInt(document.getElementById('inp-tajwid').value) || null,
+            nilai_kelancaran: parseInt(document.getElementById('inp-kelancaran-nilai').value) || null,
+            catatan:          document.getElementById('inp-catatan-nilai').value.trim() || null,
+          })
+          saved.push('Penilaian')
+          document.getElementById('inp-nilai').value = ''
+          document.getElementById('inp-catatan-nilai').value = ''
+        } catch(e) { errors.push('Penilaian: ' + e.message) }
+      }
+    }
+
+    // Simpan Catatan Mentor
+    if (hasCatatan) {
+      try {
+        await mentorService.addCatatan({
+          id_peserta: pesertaId,
+          id_mentor:  state.profile.id,
+          isi_catatan: catatan,
+        })
+        saved.push('Catatan')
+        document.getElementById('inp-catatan').value = ''
+      } catch(e) { errors.push('Catatan: ' + e.message) }
+    }
+
+    btn.disabled = false
+    btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Simpan Laporan Sesi'
+
+    if (saved.length > 0) {
+      showToast(`✅ Tersimpan: ${saved.join(', ')}`, 'success')
       loadPesertaHistory(pesertaId, showToast)
-    } catch(e) { showToast('Gagal: ' + e.message, 'error') }
+    }
+    if (errors.length > 0) {
+      errors.forEach(err => showToast('Gagal — ' + err, 'error'))
+    }
   })
 }
 
