@@ -195,30 +195,26 @@ create trigger peserta_updated_at    before update on public.peserta_didik for e
 -- Portal Wali: Cari peserta berdasarkan nama (fuzzy, tanpa kode akses)
 create or replace function public.search_peserta_wali_by_name(p_nama text)
 returns table (
-  id              int,
-  nama_lengkap    text,
-  usia            int,
-  jenis_kelamin   text,
-  jenis           text,
-  status          text,
-  nama_mentor     text,
-  nama_kelas      text,
-  hari_jadwal     text,
-  jam_jadwal      text,
-  -- Kemajuan terakhir
-  kitab_surat_terakhir    text,
-  halaman_ayat_terakhir   text,
-  tgl_kemajuan_terakhir   date,
-  -- Statistik kehadiran
-  total_hadir     bigint,
-  total_izin      bigint,
-  total_sakit     bigint,
-  total_alpa      bigint,
-  -- Nilai rata-rata
-  rata_nilai      numeric,
-  -- Penilaian terakhir
-  nilai_terakhir  numeric,
-  tgl_nilai_terakhir date
+  id                    int,
+  nama_lengkap          text,
+  usia                  int,
+  jenis_kelamin         text,
+  jenis                 text,
+  status                text,
+  nama_mentor           text,
+  nama_kelas            text,
+  hari_jadwal           text,
+  jam_jadwal            text,
+  kitab_surat_terakhir  text,
+  halaman_ayat_terakhir text,
+  tgl_kemajuan_terakhir date,
+  total_hadir           bigint,
+  total_izin            bigint,
+  total_sakit           bigint,
+  total_alpa            bigint,
+  rata_nilai            numeric,
+  nilai_terakhir        numeric,
+  tgl_nilai_terakhir    date
 )
 language plpgsql security definer as $$
 begin
@@ -230,45 +226,44 @@ begin
     pd.jenis_kelamin,
     pd.jenis,
     pd.status,
-    coalesce(p.nama, 'Belum ditentukan') as nama_mentor,
+    coalesce(pr.nama, 'Belum ditentukan') as nama_mentor,
     coalesce(k.nama_kelas, case when pd.jenis = 'privat' then 'Kelas Privat' else '-' end) as nama_kelas,
     k.hari_jadwal,
     k.jam_jadwal,
-    -- Kemajuan terakhir
     km.kitab_surat  as kitab_surat_terakhir,
     km.halaman_ayat as halaman_ayat_terakhir,
     km.tanggal      as tgl_kemajuan_terakhir,
-    -- Statistik kehadiran
     coalesce(count(kh.id) filter (where kh.status_hadir = 'hadir'), 0) as total_hadir,
     coalesce(count(kh.id) filter (where kh.status_hadir = 'izin'), 0)  as total_izin,
     coalesce(count(kh.id) filter (where kh.status_hadir = 'sakit'), 0) as total_sakit,
     coalesce(count(kh.id) filter (where kh.status_hadir = 'alpa'), 0)  as total_alpa,
-    -- Nilai
-    round(avg(pn.nilai_angka), 1)           as rata_nilai,
-    pn_last.nilai_angka                      as nilai_terakhir,
-    pn_last.tanggal                          as tgl_nilai_terakhir
+    round(avg(pn.nilai_angka), 1) as rata_nilai,
+    pn_last.nilai_angka as nilai_terakhir,
+    pn_last.tanggal     as tgl_nilai_terakhir
   from public.peserta_didik pd
-  left join public.profiles  p    on p.id    = pd.id_mentor
-  left join public.kelas     k    on k.id    = pd.id_kelas
+  left join public.profiles pr on pr.id = pd.id_mentor
+  left join public.kelas k     on k.id  = pd.id_kelas
   left join lateral (
-    select * from public.kemajuan
-    where id_peserta = pd.id
-    order by tanggal desc, id desc
+    select km_sub.kitab_surat, km_sub.halaman_ayat, km_sub.tanggal
+    from public.kemajuan km_sub
+    where km_sub.id_peserta = pd.id
+    order by km_sub.tanggal desc, km_sub.id desc
     limit 1
   ) km on true
-  left join public.kehadiran kh   on kh.id_peserta = pd.id
-  left join public.penilaian pn   on pn.id_peserta  = pd.id
+  left join public.kehadiran kh on kh.id_peserta = pd.id
+  left join public.penilaian pn on pn.id_peserta = pd.id
   left join lateral (
-    select nilai_angka, tanggal from public.penilaian
-    where id_peserta = pd.id
-    order by tanggal desc, id desc
+    select pn_sub.nilai_angka, pn_sub.tanggal
+    from public.penilaian pn_sub
+    where pn_sub.id_peserta = pd.id
+    order by pn_sub.tanggal desc, pn_sub.id desc
     limit 1
   ) pn_last on true
-  where pd.nama_lengkap ilike '%' || p_nama || '%'
+  where (p_nama = '' or pd.nama_lengkap ilike '%' || p_nama || '%')
     and pd.status = 'aktif'
   group by
     pd.id, pd.nama_lengkap, pd.usia, pd.jenis_kelamin, pd.jenis, pd.status,
-    p.nama, k.nama_kelas, k.hari_jadwal, k.jam_jadwal,
+    pr.nama, k.nama_kelas, k.hari_jadwal, k.jam_jadwal,
     km.kitab_surat, km.halaman_ayat, km.tanggal,
     pn_last.nilai_angka, pn_last.tanggal
   order by pd.nama_lengkap;
@@ -327,6 +322,40 @@ begin
   left join public.profiles pr on pr.id = pd.id_mentor
   left join public.kelas k      on k.id  = pd.id_kelas
   where pd.id = p_peserta_id and pd.status = 'aktif';
+  return v_result;
+end;
+$$;
+
+-- Portal Wali: Data chart penilaian dan kehadiran
+create or replace function public.get_peserta_charts_wali(p_peserta_id int)
+returns jsonb
+language plpgsql security definer as $$
+declare v_result jsonb;
+begin
+  select jsonb_build_object(
+    'penilaian', coalesce((
+      select jsonb_agg(
+        jsonb_build_object('tanggal', pn.tanggal, 'nilai_angka', pn.nilai_angka)
+        order by pn.tanggal asc
+      )
+      from (
+        select tanggal, nilai_angka from public.penilaian
+        where id_peserta = p_peserta_id
+        order by tanggal desc limit 12
+      ) pn
+    ), '[]'::jsonb),
+    'kehadiran', coalesce((
+      select jsonb_agg(
+        jsonb_build_object('tanggal', kh.tanggal, 'status_hadir', kh.status_hadir)
+        order by kh.tanggal asc
+      )
+      from (
+        select tanggal, status_hadir from public.kehadiran
+        where id_peserta = p_peserta_id
+        order by tanggal desc limit 60
+      ) kh
+    ), '[]'::jsonb)
+  ) into v_result;
   return v_result;
 end;
 $$;
@@ -396,6 +425,20 @@ $$;
 -- ROW LEVEL SECURITY (RLS)
 -- ============================================================
 
+-- Helper: Cek role admin tanpa perulangan tak terbatas (security definer)
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select coalesce(
+    (select role = 'admin' from public.profiles where id = auth.uid()),
+    false
+  );
+$$;
+
 alter table public.profiles         enable row level security;
 alter table public.kelas             enable row level security;
 alter table public.peserta_didik     enable row level security;
@@ -409,35 +452,46 @@ alter table public.activity_logs     enable row level security;
 -- PROFILES
 create policy "Admin akses penuh profiles"
   on public.profiles for all
-  using (
-    exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
-  );
-create policy "Mentor baca profil sendiri"
+  using (public.is_admin())
+  with check (public.is_admin());
+
+create policy "User baca profil sendiri"
   on public.profiles for select
   using (id = auth.uid());
-create policy "Mentor update profil sendiri"
+
+create policy "User update profil sendiri"
   on public.profiles for update
-  using (id = auth.uid());
+  using (id = auth.uid())
+  with check (id = auth.uid());
+
+create policy "Public baca mentor"
+  on public.profiles for select
+  using (role = 'mentor');
 
 -- KELAS
 create policy "Admin akses penuh kelas"
   on public.kelas for all
-  using (
-    exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
-  );
+  using (public.is_admin())
+  with check (public.is_admin());
+
 create policy "Mentor baca kelas yang diampu"
   on public.kelas for select
   using (id_mentor = auth.uid());
 
+create policy "Public baca kelas aktif"
+  on public.kelas for select
+  using (status = 'aktif');
+
 -- PESERTA DIDIK
 create policy "Admin akses penuh peserta"
   on public.peserta_didik for all
-  using (
-    exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
-  );
+  using (public.is_admin())
+  with check (public.is_admin());
+
 create policy "Mentor baca peserta yang diampu"
   on public.peserta_didik for select
   using (id_mentor = auth.uid());
+
 create policy "Mentor update peserta yang diampu"
   on public.peserta_didik for update
   using (id_mentor = auth.uid());
@@ -445,9 +499,9 @@ create policy "Mentor update peserta yang diampu"
 -- KEHADIRAN
 create policy "Admin akses penuh kehadiran"
   on public.kehadiran for all
-  using (
-    exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
-  );
+  using (public.is_admin())
+  with check (public.is_admin());
+
 create policy "Mentor CRUD kehadiran peserta yang diampu"
   on public.kehadiran for all
   using (id_mentor = auth.uid());
@@ -455,9 +509,9 @@ create policy "Mentor CRUD kehadiran peserta yang diampu"
 -- KEMAJUAN
 create policy "Admin akses penuh kemajuan"
   on public.kemajuan for all
-  using (
-    exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
-  );
+  using (public.is_admin())
+  with check (public.is_admin());
+
 create policy "Mentor CRUD kemajuan peserta yang diampu"
   on public.kemajuan for all
   using (id_mentor = auth.uid());
@@ -465,9 +519,9 @@ create policy "Mentor CRUD kemajuan peserta yang diampu"
 -- PENILAIAN
 create policy "Admin akses penuh penilaian"
   on public.penilaian for all
-  using (
-    exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
-  );
+  using (public.is_admin())
+  with check (public.is_admin());
+
 create policy "Mentor CRUD penilaian peserta yang diampu"
   on public.penilaian for all
   using (id_mentor = auth.uid());
@@ -475,9 +529,9 @@ create policy "Mentor CRUD penilaian peserta yang diampu"
 -- PELAJARAN TAMBAHAN
 create policy "Admin akses penuh pelajaran_tambahan"
   on public.pelajaran_tambahan for all
-  using (
-    exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
-  );
+  using (public.is_admin())
+  with check (public.is_admin());
+
 create policy "Mentor CRUD pelajaran peserta yang diampu"
   on public.pelajaran_tambahan for all
   using (id_mentor = auth.uid());
@@ -485,9 +539,9 @@ create policy "Mentor CRUD pelajaran peserta yang diampu"
 -- CATATAN MENTOR
 create policy "Admin akses penuh catatan_mentor"
   on public.catatan_mentor for all
-  using (
-    exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
-  );
+  using (public.is_admin())
+  with check (public.is_admin());
+
 create policy "Mentor CRUD catatan peserta yang diampu"
   on public.catatan_mentor for all
   using (id_mentor = auth.uid());
@@ -495,12 +549,11 @@ create policy "Mentor CRUD catatan peserta yang diampu"
 -- ACTIVITY LOGS
 create policy "Admin baca semua activity_logs"
   on public.activity_logs for select
-  using (
-    exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
-  );
+  using (public.is_admin());
+
 create policy "Semua user insert activity_logs"
   on public.activity_logs for insert
-  with check (id_user = auth.uid());
+  with check (id_user = auth.uid() or auth.uid() is not null);
 
 -- ============================================================
 -- INDEXES (Performance)

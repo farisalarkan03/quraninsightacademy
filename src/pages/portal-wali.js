@@ -205,12 +205,17 @@ function setupWaliEvents(navigate, showToast) {
       </div>`
     try {
       const data = await waliService.getPesertaDetail(id)
-      if (!data) { showToast('Data tidak ditemukan', 'error'); return }
+      if (!data || !data.peserta) {
+        document.getElementById('detail-modal').classList.remove('show')
+        showToast('Data peserta didik tidak ditemukan.', 'error')
+        return
+      }
       document.getElementById('detail-modal-title').textContent = `Profil — ${data.peserta?.nama_lengkap || ''}`
       document.getElementById('detail-modal-body').innerHTML = buildDetailHTML(data)
       // Render charts
       await renderDetailCharts(id, data)
     } catch (e) {
+      document.getElementById('detail-modal').classList.remove('show')
       showToast('Gagal memuat detail: ' + e.message, 'error')
     }
   }
@@ -218,7 +223,11 @@ function setupWaliEvents(navigate, showToast) {
   window.printRapor = async function(id, nama) {
     try {
       const data = await waliService.getPesertaDetail(id)
-      if (data) printRaporPeserta(data)
+      if (data && data.peserta) {
+        printRaporPeserta(data)
+      } else {
+        showToast('Data peserta didik belum lengkap untuk dicetak.', 'error')
+      }
     } catch(e) {
       showToast('Gagal mencetak rapor: ' + e.message, 'error')
     }
@@ -475,8 +484,9 @@ async function renderDetailCharts(pesertaId, data) {
     const charts = await waliService.getChartDataPeserta(pesertaId)
     // Chart Nilai
     const nilaiData = (charts.penilaian||[]).slice(-12)
-    if (nilaiData.length > 0 && document.getElementById('chart-nilai')) {
-      new Chart(document.getElementById('chart-nilai'), {
+    const chartNilaiEl = document.getElementById('chart-nilai')
+    if (nilaiData.length > 0 && chartNilaiEl) {
+      new Chart(chartNilaiEl, {
         type: 'line',
         data: {
           labels: nilaiData.map(n => formatDateShort(n.tanggal)),
@@ -495,11 +505,23 @@ async function renderDetailCharts(pesertaId, data) {
           }
         }
       })
+    } else if (chartNilaiEl && chartNilaiEl.parentElement) {
+      chartNilaiEl.parentElement.innerHTML = `
+        <div style="font-size:13px;font-weight:700;color:#1a0a02;margin-bottom:12px;">
+          <i class="fa-solid fa-chart-line" style="color:#F0AF43;"></i> Tren Nilai
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:140px;color:#81511D;opacity:0.75;font-size:12.5px;">
+          <i class="fa-solid fa-chart-line" style="font-size:26px;margin-bottom:8px;color:#d97706;"></i>
+          Belum ada riwayat penilaian
+        </div>`
     }
+
     // Chart Kehadiran
     const kh = data.kehadiran_summary || {}
-    if (document.getElementById('chart-kehadiran')) {
-      new Chart(document.getElementById('chart-kehadiran'), {
+    const totalKh = (kh.hadir||0) + (kh.izin||0) + (kh.sakit||0) + (kh.alpa||0)
+    const chartKehadiranEl = document.getElementById('chart-kehadiran')
+    if (totalKh > 0 && chartKehadiranEl) {
+      new Chart(chartKehadiranEl, {
         type: 'doughnut',
         data: {
           labels: ['Hadir', 'Izin', 'Sakit', 'Alpa'],
@@ -513,6 +535,15 @@ async function renderDetailCharts(pesertaId, data) {
           plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12, font: { size: 12 } } } }
         }
       })
+    } else if (chartKehadiranEl && chartKehadiranEl.parentElement) {
+      chartKehadiranEl.parentElement.innerHTML = `
+        <div style="font-size:13px;font-weight:700;color:#1a0a02;margin-bottom:12px;">
+          <i class="fa-solid fa-chart-pie" style="color:#10b981;"></i> Rekap Kehadiran
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:140px;color:#81511D;opacity:0.75;font-size:12.5px;">
+          <i class="fa-solid fa-calendar-check" style="font-size:26px;margin-bottom:8px;color:#10b981;"></i>
+          Belum ada catatan absensi
+        </div>`
     }
   } catch(e) { /* chart tidak critical */ }
 }

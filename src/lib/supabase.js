@@ -101,19 +101,43 @@ export const adminService = {
     if (isConfigured) {
       try {
         const { data, error } = await supabase.rpc('get_admin_dashboard_stats')
-        if (!error && data) return data
+        if (!error && data) {
+          return {
+            ...data,
+            total_santri_aktif: data.total_peserta,
+            total_santri_bimbel: data.total_bimbel,
+            total_santri_privat: data.total_privat,
+            total_mentor_aktif: data.total_mentor,
+            total_kelas_aktif: data.total_kelas,
+          }
+        }
       } catch(e) {}
     }
     const peserta = await this.getPesertaDidik()
     const mentors = await this.getMentors()
     const kelas   = await this.getKelas()
+    const totalPeserta = peserta.filter(p => p.status === 'aktif').length
+    const totalBimbel  = peserta.filter(p => p.jenis === 'bimbel' && p.status === 'aktif').length
+    const totalPrivat  = peserta.filter(p => p.jenis === 'privat' && p.status === 'aktif').length
+    const totalMentor  = mentors.filter(m => m.status === 'aktif').length
+    const totalKelas   = kelas.filter(k => k.status === 'aktif').length
     return {
-      total_santri_aktif: peserta.filter(p => p.status === 'aktif').length,
-      total_santri_bimbel: peserta.filter(p => p.jenis === 'bimbel').length,
-      total_santri_privat: peserta.filter(p => p.jenis === 'privat').length,
-      total_mentor_aktif: mentors.filter(m => m.status === 'aktif').length,
-      total_kelas_aktif: kelas.filter(k => k.status === 'aktif').length,
-      persentase_kehadiran_bulan_ini: 94.2
+      total_peserta: totalPeserta,
+      total_bimbel: totalBimbel,
+      total_privat: totalPrivat,
+      total_mentor: totalMentor,
+      total_kelas: totalKelas,
+      hadir_hari_ini: 0,
+      absensi_hari_ini: 0,
+      rata_nilai_bulan_ini: 0,
+      aktivitas_terbaru: [],
+      // Alias
+      total_santri_aktif: totalPeserta,
+      total_santri_bimbel: totalBimbel,
+      total_santri_privat: totalPrivat,
+      total_mentor_aktif: totalMentor,
+      total_kelas_aktif: totalKelas,
+      persentase_kehadiran_bulan_ini: 100
     }
   },
 
@@ -520,13 +544,15 @@ export const waliService = {
     if (isConfigured) {
       try {
         const { data, error } = await supabase.rpc('get_peserta_detail_wali', { p_peserta_id: pId })
-        if (!error && data) return data
+        if (!error && data && data.peserta) return data
       } catch(e) {}
     }
 
     // Demo Mode detail builder
     const all = getLocalStore('peserta', DEMO_PESERTA)
-    const p = all.find(x => x.id === pId) || all[0]
+    const p = all.find(x => x.id === pId)
+    if (!p) return null
+
     const kelasList = getLocalStore('kelas', DEMO_KELAS)
     const mentorList = getLocalStore('profiles', DEMO_PROFILES)
     const k = kelasList.find(c => c.id === p?.id_kelas)
@@ -535,23 +561,26 @@ export const waliService = {
     const kehadiran = getLocalStore('kehadiran', DEMO_KEHADIRAN).filter(x => x.id_peserta === pId)
     const penilaian = getLocalStore('penilaian', DEMO_PENILAIAN).filter(x => x.id_peserta === pId)
 
+    const hadirCount = kehadiran.filter(h => h.status_hadir === 'hadir').length
+    const izinCount  = kehadiran.filter(h => h.status_hadir === 'izin').length
+    const sakitCount = kehadiran.filter(h => h.status_hadir === 'sakit').length
+    const alpaCount  = kehadiran.filter(h => h.status_hadir === 'alpa').length
+
     return {
-      id: p.id,
-      nama_lengkap: p.nama_lengkap,
-      usia: p.usia,
-      jenis_kelamin: p.jenis_kelamin,
-      jenis: p.jenis,
-      nama_kelas: k?.nama_kelas || (p.jenis === 'privat' ? 'Program Privat' : '-'),
-      nama_mentor: m?.nama || 'Asatidz QIA',
-      status: p.status,
-      kemajuan_terakhir: kemajuan.slice(0, 5),
-      kehadiran_terakhir: kehadiran.slice(0, 10),
-      penilaian_terakhir: penilaian.slice(0, 5),
-      statistik: {
-        total_pertemuan: kehadiran.length || 10,
-        total_hadir: kehadiran.filter(h => h.status_hadir === 'hadir').length || 9,
-        rata_nilai: penilaian.length ? Math.round(penilaian.reduce((a,b)=>a+b.nilai_angka,0)/penilaian.length) : 88
-      }
+      peserta: p,
+      mentor: m || { nama: 'Belum ditentukan' },
+      kelas: k || { nama_kelas: p.jenis === 'privat' ? 'Program Privat' : '-' },
+      kemajuan,
+      penilaian,
+      kehadiran_summary: {
+        hadir: hadirCount,
+        izin: izinCount,
+        sakit: sakitCount,
+        alpa: alpaCount,
+        total: kehadiran.length
+      },
+      riwayat_kehadiran: kehadiran,
+      catatan_mentor: []
     }
   },
 
@@ -559,6 +588,10 @@ export const waliService = {
   async getChartDataPeserta(pesertaId) {
     const pId = Number(pesertaId)
     if (isConfigured) {
+      try {
+        const { data, error } = await supabase.rpc('get_peserta_charts_wali', { p_peserta_id: pId })
+        if (!error && data) return data
+      } catch(e) {}
       try {
         const [penilaian, kehadiran, kemajuan] = await Promise.all([
           supabase.from('penilaian').select('tanggal, nilai_angka').eq('id_peserta', pId).order('tanggal').limit(20),

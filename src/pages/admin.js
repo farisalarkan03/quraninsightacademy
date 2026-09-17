@@ -219,7 +219,12 @@ function renderAdminView(view, showToast) {
   document.getElementById('sidebar-overlay').classList.remove('show')
 
   switch(view) {
-    case 'dashboard':   renderAdminDashboard(main, showToast);  break
+    case 'dashboard':
+      renderAdminDashboard(main, showToast)
+      loadAdminStats(showToast).then(() => {
+        if (state.activeView === 'dashboard') renderAdminDashboard(main, showToast)
+      })
+      break
     case 'mentor':      renderMentorManage(main, showToast);     break
     case 'kelas':       renderKelasManage(main, showToast);      break
     case 'peserta':     renderPesertaManage(main, showToast);    break
@@ -234,9 +239,13 @@ function renderAdminView(view, showToast) {
 async function loadAdminStats(showToast) {
   try {
     state.stats = await adminService.getDashboardStats()
-    document.getElementById('user-name').textContent = state.profile?.nama || 'Admin'
-    document.getElementById('user-avatar').textContent = (state.profile?.nama||'A').charAt(0)
-  } catch(e) { showToast('Gagal load stats: ' + e.message, 'error') }
+    const nameEl = document.getElementById('user-name')
+    if (nameEl) nameEl.textContent = state.profile?.nama || 'Admin'
+    const avatarEl = document.getElementById('user-avatar')
+    if (avatarEl) avatarEl.textContent = (state.profile?.nama||'A').charAt(0)
+  } catch(e) {
+    if (showToast) showToast('Gagal load stats: ' + e.message, 'error')
+  }
 }
 
 // ── DASHBOARD ────────────────────────────────────────────────
@@ -291,6 +300,26 @@ function renderAdminDashboard(main, showToast) {
     </button>`).join('')}
   </div>
 
+  <!-- Charts Ringkasan & Analitik -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;margin-bottom:24px;">
+    <div class="card">
+      <h3 style="color:var(--cream-100);font-size:14px;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+        <i class="fa-solid fa-chart-pie" style="color:#F0AF43;"></i> Distribusi Peserta Didik
+      </h3>
+      <div style="position:relative;height:210px;display:flex;align-items:center;justify-content:center;">
+        <canvas id="admin-chart-distribusi"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="color:var(--cream-100);font-size:14px;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+        <i class="fa-solid fa-chart-column" style="color:#10b981;"></i> Rangkuman Data Sistem
+      </h3>
+      <div style="position:relative;height:210px;display:flex;align-items:center;justify-content:center;">
+        <canvas id="admin-chart-sistem"></canvas>
+      </div>
+    </div>
+  </div>
+
   <!-- Activity -->
   <div class="card">
     <h3 style="color:var(--cream-100);font-size:14px;margin-bottom:14px;">
@@ -310,6 +339,80 @@ function renderAdminDashboard(main, showToast) {
         </div>`).join('')}
       </div>`}
   </div>`
+
+  initAdminDashboardCharts(s)
+}
+
+function initAdminDashboardCharts(s) {
+  setTimeout(() => {
+    // 1. Chart Distribusi Peserta
+    const distCanvas = document.getElementById('admin-chart-distribusi')
+    if (distCanvas && typeof Chart !== 'undefined') {
+      const bimbelCount = s.total_bimbel || 0
+      const privatCount = s.total_privat || 0
+      const total = bimbelCount + privatCount
+      if (total === 0) {
+        distCanvas.parentElement.innerHTML = `
+          <div style="text-align:center;color:var(--text-card-muted);font-size:12.5px;">
+            <i class="fa-solid fa-chart-pie" style="font-size:28px;opacity:0.35;margin-bottom:8px;color:#F0AF43;display:block;"></i>
+            Belum ada data peserta didik
+          </div>`
+      } else {
+        new Chart(distCanvas, {
+          type: 'doughnut',
+          data: {
+            labels: ['Bimbel Kelompok', 'Program Privat'],
+            datasets: [{
+              data: [bimbelCount, privatCount],
+              backgroundColor: ['#10b981', '#F0AF43'],
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '68%',
+            plugins: {
+              legend: { position: 'bottom', labels: { color: '#fdf0e2', boxWidth: 12, padding: 12, font: { size: 12 } } }
+            }
+          }
+        })
+      }
+    }
+
+    // 2. Chart Rangkuman Data Sistem
+    const sistCanvas = document.getElementById('admin-chart-sistem')
+    if (sistCanvas && typeof Chart !== 'undefined') {
+      new Chart(sistCanvas, {
+        type: 'bar',
+        data: {
+          labels: ['Peserta Bimbel', 'Peserta Privat', 'Mentor Aktif', 'Kelas Aktif'],
+          datasets: [{
+            label: 'Jumlah',
+            data: [s.total_bimbel || 0, s.total_privat || 0, s.total_mentor || 0, s.total_kelas || 0],
+            backgroundColor: ['rgba(16,185,129,0.75)', 'rgba(240,175,67,0.75)', 'rgba(59,130,246,0.75)', 'rgba(217,119,6,0.75)'],
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { color: '#c9a87a', stepSize: 1, font: { size: 11 } },
+              grid: { color: 'rgba(255,255,255,0.06)' }
+            },
+            x: {
+              ticks: { color: '#c9a87a', font: { size: 11 } },
+              grid: { display: false }
+            }
+          }
+        }
+      })
+    }
+  }, 50)
 }
 
 // ── MENTOR MANAJEMEN ─────────────────────────────────────────
