@@ -60,19 +60,6 @@ function renderMentorLogin(app, navigate, showToast) {
         </button>
       </form>
 
-      <div class="section-divider"><span>Pilih Akun Demo Uji Coba</span></div>
-
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <button type="button" id="btn-demo-bimbel" class="btn btn-secondary" style="width:100%;font-size:12.5px;text-align:left;display:flex;align-items:center;justify-content:space-between;">
-          <span><i class="fa-solid fa-chalkboard-user mr-1" style="color:#F0AF43;"></i> Ust. Abdurrahman</span>
-          <span class="nav-badge">Bimbel</span>
-        </button>
-        <button type="button" id="btn-demo-privat" class="btn btn-secondary" style="width:100%;font-size:12.5px;text-align:left;display:flex;align-items:center;justify-content:space-between;">
-          <span><i class="fa-solid fa-user-graduate mr-1" style="color:#10b981;"></i> Ust. Hasan Al-Bashri</span>
-          <span class="nav-badge" style="background:rgba(16,185,129,0.2);color:#10b981;">Privat</span>
-        </button>
-      </div>
-
       <div style="text-align:center;margin-top:20px;">
         <button onclick="window.navigate('/')" style="background:none;border:none;color:#c9a87a;font-size:13px;cursor:pointer;">
           <i class="fa-solid fa-arrow-left mr-1"></i> Kembali ke Beranda
@@ -80,6 +67,7 @@ function renderMentorLogin(app, navigate, showToast) {
       </div>
     </div>
   </div>`
+
 
   const form = document.getElementById('mentor-login-form')
   form.addEventListener('submit', async (e) => {
@@ -100,20 +88,8 @@ function renderMentorLogin(app, navigate, showToast) {
     }
   })
 
-  document.getElementById('btn-demo-bimbel')?.addEventListener('click', async () => {
-    showToast('Masuk sebagai Ust. Abdurrahman (Bimbel)…', 'info')
-    await authService.login('mentor1@qia.id', 'demo123')
-    showToast('Selamat datang, Ust. Abdurrahman!', 'success')
-    renderMentor(app, navigate, showToast)
-  })
-
-  document.getElementById('btn-demo-privat')?.addEventListener('click', async () => {
-    showToast('Masuk sebagai Ust. Hasan (Privat)…', 'info')
-    await authService.login('mentor3@qia.id', 'demo123')
-    showToast('Selamat datang, Ust. Hasan!', 'success')
-    renderMentor(app, navigate, showToast)
-  })
 }
+
 
 function buildMentorShell() {
   return `

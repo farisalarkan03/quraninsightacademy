@@ -66,12 +66,6 @@ function renderAdminLogin(app, navigate, showToast) {
         </button>
       </form>
 
-      <div class="section-divider"><span>Atau Mode Uji Coba</span></div>
-
-      <button type="button" id="btn-quick-admin" class="btn btn-secondary" style="width:100%;font-size:13px;">
-        <i class="fa-solid fa-bolt mr-1"></i> Masuk Cepat Demo Admin
-      </button>
-
       <div style="text-align:center;margin-top:20px;">
         <button onclick="window.navigate('/')" style="background:none;border:none;color:#c9a87a;font-size:13px;cursor:pointer;">
           <i class="fa-solid fa-arrow-left mr-1"></i> Kembali ke Beranda
@@ -99,13 +93,8 @@ function renderAdminLogin(app, navigate, showToast) {
     }
   })
 
-  document.getElementById('btn-quick-admin')?.addEventListener('click', async () => {
-    showToast('Masuk dengan akun demo admin…', 'info')
-    await authService.login('admin@qia.id', 'demo123')
-    showToast('Berhasil masuk mode admin!', 'success')
-    renderAdmin(app, navigate, showToast)
-  })
 }
+
 
 function buildAdminShell() {
   return `
