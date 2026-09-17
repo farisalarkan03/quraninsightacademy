@@ -83,9 +83,29 @@ function renderAdminLogin(app, navigate, showToast) {
     btn.disabled = true
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Masuk…'
     try {
-      await authService.login(email, pwd)
+      const loginData = await authService.login(email, pwd)
+      // Ambil profile langsung dari user ID hasil login (hindari race condition getSession)
+      const userId = loginData?.user?.id
+      if (userId) {
+        const { supabase } = await import('@/lib/supabase.js')
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single()
+        if (profile && profile.role === 'admin') {
+          state.profile = profile
+          showToast('Berhasil masuk sebagai Admin!', 'success')
+          app.innerHTML = buildAdminShell()
+          attachAdminEvents(navigate, showToast)
+          await loadAdminStats(showToast)
+          renderAdminView('dashboard', showToast)
+          return
+        }
+      }
+      // Fallback: coba renderAdmin biasa
       showToast('Berhasil masuk sebagai Admin!', 'success')
-      renderAdmin(app, navigate, showToast)
+      setTimeout(() => renderAdmin(app, navigate, showToast), 300)
     } catch (err) {
       showToast('Gagal masuk: ' + err.message, 'error')
       btn.disabled = false

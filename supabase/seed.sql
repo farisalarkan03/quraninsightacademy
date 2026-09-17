@@ -14,7 +14,7 @@
 do $$
 declare
   -- GANTI dengan UUID dari Supabase Auth Dashboard setelah membuat user portalqia@gmail.com
-  v_admin_id uuid := '00000000-0000-0000-0000-000000000000';
+  v_admin_id uuid := '46920393-3829-46dd-a966-da64212464f1';
 begin
 
 -- ── PROFILE ADMIN ─────────────────────────────────────────
