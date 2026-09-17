@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Portal — Quran Insight Academy</title>
+  <meta name="description" content="Portal Admin Quran Insight Academy untuk manajemen mentor dan peserta didik">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Amiri:wght@700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* ════════════════════════════════════════════════════
+       QIA PORTAL ADMIN — DESIGN SYSTEM
+       TIER 1: Body bg #f3e9dc  -> teks gelap (#1a0a02)
+       TIER 2: Card/Sidebar/Modal bg #221104 -> teks terang (#fdf0e2)
+    ════════════════════════════════════════════════════ */
+    :root {
+      --clr-brown-900: #1a0a02;
+      --clr-brown-800: #221104;
+      --clr-brown-700: #3a1c08;
+      --clr-brown-600: #4F280C;
+      --clr-brown-500: #81511D;
+      --clr-brown-300: #D4934E;
+      --clr-gold:      #F0AF43;
+      --clr-gold-lt:   #fbbf24;
+      --clr-cream-100: #fdf0e2;
+      --clr-cream-200: #f3e9dc;
+      --clr-cream-300: #e8d4bc;
+
+      --bg:         var(--clr-cream-200);
+      --bg-card:    var(--clr-brown-800);
+      --border-lt:  rgba(129,81,29,0.18);
+      --border-dk:  rgba(240,175,67,0.20);
+
+      --tx-body:    var(--clr-brown-900);
+      --tx-body-md: var(--clr-brown-600);
+      --tx-body-sm: var(--clr-brown-500);
+
+      --tx-card:    var(--clr-cream-100);
+      --tx-card-md: var(--clr-cream-300);
+      --tx-card-sm: #c9a87a;
+
+      --accent:   var(--clr-gold);
+      --accent-lt: var(--clr-gold-lt);
+      --danger:   #e05c4b;
+      --warning:  #F0AF43;
+      --success:  #6fcf97;
+      --info:     #D4934E;
+      --radius:   16px;
+      --radius-sm: 10px;
+      --shadow:   0 8px 32px rgba(0,0,0,0.25);
+      --transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--tx-body);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content:''; position:fixed; top:-200px; left:-200px; width:600px; height:600px;
+      background:radial-gradient(circle, rgba(240,175,67,0.08) 0%, transparent 70%);
+      pointer-events:none; z-index:0;
+    }
+
+    /* ── SIDEBAR (dark) ─────────────────────────── */
+    #sidebar {
+      position:fixed; top:0; left:0; width:260px; height:100vh;
+      background:var(--bg-card);
+      border-right:1px solid var(--border-dk);
+      display:flex; flex-direction:column; z-index:100; transition:var(--transition);
+    }
+    .sidebar-logo { padding:28px 24px 20px; border-bottom:1px solid var(--border-dk); display:flex; align-items:center; gap:12px; }
+    .sidebar-logo-icon {
+      width:44px; height:44px;
+      background:linear-gradient(135deg, var(--clr-brown-500), var(--clr-brown-300));
+      border-radius:12px; display:flex; align-items:center; justify-content:center;
+      font-size:20px; color:#fff; box-shadow:0 4px 16px rgba(0,0,0,0.3);
+    }
+    .sidebar-logo-text h1 { font-size:15px; font-weight:700; color:var(--tx-card); }
+    .sidebar-logo-text p  { font-size:11px; color:var(--tx-card-sm); margin-top:2px; }
+    .sidebar-nav          { flex:1; padding:16px 12px; overflow-y:auto; }
+    .nav-section-label    { font-size:10px; font-weight:700; letter-spacing:1.5px; color:var(--tx-card-sm); text-transform:uppercase; padding:8px 12px 4px; }
+    .nav-item {
+      display:flex; align-items:center; gap:12px;
+      padding:11px 14px; border-radius:var(--radius-sm);
+      color:var(--tx-card-md);
+      font-size:14px; font-weight:500; transition:var(--transition);
+      border:1px solid transparent; cursor:pointer;
+    }
+    .nav-item:hover  { background:rgba(240,175,67,0.08); color:var(--clr-gold); }
+    .nav-item.active { background:rgba(240,175,67,0.15); color:var(--clr-gold); border-color:rgba(240,175,67,0.3); font-weight:700; }
+    .nav-item .nav-icon { width:20px; text-align:center; font-size:15px; }
+    .sidebar-footer  { padding:16px 12px; border-top:1px solid var(--border-dk); }
+    .user-card {
+      display:flex; align-items:center; gap:10px;
+      padding:10px 12px; background:rgba(255,255,255,0.04);
+      border-radius:var(--radius-sm); border:1px solid var(--border-dk);
+    }
+    .user-avatar {
+      width:36px; height:36px;
+      background:linear-gradient(135deg, var(--clr-brown-500), var(--clr-gold));
+      border-radius:10px; display:flex; align-items:center; justify-content:center;
+      font-size:14px; font-weight:700; color:#fff;
+    }
+    .user-info p    { font-size:13px; font-weight:600; color:var(--tx-card); }
+    .user-info span { font-size:11px; color:var(--tx-card-sm); }
+    .btn-logout { margin-left:auto; background:none; border:none; color:var(--tx-card-sm); cursor:pointer; font-size:15px; transition:var(--transition); padding:4px; }
+    .btn-logout:hover { color:var(--danger); }
+
+    /* ── MAIN (cream) ──────────────────────────── */
+    #main { margin-left:260px; min-height:100vh; padding:28px; position:relative; z-index:1; }
+    .page       { display:none; animation:fadeIn 0.3s ease; }
+    .page.active { display:block; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+    /* TOPBAR (cream bg) */
+    .topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; }
+    .topbar-title h2 { font-size:22px; font-weight:800; color:var(--tx-body); }
+    .topbar-title p  { font-size:13px; color:var(--tx-body-md); margin-top:2px; }
+
+    /* STAT CARDS (dark bg) */
+    .stats-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:16px; margin-bottom:28px; }
+    .stat-card  { background:var(--bg-card); border:1px solid var(--border-dk); border-radius:var(--radius); padding:20px; position:relative; overflow:hidden; transition:var(--transition); }
+    .stat-card:hover { border-color:rgba(240,175,67,0.4); transform:translateY(-2px); box-shadow:var(--shadow); }
+    .stat-card::before { content:''; position:absolute; top:0; right:0; width:80px; height:80px; border-radius:50%; transform:translate(25px,-25px); opacity:0.12; }
+    .stat-card.green::before { background:var(--clr-brown-500); }
+    .stat-card.gold::before  { background:var(--clr-gold); }
+    .stat-card.blue::before  { background:var(--clr-brown-300); }
+    .stat-card.red::before   { background:var(--danger); }
+    .stat-icon { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:18px; margin-bottom:12px; }
+    .stat-card.green .stat-icon { background:rgba(129,81,29,0.2); color:var(--clr-brown-300); }
+    .stat-card.gold  .stat-icon { background:rgba(240,175,67,0.2); color:var(--clr-gold); }
+    .stat-card.blue  .stat-icon { background:rgba(212,147,78,0.2); color:var(--clr-brown-300); }
+    .stat-card.red   .stat-icon { background:rgba(224,92,75,0.2);  color:#ff8a7a; }
+    .stat-label { font-size:12px; color:var(--tx-card-sm); font-weight:500; }
+    .stat-value { font-size:28px; font-weight:800; color:var(--tx-card); margin:4px 0; }
+    .stat-sub   { font-size:11px; color:var(--tx-card-sm); }
+
+    /* CHARTS */
+    .chart-grid  { display:grid; grid-template-columns:2fr 1fr; gap:16px; margin-bottom:28px; }
+    .chart-card  { background:var(--bg-card); border:1px solid var(--border-dk); border-radius:var(--radius); padding:20px; }
+    .chart-card-title { font-size:14px; font-weight:700; color:var(--tx-card); margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+
+    /* TABLE */
+    .table-card   { background:var(--bg-card); border:1px solid var(--border-dk); border-radius:var(--radius); overflow:hidden; }
+    .table-header { display:flex; align-items:center; justify-content:space-between; padding:18px 20px; border-bottom:1px solid var(--border-dk); }
+    .table-header h3 { font-size:15px; font-weight:700; color:var(--tx-card); }
+    table { width:100%; border-collapse:collapse; }
+    thead th { padding:12px 20px; font-size:11px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; color:var(--clr-gold); background:rgba(240,175,67,0.1); text-align:left; border-bottom:1px solid var(--border-dk); }
+    tbody tr  { transition:var(--transition); border-bottom:1px solid rgba(240,175,67,0.06); }
+    tbody tr:hover { background:rgba(255,255,255,0.03); }
+    tbody td  { padding:14px 20px; font-size:14px; color:var(--tx-card-md); }
+    tbody td:first-child { color:var(--tx-card); font-weight:500; }
+
+    /* BUTTONS */
+    .btn { display:inline-flex; align-items:center; gap:7px; padding:9px 18px; border-radius:var(--radius-sm); font-size:13px; font-weight:600; cursor:pointer; border:none; transition:var(--transition); font-family:'Plus Jakarta Sans',system-ui,sans-serif; }
+    .btn-primary  { background:linear-gradient(135deg, var(--clr-gold), var(--clr-brown-300)); color:var(--clr-brown-900); box-shadow:0 4px 12px rgba(240,175,67,0.3); font-weight:700; }
+    .btn-primary:hover { box-shadow:0 6px 20px rgba(240,175,67,0.5); transform:translateY(-1px); }
+    .btn-ghost    { background:rgba(255,255,255,0.05); color:var(--tx-card-md); border:1px solid var(--border-dk); }
+    .btn-ghost:hover { background:rgba(255,255,255,0.1); color:var(--tx-card); }
+    .btn-danger   { background:rgba(224,92,75,0.15); color:#ff8a7a; border:1px solid rgba(224,92,75,0.3); }
+    .btn-danger:hover { background:rgba(224,92,75,0.25); }
+    .btn-warning  { background:rgba(240,175,67,0.15); color:var(--clr-gold); border:1px solid rgba(240,175,67,0.3); }
+    .btn-warning:hover { background:rgba(240,175,67,0.25); }
+    .btn-sm { padding:6px 12px; font-size:12px; }
+
+    /* BADGES */
+    .badge        { display:inline-flex; align-items:center; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; }
+    .badge-green  { background:rgba(111,207,151,0.15); color:#6fcf97; border:1px solid rgba(111,207,151,0.3); }
+    .badge-red    { background:rgba(224,92,75,0.15);   color:#e05c4b; border:1px solid rgba(224,92,75,0.3);   }
+    .badge-gold   { background:rgba(240,175,67,0.15);  color:#F0AF43; border:1px solid rgba(240,175,67,0.3);  }
+    .badge-blue   { background:rgba(212,147,78,0.15);  color:#D4934E; border:1px solid rgba(212,147,78,0.3);  }
+
+    /* MODAL */
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px); z-index:1000; display:none; align-items:center; justify-content:center; }
+    .modal-overlay.open { display:flex; }
+    .modal { background:var(--bg-card); border:1px solid var(--border-dk); border-radius:var(--radius); padding:28px; width:480px; max-width:95vw; box-shadow:var(--shadow); animation:modalIn 0.25s ease; }
+    @keyframes modalIn { from { transform:scale(0.95); opacity:0; } to { transform:scale(1); opacity:1; } }
+    .modal-header    { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+    .modal-header h3 { font-size:16px; font-weight:700; color:var(--tx-card); }
+    .modal-close     { background:none; border:none; color:var(--tx-card-sm); cursor:pointer; font-size:18px; transition:var(--transition); }
+    .modal-close:hover { color:var(--danger); }
+
+    /* FORM (inside dark card/modal) */
+    .form-group  { margin-bottom:16px; }
+    .form-label  { display:block; font-size:12px; font-weight:600; color:var(--tx-card-md); margin-bottom:7px; }
+    .form-input, .form-select, select {
+      width:100%; padding:11px 14px;
+      background:rgba(255,255,255,0.05); border:1px solid rgba(240,175,67,0.25);
+      border-radius:var(--radius-sm); color:var(--tx-card); font-size:14px;
+      font-family:'Plus Jakarta Sans',system-ui,sans-serif; transition:var(--transition); outline:none;
+    }
+    .form-input:focus, .form-select:focus, select:focus { border-color:var(--clr-gold); background:rgba(240,175,67,0.08); box-shadow:0 0 0 3px rgba(240,175,67,0.15); }
+    .form-input::placeholder { color:var(--tx-card-sm); opacity:0.7; }
+    .form-select option, select option { background:var(--clr-brown-800); color:var(--clr-cream-100); }
+    .form-row    { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .form-footer { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+
+    /* SEARCH BOX (topbar, cream bg) */
+    .search-box { position:relative; display:flex; align-items:center; }
+    .search-box i { position:absolute; left:12px; color:var(--tx-body-sm); font-size:14px; }
+    .search-box input {
+      padding:9px 14px 9px 36px; background:rgba(255,255,255,0.7); border:1px solid var(--border-lt);
+      border-radius:var(--radius-sm); color:var(--tx-body); font-size:13px;
+      font-family:'Plus Jakarta Sans',system-ui,sans-serif; outline:none; transition:var(--transition); width:200px;
+    }
+    .search-box input::placeholder { color:var(--tx-body-sm); }
+    .search-box input:focus { border-color:var(--clr-brown-500); width:240px; }
+
+    /* TABS (inside dark bg) */
+    .tabs { display:flex; gap:4px; background:rgba(255,255,255,0.04); border:1px solid var(--border-dk); border-radius:var(--radius-sm); padding:4px; margin-bottom:20px; }
+    .tab { flex:1; padding:9px 12px; border-radius:8px; font-size:13px; font-weight:500; cursor:pointer; text-align:center; transition:var(--transition); color:var(--tx-card-sm); border:none; background:none; font-family:'Plus Jakarta Sans',system-ui,sans-serif; }
+    .tab.active { background:linear-gradient(135deg, var(--clr-gold), var(--clr-brown-300)); color:var(--clr-brown-900); font-weight:700; box-shadow:0 2px 8px rgba(240,175,67,0.3); }
+
+    /* TOAST */
+    #toast-container { position:fixed; bottom:24px; right:24px; z-index:9999; display:flex; flex-direction:column; gap:8px; }
+    .toast { background:var(--bg-card); border:1px solid var(--border-dk); border-radius:var(--radius-sm); padding:12px 18px; font-size:13px; color:var(--tx-card); box-shadow:var(--shadow); display:flex; align-items:center; gap:10px; animation:toastIn 0.3s ease; min-width:250px; }
+    .toast.success { border-color:rgba(111,207,151,0.4); }
+    .toast.error   { border-color:rgba(224,92,75,0.4); }
+    @keyframes toastIn { from { transform:translateX(100%); opacity:0; } to { transform:translateX(0); opacity:1; } }
+
+    /* LOGIN PAGE (cream bg) */
+    #login-page { min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--bg); }
+    #login-page::before { content:''; position:fixed; inset:0; background:radial-gradient(ellipse at center, rgba(129,81,29,0.06) 0%, transparent 60%); }
+    .login-card { background:var(--bg-card); border:1px solid var(--border-dk); border-radius:24px; padding:40px; width:400px; max-width:95vw; box-shadow:var(--shadow); position:relative; z-index:1; }
+    .login-logo { text-align:center; margin-bottom:28px; }
+    .login-logo-icon { width:64px; height:64px; background:linear-gradient(135deg, var(--clr-brown-500), var(--clr-brown-300)); border-radius:20px; display:inline-flex; align-items:center; justify-content:center; font-size:28px; color:#fff; box-shadow:0 8px 24px rgba(0,0,0,0.3); margin-bottom:12px; }
+    .login-logo h1 { font-size:20px; font-weight:800; color:var(--tx-card); }
+    .login-logo p  { font-size:13px; color:var(--tx-card-sm); margin-top:4px; }
+    .login-role-label { background:rgba(240,175,67,0.12); border:1px solid rgba(240,175,67,0.3); border-radius:8px; padding:8px 16px; text-align:center; font-size:12px; font-weight:700; color:var(--clr-gold); margin-bottom:20px; letter-spacing:0.5px; }
+
+    /* AKTIVITAS */
+    .activity-item { display:flex; gap:12px; align-items:flex-start; padding:12px 0; border-bottom:1px solid rgba(240,175,67,0.06); }
+    .activity-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; }
+    .activity-text p    { font-size:13px; color:var(--tx-card); }
+    .activity-text span { font-size:11px; color:var(--tx-card-sm); }
+
+    /* RESPONSIVE */
+    @media (max-width:768px) {
+      #sidebar { width:0; overflow:hidden; }
+      #main { margin-left:0; padding:16px; }
+      .chart-grid { grid-template-columns:1fr; }
+      .form-row   { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ═══════════════════════════════════════════
+     LOGIN PAGE
+═══════════════════════════════════════════ -->
+  <div id="login-page">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="login-logo-icon"><i class="fas fa-quran"></i></div>
+        <h1>Quran Insight Academy</h1>
+        <p>Sistem Manajemen Akademi</p>
+      </div>
+      <div class="login-role-label"><i class="fas fa-shield-alt"></i>&nbsp; Portal Admin</div>
+      <div class="form-group">
+        <label class="form-label" for="login-email">Email Admin</label>
+        <input class="form-input" type="email" id="login-email" placeholder="admin@qia.id" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="login-password">Password</label>
+        <input class="form-input" type="password" id="login-password" placeholder="••••••••"
+          autocomplete="current-password">
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;" id="btn-login-submit">
+        <i class="fas fa-sign-in-alt"></i> Masuk ke Dashboard
+      </button>
+      <p style="text-align:center;font-size:12px;color:var(--text-dim);margin-top:16px;">
+        Portal Mentor: <a href="portal-mentor.html" style="color:var(--primary-light)">klik di sini</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+     MAIN APP
+═══════════════════════════════════════════ -->
+  <div id="app" style="display:none">
+    <!-- SIDEBAR -->
+    <aside id="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon"><i class="fas fa-quran"></i></div>
+        <div class="sidebar-logo-text">
+          <h1>QIA Admin</h1>
+          <p>Quran Insight Academy</p>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Utama</div>
+        <div class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard">
+          <span class="nav-icon"><i class="fas fa-chart-pie"></i></span> Dashboard
+        </div>
+        <div class="nav-section-label" style="margin-top:8px;">Manajemen</div>
+        <div class="nav-item" onclick="showPage('mentor')" id="nav-mentor">
+          <span class="nav-icon"><i class="fas fa-chalkboard-teacher"></i></span> Mentor
+        </div>
+        <div class="nav-item" onclick="showPage('peserta')" id="nav-peserta">
+          <span class="nav-icon"><i class="fas fa-users"></i></span> Peserta Didik
+        </div>
+        <div class="nav-section-label" style="margin-top:8px;">Laporan</div>
+        <div class="nav-item" onclick="showPage('laporan')" id="nav-laporan">
+          <span class="nav-icon"><i class="fas fa-file-export"></i></span> Export Rekap
+        </div>
+        <div class="nav-section-label" style="margin-top:8px;">Akun</div>
+        <div class="nav-item" onclick="showPage('sandi')" id="nav-sandi">
+          <span class="nav-icon"><i class="fas fa-key"></i></span> Ganti Password
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-card">
+          <div class="user-avatar" id="user-avatar-char">A</div>
+          <div class="user-info">
+            <p id="sidebar-nama">Administrator</p>
+            <span>Admin</span>
+          </div>
+          <button class="btn-logout" onclick="doLogout()" title="Logout"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main id="main">
+
+      <!-- ── DASHBOARD ── -->
+      <div class="page active" id="page-dashboard">
+        <div class="topbar">
+          <div>
+            <h2>Dashboard</h2>
+            <p>Ringkasan statistik akademi</p>
+          </div>
+          <button class="btn btn-ghost" onclick="loadDashboard()"><i class="fas fa-sync-alt"></i> Refresh</button>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card green">
+            <div class="stat-icon"><i class="fas fa-chalkboard-teacher"></i></div>
+            <div class="stat-value" id="stat-mentor">—</div>
+            <div class="stat-label">Total Mentor Aktif</div>
+            <div class="stat-sub" id="stat-mentor-sub">Memuat...</div>
+          </div>
+          <div class="stat-card gold">
+            <div class="stat-icon"><i class="fas fa-users"></i></div>
+            <div class="stat-value" id="stat-peserta">—</div>
+            <div class="stat-label">Total Peserta Didik</div>
+            <div class="stat-sub" id="stat-peserta-sub">Memuat...</div>
+          </div>
+          <div class="stat-card blue">
+            <div class="stat-icon"><i class="fas fa-book-open"></i></div>
+            <div class="stat-value" id="stat-bimbel">—</div>
+            <div class="stat-label">Peserta Bimbel</div>
+            <div class="stat-sub">Program reguler</div>
+          </div>
+          <div class="stat-card red">
+            <div class="stat-icon"><i class="fas fa-user-graduate"></i></div>
+            <div class="stat-value" id="stat-privat">—</div>
+            <div class="stat-label">Peserta Privat</div>
+            <div class="stat-sub">Program personal</div>
+          </div>
+        </div>
+
+        <div class="chart-grid">
+          <div class="chart-card">
+            <div class="chart-title">Tren Kehadiran <span class="chart-sub">8 minggu terakhir</span></div>
+            <canvas id="chart-kehadiran" height="100"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Rata-rata Nilai <span class="chart-sub">per jenis program</span></div>
+            <canvas id="chart-nilai" height="100"></canvas>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-header">
+            <h3><i class="fas fa-history" style="color:var(--primary-light);margin-right:8px"></i>Aktivitas Terbaru</h3>
+          </div>
+          <div id="activity-list" style="padding:8px 0;"></div>
+        </div>
+      </div>
+
+      <!-- ── MENTOR ── -->
+      <div class="page" id="page-mentor">
+        <div class="topbar">
+          <div>
+            <h2>Manajemen Mentor</h2>
+            <p>Kelola akun mentor akademi</p>
+          </div>
+          <button class="btn btn-primary" id="btn-add-mentor" onclick="openModal('modal-mentor')">
+            <i class="fas fa-plus"></i> Tambah Mentor
+          </button>
+        </div>
+
+        <div class="table-card">
+          <div class="table-header">
+            <h3>Daftar Mentor</h3>
+            <div class="search-box">
+              <i class="fas fa-search"></i>
+              <input type="text" id="search-mentor" placeholder="Cari mentor..." oninput="filterMentor(this.value)">
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Nama</th>
+                <th>Email</th>
+                <th>Jenis</th>
+                <th>Status</th>
+                <th>Bergabung</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="mentor-tbody">
+              <tr>
+                <td colspan="6" style="text-align:center;padding:32px;color:var(--text-dim)">Memuat data...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── PESERTA ── -->
+      <div class="page" id="page-peserta">
+        <div class="topbar">
+          <div>
+            <h2>Peserta Didik</h2>
+            <p>Kelola data peserta dan akses wali</p>
+          </div>
+          <button class="btn btn-primary" onclick="openAddPeserta()">
+            <i class="fas fa-plus"></i> Tambah Peserta
+          </button>
+        </div>
+
+        <div class="table-card">
+          <div class="table-header">
+            <h3>Daftar Peserta Didik</h3>
+            <div class="search-box">
+              <i class="fas fa-search"></i>
+              <input type="text" id="search-peserta" placeholder="Cari peserta..." oninput="filterPeserta(this.value)">
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Nama</th>
+                <th>Usia</th>
+                <th>Jenis</th>
+                <th>Mentor</th>
+                <th>Kode Akses Wali</th>
+                <th>Status</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="peserta-tbody">
+              <tr>
+                <td colspan="7" style="text-align:center;padding:32px;color:var(--text-dim)">Memuat data...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── LAPORAN ── -->
+      <div class="page" id="page-laporan">
+        <div class="topbar">
+          <div>
+            <h2>Export Rekap</h2>
+            <p>Unduh laporan per periode</p>
+          </div>
+        </div>
+        <div class="chart-card" style="max-width:500px">
+          <h3 style="font-size:15px;margin-bottom:16px">Filter Laporan</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Dari Tanggal</label>
+              <input class="form-input" type="date" id="laporan-dari">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Sampai Tanggal</label>
+              <input class="form-input" type="date" id="laporan-sampai">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Filter Mentor (opsional)</label>
+            <select class="form-select" id="laporan-mentor">
+              <option value="">Semua Mentor</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="exportRekap()"><i class="fas fa-download"></i> Download CSV</button>
+        </div>
+      </div>
+
+      <!-- ── GANTI SANDI ── -->
+      <div class="page" id="page-sandi">
+        <div class="topbar">
+          <div>
+            <h2>Ganti Password</h2>
+            <p>Perbarui keamanan akun admin</p>
+          </div>
+        </div>
+        <div class="chart-card" style="max-width:400px">
+          <div class="form-group">
+            <label class="form-label">Password Baru</label>
+            <input class="form-input" type="password" id="sandi-baru" placeholder="Minimal 6 karakter">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Konfirmasi Password</label>
+            <input class="form-input" type="password" id="sandi-konfirm" placeholder="Ulangi password baru">
+          </div>
+          <button class="btn btn-primary" onclick="gantiSandi()"><i class="fas fa-save"></i> Simpan Password</button>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+     MODALS
+═══════════════════════════════════════ -->
+  <!-- Modal Tambah/Edit Mentor -->
+  <div class="modal-overlay" id="modal-mentor">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-mentor-title">Tambah Mentor</h3>
+        <button class="modal-close" onclick="closeModal('modal-mentor')"><i class="fas fa-times"></i></button>
+      </div>
+      <input type="hidden" id="mentor-edit-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Nama Lengkap</label>
+          <input class="form-input" type="text" id="mentor-nama" placeholder="Nama mentor">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Jenis Mentor</label>
+          <select class="form-select" id="mentor-jenis">
+            <option value="bimbel">Bimbel</option>
+            <option value="privat">Privat</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" type="email" id="mentor-email" placeholder="email@example.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="mentor-pass-label">Password</label>
+        <input class="form-input" type="password" id="mentor-password" placeholder="Buat password untuk mentor">
+      </div>
+      <div class="form-footer">
+        <button class="btn btn-ghost" onclick="closeModal('modal-mentor')">Batal</button>
+        <button class="btn btn-primary" onclick="saveMentor()"><i class="fas fa-save"></i> Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Tambah/Edit Peserta -->
+  <div class="modal-overlay" id="modal-peserta">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-peserta-title">Tambah Peserta Didik</h3>
+        <button class="modal-close" onclick="closeModal('modal-peserta')"><i class="fas fa-times"></i></button>
+      </div>
+      <input type="hidden" id="peserta-edit-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Nama Lengkap</label>
+          <input class="form-input" type="text" id="peserta-nama" placeholder="Nama peserta didik">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Usia</label>
+          <input class="form-input" type="number" id="peserta-usia" placeholder="Tahun" min="3" max="30">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Jenis Program</label>
+          <select class="form-select" id="peserta-jenis">
+            <option value="bimbel">Bimbel</option>
+            <option value="privat">Privat</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Assign ke Mentor</label>
+          <select class="form-select" id="peserta-mentor"></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Email Orang Tua / Wali</label>
+          <input class="form-input" type="email" id="peserta-email-wali" placeholder="email.orang.tua@example.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Kode Akses Wali (Custom)</label>
+          <input class="form-input" type="text" id="peserta-kode-akses" placeholder="Opsional (Auto-generate jika kosong)">
+        </div>
+      </div>
+      <p style="font-size:11px;color:var(--text-dim);margin-top:-6px;margin-bottom:14px"><i class="fas fa-info-circle"></i> Kode akses wali dapat dicustom oleh Admin. Jika dikosongkan, kode akan dibuat otomatis.</p>
+      <div class="form-footer">
+        <button class="btn btn-ghost" onclick="closeModal('modal-peserta')">Batal</button>
+        <button class="btn btn-primary" onclick="savePeserta()"><i class="fas fa-save"></i> Simpan & Kirim Kode</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toast-container"></div>
+
+  <!-- ═══════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════ -->
+  <script>
+    // ──────────────────────────────────────────
+    // CONFIG — Ganti dengan URL GAS Web App Anda
+    // ──────────────────────────────────────────
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbxdMQpEUGCxa3W9BB_HM5zIU71Q8b0OZFepAgOY0thu2hRzxC2HbNfEPFvzpoqNQoTc/exec?p=admin';
+
+    // ──────────────────────────────────────────
+    // STATE
+    // ──────────────────────────────────────────
+    let token = sessionStorage.getItem('qia_admin_token') || null;
+    let namaAdmin = sessionStorage.getItem('qia_admin_nama') || 'Admin';
+    let allMentors = [], allPeserta = [];
+    let chartKehadiran = null, chartNilai = null;
+
+    // ──────────────────────────────────────────
+    // INIT
+    // ──────────────────────────────────────────
+    window.addEventListener('DOMContentLoaded', () => {
+      if (token) {
+        showApp();
+      }
+    });
+
+    function showApp() {
+      document.getElementById('login-page').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      document.getElementById('sidebar-nama').textContent = namaAdmin;
+      document.getElementById('user-avatar-char').textContent = namaAdmin.charAt(0).toUpperCase();
+      loadDashboard();
+      loadMentors();
+      loadPeserta();
+    }
+
+    // ──────────────────────────────────────────
+    // API
+    // ──────────────────────────────────────────
+    async function api(params) {
+      if (token) params.token = token;
+      try {
+        const res = await fetch(GAS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify(params)
+        });
+        return await res.json();
+      } catch (e) {
+        return { ok: false, error: 'Koneksi gagal: ' + e.message };
+      }
+    }
+
+    // ──────────────────────────────────────────
+    // AUTH
+    // ──────────────────────────────────────────
+    document.getElementById('login-password').addEventListener('keydown', e => {
+      if (e.key === 'Enter') doLogin();
+    });
+    document.getElementById('btn-login-submit').addEventListener('click', doLogin);
+
+    async function doLogin() {
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      if (!email || !password) { showToast('Email dan password wajib diisi', 'error'); return; }
+
+      const btn = document.getElementById('btn-login-submit');
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Masuk...';
+      btn.disabled = true;
+
+      const res = await api({ action: 'adminLogin', email, password });
+      btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Masuk ke Dashboard';
+      btn.disabled = false;
+
+      if (res.ok) {
+        token = res.token;
+        namaAdmin = res.nama;
+        sessionStorage.setItem('qia_admin_token', token);
+        sessionStorage.setItem('qia_admin_nama', namaAdmin);
+        showToast('Selamat datang, ' + namaAdmin + '!', 'success');
+        showApp();
+      } else {
+        showToast(res.error, 'error');
+      }
+    }
+
+    async function doLogout() {
+      await api({ action: 'logout' });
+      sessionStorage.clear();
+      token = null;
+      document.getElementById('login-page').style.display = 'flex';
+      document.getElementById('app').style.display = 'none';
+    }
+
+    // ──────────────────────────────────────────
+    // NAVIGATION
+    // ──────────────────────────────────────────
+    function showPage(name) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.getElementById('page-' + name).classList.add('active');
+      document.getElementById('nav-' + name).classList.add('active');
+      if (name === 'laporan') populateLaporanMentor();
+    }
+
+    // ──────────────────────────────────────────
+    // DASHBOARD
+    // ──────────────────────────────────────────
+    async function loadDashboard() {
+      const res = await api({ action: 'getDashboardStats' });
+      if (!res.ok) { showToast(res.error, 'error'); return; }
+      const d = res.data;
+
+      document.getElementById('stat-mentor').textContent = d.total_mentor;
+      document.getElementById('stat-mentor-sub').textContent = d.total_mentor_bimbel + ' bimbel · ' + d.total_mentor_privat + ' privat';
+      document.getElementById('stat-peserta').textContent = d.total_peserta;
+      document.getElementById('stat-peserta-sub').textContent = d.total_peserta_bimbel + ' bimbel · ' + d.total_peserta_privat + ' privat';
+      document.getElementById('stat-bimbel').textContent = d.total_peserta_bimbel;
+      document.getElementById('stat-privat').textContent = d.total_peserta_privat;
+
+      // Grafik kehadiran
+      const trenLabels = d.tren_kehadiran.map(t => t.minggu);
+      const trenHadir = d.tren_kehadiran.map(t => t.hadir);
+      const trenIzin = d.tren_kehadiran.map(t => t.izin);
+
+      if (chartKehadiran) chartKehadiran.destroy();
+      chartKehadiran = new Chart(document.getElementById('chart-kehadiran'), {
+        type: 'line',
+        data: {
+          labels: trenLabels,
+          datasets: [
+            { label: 'Hadir', data: trenHadir, borderColor: '#2d9b5a', backgroundColor: 'rgba(45,155,90,0.1)', tension: 0.4, fill: true },
+            { label: 'Izin', data: trenIzin, borderColor: '#e74c3c', backgroundColor: 'rgba(231,76,60,0.1)', tension: 0.4, fill: true }
+          ]
+        },
+        options: { responsive: true, plugins: { legend: { labels: { color: '#7a9e8a', font: { size: 12 } } } }, scales: { x: { ticks: { color: '#4a6657' } }, y: { ticks: { color: '#4a6657' } } } }
+      });
+
+      // Grafik nilai
+      if (chartNilai) chartNilai.destroy();
+      chartNilai = new Chart(document.getElementById('chart-nilai'), {
+        type: 'bar',
+        data: {
+          labels: ['Bimbel', 'Privat'],
+          datasets: [{ label: 'Rata-rata Nilai', data: [d.nilai_per_jenis.bimbel, d.nilai_per_jenis.privat], backgroundColor: ['rgba(45,155,90,0.7)', 'rgba(240,165,0,0.7)'], borderRadius: 8 }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 10, ticks: { color: '#4a6657' } }, x: { ticks: { color: '#7a9e8a' } } } }
+      });
+
+      // Aktivitas
+      const iconMap = { 'kode_akses_baru': { icon: 'fa-user-plus', color: '#4cd97a', bg: 'rgba(76,217,122,0.1)' }, 'update_kemajuan': { icon: 'fa-book-open', color: '#74b9ff', bg: 'rgba(116,185,255,0.1)' }, 'penilaian_baru': { icon: 'fa-star', color: '#ffd166', bg: 'rgba(255,209,102,0.1)' }, 'laporan_pdf': { icon: 'fa-file-pdf', color: '#ff7675', bg: 'rgba(255,118,117,0.1)' }, 'kirim_ulang_kode_akses': { icon: 'fa-envelope', color: '#a29bfe', bg: 'rgba(162,155,254,0.1)' } };
+      const al = document.getElementById('activity-list');
+      al.innerHTML = d.aktivitas_terbaru.length === 0 ? '<p style="padding:20px;text-align:center;color:var(--text-dim)">Belum ada aktivitas</p>' : d.aktivitas_terbaru.map(a => {
+        const ic = iconMap[a.jenis] || { icon: 'fa-bell', color: '#dfe6e9', bg: 'rgba(255,255,255,0.05)' };
+        const label = { 'kode_akses_baru': 'Kode akses wali dikirim', 'update_kemajuan': 'Update kemajuan hafalan', 'penilaian_baru': 'Penilaian baru diinput', 'laporan_pdf': 'Laporan PDF dikirim', 'kirim_ulang_kode_akses': 'Kode akses dikirim ulang' };
+        return `<div class="activity-item" style="padding:12px 20px">
+      <div class="activity-icon" style="background:${ic.bg};color:${ic.color}"><i class="fas ${ic.icon}"></i></div>
+      <div class="activity-text">
+        <p>${label[a.jenis] || a.jenis} — Peserta ID: ${a.id_peserta}</p>
+        <span>${a.tanggal_kirim} · Status: ${a.status_kirim}</span>
+      </div>
+    </div>`;
+      }).join('');
+    }
+
+    // ──────────────────────────────────────────
+    // MENTOR
+    // ──────────────────────────────────────────
+    async function loadMentors() {
+      const res = await api({ action: 'getMentorList' });
+      if (!res.ok) return;
+      allMentors = res.data;
+      renderMentors(allMentors);
+    }
+
+    function renderMentors(list) {
+      const tbody = document.getElementById('mentor-tbody');
+      if (!list.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-dim)">Belum ada mentor</td></tr>'; return; }
+      tbody.innerHTML = list.map(m => `<tr>
+    <td><strong>${m.nama}</strong></td>
+    <td style="color:var(--text-muted)">${m.email}</td>
+    <td><span class="badge ${m.jenis_mentor === 'bimbel' ? 'badge-blue' : 'badge-gold'}">${m.jenis_mentor}</span></td>
+    <td><span class="badge ${m.status === 'aktif' ? 'badge-green' : 'badge-red'}">${m.status}</span></td>
+    <td>${(m.created_at + '').substring(0, 10)}</td>
+    <td>
+      <button class="btn btn-ghost btn-sm" onclick="editMentor('${m.id_mentor}','${m.nama}','${m.email}','${m.jenis_mentor}')"><i class="fas fa-edit"></i></button>
+      ${m.status === 'aktif' ? `<button class="btn btn-danger btn-sm" onclick="nonaktifMentor('${m.id_mentor}','${m.nama}')"><i class="fas fa-ban"></i></button>` : ''}
+    </td>
+  </tr>`).join('');
+    }
+
+    function filterMentor(q) {
+      renderMentors(allMentors.filter(m => m.nama.toLowerCase().includes(q.toLowerCase()) || m.email.toLowerCase().includes(q.toLowerCase())));
+    }
+
+    function editMentor(id, nama, email, jenis) {
+      document.getElementById('modal-mentor-title').textContent = 'Edit Mentor';
+      document.getElementById('mentor-edit-id').value = id;
+      document.getElementById('mentor-nama').value = nama;
+      document.getElementById('mentor-email').value = email;
+      document.getElementById('mentor-jenis').value = jenis;
+      document.getElementById('mentor-password').placeholder = 'Kosongkan jika tidak ingin ganti';
+      document.getElementById('mentor-pass-label').textContent = 'Password Baru (opsional)';
+      openModal('modal-mentor');
+    }
+
+    async function saveMentor() {
+      const id = document.getElementById('mentor-edit-id').value;
+      const nama = document.getElementById('mentor-nama').value.trim();
+      const email = document.getElementById('mentor-email').value.trim();
+      const pass = document.getElementById('mentor-password').value;
+      const jenis = document.getElementById('mentor-jenis').value;
+
+      if (!id && !pass) { showToast('Password wajib diisi untuk mentor baru', 'error'); return; }
+      if (!nama || !email) { showToast('Nama dan email wajib diisi', 'error'); return; }
+
+      const params = id
+        ? { action: 'editMentor', id_mentor: id, nama, jenis_mentor: jenis, ...(pass ? { password: pass } : {}) }
+        : { action: 'addMentor', nama, email, password: pass, jenis_mentor: jenis };
+
+      const res = await api(params);
+      if (res.ok) {
+        showToast(id ? 'Mentor berhasil diperbarui' : 'Mentor baru ditambahkan!', 'success');
+        closeModal('modal-mentor');
+        loadMentors();
+        resetMentorForm();
+      } else { showToast(res.error, 'error'); }
+    }
+
+    async function nonaktifMentor(id, nama) {
+      if (!confirm('Nonaktifkan mentor ' + nama + '?')) return;
+      const res = await api({ action: 'deactivateMentor', id_mentor: id });
+      if (res.ok) { showToast('Mentor dinonaktifkan', 'success'); loadMentors(); }
+      else showToast(res.error, 'error');
+    }
+
+    function resetMentorForm() {
+      document.getElementById('mentor-edit-id').value = '';
+      document.getElementById('mentor-nama').value = '';
+      document.getElementById('mentor-email').value = '';
+      document.getElementById('mentor-password').value = '';
+      document.getElementById('modal-mentor-title').textContent = 'Tambah Mentor';
+      document.getElementById('mentor-pass-label').textContent = 'Password';
+      document.getElementById('mentor-password').placeholder = 'Buat password untuk mentor';
+    }
+
+    // ──────────────────────────────────────────
+    // PESERTA DIDIK
+    // ──────────────────────────────────────────
+    async function loadPeserta() {
+      // Peserta didik diambil dari semua mentor
+      const resMentor = await api({ action: 'getMentorList' });
+      allMentors = resMentor.ok ? resMentor.data : [];
+
+      // Untuk admin: kita perlu endpoint listAllPeserta
+      // Sementara gunakan export data tanpa filter
+      const res = await api({ action: 'getExportData' });
+      if (!res.ok) return;
+
+      // Rebuild dari export — tidak ada id_peserta, jadi load via mentor loop
+      // Alternatif: load semua peserta via getPesertaByMentor per mentor
+      // Untuk tampilan tabel admin, kita gunakan pendekatan sederhana
+      const allData = [];
+      for (const m of allMentors) {
+        const r = await api({ action: 'getPesertaByMentor', id_mentor: m.id_mentor });
+        if (r.ok) r.data.forEach(p => allData.push({ ...p, nama_mentor: m.nama, jenis_mentor: m.jenis_mentor }));
+      }
+      allPeserta = allData;
+      renderPeserta(allPeserta);
+      populateMentorSelect();
+    }
+
+    function renderPeserta(list) {
+      const tbody = document.getElementById('peserta-tbody');
+      if (!list.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-dim)">Belum ada peserta</td></tr>'; return; }
+      tbody.innerHTML = list.map(p => `<tr>
+    <td><strong>${p.nama_lengkap}</strong></td>
+    <td>${p.usia || '—'}</td>
+    <td><span class="badge ${p.jenis === 'bimbel' ? 'badge-blue' : 'badge-gold'}">${p.jenis}</span></td>
+    <td>${p.nama_mentor}</td>
+    <td><code style="background:rgba(26,107,60,0.1);color:#4cd97a;padding:2px 8px;border-radius:6px;font-size:13px">${p.kode_akses_wali || '—'}</code></td>
+    <td><span class="badge badge-green">Aktif</span></td>
+    <td>
+      <button class="btn btn-primary btn-sm" onclick="openEditPeserta('${p.id_peserta}')" title="Edit Peserta & Kode Akses"><i class="fas fa-edit"></i></button>
+      <button class="btn btn-warning btn-sm" onclick="kirimUlangKode('${p.id_peserta}','${p.nama_lengkap}')" title="Kirim ulang kode akses wali"><i class="fas fa-envelope"></i></button>
+      <button class="btn btn-danger btn-sm" onclick="nonaktifPeserta('${p.id_peserta}','${p.nama_lengkap}')" title="Nonaktifkan peserta"><i class="fas fa-ban"></i></button>
+    </td>
+  </tr>`).join('');
+    }
+
+    function filterPeserta(q) {
+      renderPeserta(allPeserta.filter(p => p.nama_lengkap.toLowerCase().includes(q.toLowerCase())));
+    }
+
+    function populateMentorSelect() {
+      const sel = document.getElementById('peserta-mentor');
+      sel.innerHTML = allMentors.filter(m => m.status === 'aktif').map(m => `<option value="${m.id_mentor}">${m.nama} (${m.jenis_mentor})</option>`).join('');
+    }
+
+    function openAddPeserta() {
+      document.getElementById('modal-peserta-title').textContent = 'Tambah Peserta Didik';
+      document.getElementById('peserta-edit-id').value = '';
+      document.getElementById('peserta-nama').value = '';
+      document.getElementById('peserta-usia').value = '';
+      document.getElementById('peserta-jenis').value = 'bimbel';
+      document.getElementById('peserta-email-wali').value = '';
+      document.getElementById('peserta-kode-akses').value = '';
+      openModal('modal-peserta');
+    }
+
+    function openEditPeserta(id) {
+      const p = allPeserta.find(item => item.id_peserta === id);
+      if (!p) return;
+      document.getElementById('modal-peserta-title').textContent = 'Edit Peserta Didik';
+      document.getElementById('peserta-edit-id').value = p.id_peserta;
+      document.getElementById('peserta-nama').value = p.nama_lengkap || '';
+      document.getElementById('peserta-usia').value = p.usia || '';
+      document.getElementById('peserta-jenis').value = p.jenis || 'bimbel';
+      if (p.id_mentor) document.getElementById('peserta-mentor').value = p.id_mentor;
+      document.getElementById('peserta-email-wali').value = p.email_wali || '';
+      document.getElementById('peserta-kode-akses').value = p.kode_akses_wali || '';
+      openModal('modal-peserta');
+    }
+
+    async function savePeserta() {
+      const id = document.getElementById('peserta-edit-id').value;
+      const nama = document.getElementById('peserta-nama').value.trim();
+      const usia = document.getElementById('peserta-usia').value;
+      const jenis = document.getElementById('peserta-jenis').value;
+      const id_mentor = document.getElementById('peserta-mentor').value;
+      const email_wali = document.getElementById('peserta-email-wali').value.trim();
+      const kode_akses_wali = document.getElementById('peserta-kode-akses').value.trim().toUpperCase();
+
+      if (!nama || !email_wali || !id_mentor) { showToast('Nama, email wali, dan mentor wajib diisi', 'error'); return; }
+
+      const params = id
+        ? { action: 'editPesertaDidik', id_peserta: id, nama_lengkap: nama, usia, jenis, id_mentor, email_wali, kode_akses_wali }
+        : { action: 'addPesertaDidik', nama_lengkap: nama, usia, jenis, id_mentor, email_wali, kode_akses_wali };
+
+      const res = await api(params);
+      if (res.ok) {
+        const msg = id ? 'Data peserta & kode akses diperbarui' : 'Peserta ditambahkan! Kode akses dikirim ke email wali.';
+        showToast(msg, 'success');
+        closeModal('modal-peserta');
+        loadPeserta();
+      } else { showToast(res.error, 'error'); }
+    }
+
+    async function kirimUlangKode(id, nama) {
+      if (!confirm('Kirim ulang kode akses wali untuk ' + nama + '?')) return;
+      const res = await api({ action: 'kirimUlangKodeAkses', id_peserta: id });
+      if (res.ok) showToast('Kode akses dikirim ulang ke email wali', 'success');
+      else showToast(res.error, 'error');
+    }
+
+    async function nonaktifPeserta(id, nama) {
+      if (!confirm('Nonaktifkan peserta ' + nama + '?')) return;
+      const res = await api({ action: 'deactivatePesertaDidik', id_peserta: id });
+      if (res.ok) { showToast('Peserta dinonaktifkan', 'success'); loadPeserta(); }
+      else showToast(res.error, 'error');
+    }
+
+    // ──────────────────────────────────────────
+    // LAPORAN
+    // ──────────────────────────────────────────
+    function populateLaporanMentor() {
+      const sel = document.getElementById('laporan-mentor');
+      sel.innerHTML = '<option value="">Semua Mentor</option>' + allMentors.map(m => `<option value="${m.id_mentor}">${m.nama}</option>`).join('');
+    }
+
+    async function exportRekap() {
+      const dari = document.getElementById('laporan-dari').value;
+      const sampai = document.getElementById('laporan-sampai').value;
+      const mentor = document.getElementById('laporan-mentor').value;
+      const res = await api({ action: 'getExportData', dari, sampai, id_mentor: mentor });
+      if (!res.ok) { showToast(res.error, 'error'); return; }
+
+      const data = res.data;
+      const headers = ['Nama', 'Jenis', 'Mentor', 'Total Hadir', 'Total Izin', 'Rata-rata Nilai', 'Progres Terakhir'];
+      const rows = data.map(d => [d.nama, d.jenis, d.mentor, d.total_hadir, d.total_izin, d.avg_nilai, d.progres_terakhir]);
+      const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'rekap_qia_' + (dari || 'semua') + '.csv'; a.click();
+      URL.revokeObjectURL(url);
+      showToast('File CSV berhasil diunduh', 'success');
+    }
+
+    // ──────────────────────────────────────────
+    // GANTI SANDI
+    // ──────────────────────────────────────────
+    async function gantiSandi() {
+      const baru = document.getElementById('sandi-baru').value;
+      const konfirm = document.getElementById('sandi-konfirm').value;
+      if (baru.length < 6) { showToast('Password minimal 6 karakter', 'error'); return; }
+      if (baru !== konfirm) { showToast('Konfirmasi password tidak cocok', 'error'); return; }
+      const res = await api({ action: 'gantiPassword', password_baru: baru });
+      if (res.ok) { showToast('Password berhasil diubah', 'success'); document.getElementById('sandi-baru').value = ''; document.getElementById('sandi-konfirm').value = ''; }
+      else showToast(res.error, 'error');
+    }
+
+    // ──────────────────────────────────────────
+    // MODAL HELPERS
+    // ──────────────────────────────────────────
+    function openModal(id) {
+      document.getElementById(id).classList.add('open');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('open');
+      if (id === 'modal-mentor') resetMentorForm();
+    }
+
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+    });
+
+    // ──────────────────────────────────────────
+    // TOAST
+    // ──────────────────────────────────────────
+    function showToast(msg, type = 'success') {
+      const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
+      const colors = { success: '#4cd97a', error: '#ff7675', info: '#74b9ff' };
+      const t = document.createElement('div');
+      t.className = `toast ${type}`;
+      t.innerHTML = `<i class="fas ${icons[type] || 'fa-bell'}" style="color:${colors[type]}"></i> ${msg}`;
+      document.getElementById('toast-container').appendChild(t);
+      setTimeout(() => t.remove(), 3500);
+    }
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+  <title>Preview — Quran Insight Academy (QIA)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Amiri:wght@700&display=swap" rel="stylesheet"/>
+  <style>
+    /* RESET & CORE VARIABLES */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      width: 100%;
+      min-height: 100vh;
+      background-color: #07120c;
+      color: #e2e8f0;
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    img { max-width: 100%; height: auto; display: block; }
+    a { text-decoration: none; color: inherit; transition: all 0.2s ease; }
+
+    #qia-portal-root {
+      display: none;
+    }
+
+    .qia-landing {
+      --bg-dark: #07120c;
+      --bg-card: #0e2217;
+      --bg-card-hover: #142e20;
+      --accent-green: #10b981;
+      --accent-emerald: #059669;
+      --accent-gold: #fbbf24;
+      --accent-gold-hover: #f59e0b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-color: rgba(16, 185, 129, 0.15);
+      --border-gold: rgba(251, 191, 36, 0.25);
+      
+      background: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    .qia-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* NAVBAR */
+    .qia-navbar {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: rgba(7, 18, 12, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-color);
+    }
+    .qia-navbar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 80px;
+    }
+    .qia-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 22px;
+      color: #fff;
+    }
+    .qia-brand-logo {
+      height: 44px;
+      width: auto;
+      max-height: 44px;
+      object-fit: contain;
+      display: block;
+    }
+    .qia-brand-text span {
+      color: var(--accent-gold);
+    }
+    .qia-nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+    .qia-nav-links a {
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--text-muted);
+    }
+    .qia-nav-links a:hover {
+      color: var(--accent-gold);
+    }
+    .qia-nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    /* BUTTONS */
+    .qia-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 26px;
+      border-radius: 99px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .qia-btn-primary {
+      background: linear-gradient(135deg, var(--accent-gold), var(--accent-gold-hover));
+      color: #07120c;
+      box-shadow: 0 4px 20px rgba(251, 191, 36, 0.25);
+    }
+    .qia-btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(251, 191, 36, 0.4);
+      background: linear-gradient(135deg, #fcd34d, var(--accent-gold));
+    }
+    .qia-btn-wa {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.25);
+    }
+    .qia-btn-wa:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+    }
+    .qia-btn-outline {
+      border-color: var(--border-color);
+      background: rgba(14, 34, 23, 0.6);
+      color: var(--text-main);
+    }
+    .qia-btn-outline:hover {
+      border-color: var(--accent-gold);
+      color: var(--accent-gold);
+      background: rgba(20, 46, 32, 0.8);
+      transform: translateY(-2px);
+    }
+    .qia-btn-lg {
+      padding: 16px 36px;
+      font-size: 16px;
+    }
+
+    /* MOBILE TOGGLE */
+    .qia-mobile-toggle {
+      display: none;
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 8px;
+    }
+
+    /* HERO SECTION */
+    .qia-hero {
+      padding: 100px 0 80px;
+      text-align: center;
+      position: relative;
+    }
+    .qia-hero::before {
+      content: '';
+      position: absolute;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, rgba(7, 18, 12, 0) 70%);
+      pointer-events: none;
+    }
+    .qia-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 20px;
+      border-radius: 99px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid var(--border-color);
+      color: var(--accent-green);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      margin-bottom: 24px;
+    }
+    .qia-hero h1 {
+      font-size: 52px;
+      font-weight: 800;
+      line-height: 1.2;
+      color: #fff;
+      max-width: 900px;
+      margin: 0 auto 24px;
+    }
+    .qia-hero h1 span {
+      background: linear-gradient(135deg, var(--accent-gold), #fef08a);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .qia-hero p {
+      font-size: 19px;
+      color: var(--text-muted);
+      max-width: 680px;
+      margin: 0 auto 40px;
+      line-height: 1.7;
+    }
+    .qia-hero-ctas {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 60px;
+    }
+
+    /* STATS BAR */
+    .qia-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 32px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .qia-stat-item {
+      text-align: center;
+    }
+    .qia-stat-num {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--accent-gold);
+      margin-bottom: 4px;
+    }
+    .qia-stat-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    /* FEATURES SECTION */
+    .qia-section {
+      padding: 100px 0;
+    }
+    .qia-section-header {
+      text-align: center;
+      max-width: 680px;
+      margin: 0 auto 60px;
+    }
+    .qia-section-eyebrow {
+      color: var(--accent-green);
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 12px;
+      display: block;
+    }
+    .qia-section-title {
+      font-size: 38px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 16px;
+    }
+    .qia-section-desc {
+      font-size: 16px;
+      color: var(--text-muted);
+    }
+
+    .qia-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px;
+    }
+    .qia-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 36px 28px;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    .qia-card:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-gold);
+      transform: translateY(-6px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+    }
+    .qia-card-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      color: var(--accent-green);
+      margin-bottom: 24px;
+    }
+    .qia-card h3 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+    .qia-card p {
+      font-size: 14.5px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* PROGRAM CARDS */
+    .qia-grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 28px;
+    }
+    .qia-program-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 36px 28px;
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .qia-program-card:hover {
+      border-color: var(--border-gold);
+      transform: translateY(-4px);
+    }
+    .qia-tag {
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 99px;
+      background: rgba(251, 191, 36, 0.1);
+      border: 1px solid var(--border-gold);
+      color: var(--accent-gold);
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+    .qia-program-card h3 {
+      font-size: 24px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+    .qia-program-card p {
+      font-size: 15px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+    .qia-program-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+    .qia-program-list li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14.5px;
+      color: var(--text-main);
+    }
+    .qia-program-list li::before {
+      content: '✓';
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--accent-green);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    /* FAST ACCESS PORTAL CARDS */
+    .qia-portal-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--accent-gold);
+      margin-bottom: 8px;
+    }
+
+    /* FAQ ACCORDION */
+    .qia-faq-list {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .qia-faq-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: all 0.2s ease;
+    }
+    .qia-faq-btn {
+      width: 100%;
+      padding: 22px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-weight: 700;
+      font-size: 16px;
+      text-align: left;
+      cursor: pointer;
+    }
+    .qia-faq-icon {
+      font-size: 20px;
+      color: var(--accent-gold);
+      transition: transform 0.3s ease;
+    }
+    .qia-faq-body {
+      max-height: 0;
+      overflow: hidden;
+      padding: 0 28px;
+      color: var(--text-muted);
+      font-size: 15px;
+      line-height: 1.7;
+      transition: all 0.3s ease;
+    }
+    .qia-faq-item.is-active {
+      border-color: var(--border-gold);
+    }
+    .qia-faq-item.is-active .qia-faq-icon {
+      transform: rotate(45deg);
+    }
+    .qia-faq-item.is-active .qia-faq-body {
+      max-height: 200px;
+      padding-bottom: 22px;
+    }
+
+    /* CTA BANNER */
+    .qia-cta-box {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(251, 191, 36, 0.15));
+      border: 1px solid var(--border-gold);
+      border-radius: 32px;
+      padding: 60px 40px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .qia-cta-box h2 {
+      font-size: 36px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 16px;
+    }
+    .qia-cta-box p {
+      font-size: 17px;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto 36px;
+    }
+
+    /* FOOTER */
+    .qia-footer {
+      border-top: 1px solid var(--border-color);
+      padding: 40px 0;
+      background: #040a07;
+    }
+    .qia-footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .qia-footer p {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    .qia-footer-links {
+      display: flex;
+      gap: 24px;
+    }
+    .qia-footer-links a {
+      font-size: 14px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .qia-footer-links a:hover {
+      color: var(--accent-gold);
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 992px) {
+      .qia-hero h1 { font-size: 40px; }
+      .qia-grid-3 { grid-template-columns: repeat(2, 1fr); }
+      .qia-stats { grid-template-columns: repeat(2, 1fr); gap: 24px; }
+    }
+    @media (max-width: 768px) {
+      .qia-mobile-toggle { display: block; }
+      .qia-nav-links {
+        position: absolute;
+        top: 80px;
+        left: 0;
+        right: 0;
+        background: #07120c;
+        border-bottom: 1px solid var(--border-color);
+        flex-direction: column;
+        padding: 24px;
+        gap: 20px;
+        display: none;
+      }
+      .qia-nav-links.is-open { display: flex; }
+      .qia-nav-actions { display: none; }
+      .qia-grid-3, .qia-grid-2 { grid-template-columns: 1fr; }
+      .qia-hero h1 { font-size: 32px; }
+      .qia-hero p { font-size: 16px; }
+      .qia-stats { grid-template-columns: 1fr; }
+      .qia-footer-inner { flex-direction: column; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- CONTAINER IFRAME PORTAL (UNTUK HALAMAN STATIS /p/...) -->
+  <div id="qia-portal-root"></div>
+
+  <!-- HOMEPAGE LANDING PAGE -->
+  <div class="qia-landing">
+    
+    <!-- NAVBAR -->
+    <nav class="qia-navbar">
+      <div class="qia-container qia-navbar-inner">
+        <a class="qia-brand" href="#">
+          <img alt="Quran Insight Academy" class="qia-brand-logo" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEg2TbWuspeS-Fc6jCrtgc1pqFQ8LPJR8ZXMDWhKto44zpjFHlNeBuDYvqbFNOmWw3EtXJYlXg0ldQ674DVn4LkAR6_YeXLCAk3O1t7ZdksFM_RAHDKiwa55tonFyY-4z6VNP9o01cc_F5ktiu7fSKveccIkNnvPvUfd4jWORj_MH-W5d6rVEgrItJyTpR98/s1600/3.png" />
+          <div class="qia-brand-text">Quran <span>Insight Academy</span></div>
+        </a>
+        <div class="qia-nav-links" id="qiaNavLinks">
+          <a href="#tentang">Tentang</a>
+          <a href="#program">Program</a>
+          <a href="#portal">Portal Peserta Didik</a>
+          <a href="#faq">FAQ</a>
+          <a href="#kontak">Kontak</a>
+        </div>
+        <div class="qia-nav-actions">
+          <a class="qia-btn qia-btn-outline" href="https://instagram.com/quraninsightacademy" target="_blank">Instagram</a>
+          <a class="qia-btn qia-btn-primary" href="/p/portalwali">Portal Wali</a>
+        </div>
+        <button class="qia-mobile-toggle" id="qiaMobileToggle" type="button" aria-label="Toggle Menu">
+          ☰
+        </button>
+      </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section class="qia-hero">
+      <div class="qia-container">
+        <div class="qia-badge">
+          ✨ Bimbel &amp; Privat Al Quran Modern
+        </div>
+        <h1>Bimbingan Al-Quran <span>Modern &amp; Terstruktur</span> untuk Buah Hati Ayah Bunda</h1>
+        <p>Membantu putra-putri Ayah Bunda membaca, menghafal, dan memahami Al-Qur'an dengan metode yang menyenangkan, mentor tersertifikasi, dan laporan perkembangan yang terintegrasi secara real-time.</p>
+        
+        <div class="qia-hero-ctas">
+          <a class="qia-btn qia-btn-wa qia-btn-lg" href="https://wa.me/6285355258891" target="_blank">
+            💬 Daftar via WhatsApp
+          </a>
+          <a class="qia-btn qia-btn-primary qia-btn-lg" href="/p/portalwali">
+            🔐 Portal Wali Santri
+          </a>
+          <a class="qia-btn qia-btn-outline qia-btn-lg" href="https://instagram.com/quraninsightacademy" target="_blank">
+            📷 Instagram @quraninsightacademy
+          </a>
+        </div>
+
+        <!-- STATS BAR -->
+        <div class="qia-stats">
+          <div class="qia-stat-item">
+            <div class="qia-stat-num">500+</div>
+            <div class="qia-stat-label">Peserta Didik Aktif</div>
+          </div>
+          <div class="qia-stat-item">
+            <div class="qia-stat-num">100%</div>
+            <div class="qia-stat-label">Mentor Competent</div>
+          </div>
+          <div class="qia-stat-item">
+            <div class="qia-stat-num">4.9/5</div>
+            <div class="qia-stat-label">Kepuasan Wali</div>
+          </div>
+          <div class="qia-stat-item">
+            <div class="qia-stat-num">Real-Time</div>
+            <div class="qia-stat-label">Laporan Portal Wali</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABOUT / KEUNGGULAN SECTION -->
+    <section class="qia-section" id="tentang">
+      <div class="qia-container">
+        <div class="qia-section-header">
+          <span class="qia-section-eyebrow">Keunggulan QIA</span>
+          <h2 class="qia-section-title">Mengapa Memilih Quran Insight Academy?</h2>
+          <p class="qia-section-desc">Kami mengombinasikan kehangatan bimbingan islami dengan teknologi pemantauan modern untuk memberikan pengalaman belajar terbaik.</p>
+        </div>
+
+        <div class="qia-grid-3">
+          <div class="qia-card">
+            <div class="qia-card-icon">📖</div>
+            <h3>Metode Interaktif &amp; Ramah Anak</h3>
+            <p>Pendekatan belajar bertahap yang disesuaikan dengan kemampuan peserta didik, membuat anak senang dan ketagihan belajar Al-Qur'an.</p>
+          </div>
+
+          <div class="qia-card">
+            <div class="qia-card-icon">📊</div>
+            <h3>Portal Wali Real-Time</h3>
+            <p>Wali peserta didik dapat memantau kehadiran, nilai, serta progres hafalan anak kapan saja secara langsung melalui sistem online kami.</p>
+          </div>
+
+          <div class="qia-card">
+            <div class="qia-card-icon">🎓</div>
+            <h3>Mentor Terpilih &amp; Sabar</h3>
+            <p>Guru-guru pengajar yang berkompeten, bersertifikasi, serta berpengalaman dalam membimbing anak-anak dan remaja.</p>
+          </div>
+
+          <div class="qia-card">
+            <div class="qia-card-icon">⏰</div>
+            <h3>Jadwal Belajar Fleksibel</h3>
+            <p>Waktu sesi belajar yang dapat disesuaikan dengan aktivitas sekolah anak dan fleksibilitas keluarga.</p>
+          </div>
+
+          <div class="qia-card">
+            <div class="qia-card-icon">📜</div>
+            <h3>Evaluasi &amp; Sertifikasi Bulanan</h3>
+            <p>Laporan hasil belajar bulanan lengkap yang dikirimkan langsung dan tercatat dalam sistem sertifikasi peserta didik.</p>
+          </div>
+
+          <div class="qia-card">
+            <div class="qia-card-icon">👥</div>
+            <h3>Privat &amp; Semi Privat Class</h3>
+            <p>Pilihan kelas privat 1-on-1 intensif atau kelas kelompok kecil untuk menjaga fokus dan perhatian pengajar.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROGRAM BELAJAR -->
+    <section class="qia-section" id="program" style="background: rgba(14, 34, 23, 0.3); border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);">
+      <div class="qia-container">
+        <div class="qia-section-header">
+          <span class="qia-section-eyebrow">Pilihan Program</span>
+          <h2 class="qia-section-title">Program Belajar Quran Insight Academy</h2>
+          <p class="qia-section-desc">Pilih jalur belajar yang paling sesuai dengan kebutuhan dan target pembelajaran putra-putri Ayah Bunda.</p>
+        </div>
+
+        <div class="qia-grid-3">
+          <div class="qia-program-card">
+            <div>
+              <span class="qia-tag">Kelas SD – SMA</span>
+              <h3>Bimbel Al-Qur’an Terstruktur</h3>
+              <p>Belajar Al-Qur’an dalam kelompok dengan kurikulum dan target yang disesuaikan dengan kemampuan peserta.</p>
+              <ul class="qia-program-list">
+                <li>Maksimal 10 peserta per kelas</li>
+                <li>Tahsin, Tajwid &amp; Tahfizh</li>
+                <li>Materi sesuai kemampuan peserta</li>
+                <li>Laporan perkembangan bulanan</li>
+              </ul>
+            </div>
+            <a class="qia-btn qia-btn-wa" href="https://wa.me/6285355258891?text=Halo%20QIA,%20saya%20tertarik%20dengan%20Program%20Regular%20Class" target="_blank">
+              Daftar Regular Class
+            </a>
+          </div>
+
+          <div class="qia-program-card">
+            <div>
+              <span class="qia-tag">Kelas Usia 3–7 Tahun</span>
+              <h3>Belajar Al-Qur’an dengan Ceria</h3>
+              <p>Mengenal Al-Qur’an melalui aktivitas interaktif, pembiasaan Islami, dan pembelajaran yang menyenangkan.</p>
+              <ul class="qia-program-list">
+                <li>Maksimal 5 peserta per kelas</li>
+                <li>Hijaiyah, Iqra &amp; hafalan</li>
+                <li>Doa, adab &amp; storytelling Islami</li>
+                <li>Aktivitas edukatif sesuai usia</li>
+              </ul>
+            </div>
+            <a class="qia-btn qia-btn-wa" href="https://wa.me/6285355258891?text=Halo%20QIA,%20saya%20tertarik%20dengan%20Program%20Fun%20Quran%20Kids" target="_blank">
+              Daftar Fun Qur’an Kids
+            </a>
+          </div>
+
+          <div class="qia-program-card">
+            <div>
+              <span class="qia-tag">Kelas 1–5 Peserta</span>
+              <h3>Belajar Al-Qur’an di Rumah</h3>
+              <p>Pendampingan personal bersama Mentor QIA dengan program yang disesuaikan dengan kebutuhan dan target Ananda.</p>
+              <ul class="qia-program-list">
+                <li>Private 1–2 atau Semi Private 3–5</li>
+                <li>Mentor datang langsung ke rumah</li>
+                <li>Kurikulum sesuai level &amp; target</li>
+                <li>Laporan melalui WhatsApp &amp; Portal Wali</li>
+              </ul>
+            </div>
+            <a class="qia-btn qia-btn-primary" href="https://wa.me/6285355258891?text=Halo%20QIA,%20saya%20tertarik%20dengan%20Program%20Private%20Quran" target="_blank">
+              Daftar Private Qur’an
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAST ACCESS PORTALS SECTION -->
+    <section class="qia-section" id="portal">
+      <div class="qia-container">
+        <div class="qia-section-header">
+          <span class="qia-section-eyebrow">Akses Terintegrasi</span>
+          <h2 class="qia-section-title">Portal Digital QIA</h2>
+          <p class="qia-section-desc">Pantau perkembangan belajar putra-putri Ayah Bunda secara real-time melalui Portal Wali Peserta Didik.</p>
+        </div>
+
+        <div class="qia-grid-3">
+          <div class="qia-card" style="text-align: center;">
+            <span class="qia-portal-badge">Wali Peserta Didik</span>
+            <h3>Portal Wali</h3>
+            <p>Cek presensi, nilai, riwayat mutaba'ah hafalan, dan unduh laporan perkembangan anak.</p>
+            <div style="margin-top: 20px;">
+              <a class="qia-btn qia-btn-primary" href="/p/portalwali" style="width: 100%; justify-content: center;">
+                Buka Portal Wali
+              </a>
+            </div>
+          </div>
+
+          <div class="qia-card" style="text-align: center;">
+            <span class="qia-portal-badge">Pengajar</span>
+            <h3>Portal Mentor</h3>
+            <p>Input presensi harian, nilai santri, jurnal mengajar, dan mutaba'ah hafalan.</p>
+            <div style="margin-top: 20px;">
+              <a class="qia-btn qia-btn-outline" href="/p/mentor" style="width: 100%; justify-content: center;">
+                Login Mentor
+              </a>
+            </div>
+          </div>
+
+          <div class="qia-card" style="text-align: center;">
+            <span class="qia-portal-badge">Manajemen</span>
+            <h3>Portal Admin</h3>
+            <p>Kelola data santri, pengajar, penugasan kelas, serta rekapitulasi laporan akademi.</p>
+            <div style="margin-top: 20px;">
+              <a class="qia-btn qia-btn-outline" href="/p/admin" style="width: 100%; justify-content: center;">
+                Panel Admin
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ SECTION -->
+    <section class="qia-section" id="faq" style="background: rgba(14, 34, 23, 0.3); border-top: 1px solid var(--border-color);">
+      <div class="qia-container">
+        <div class="qia-section-header">
+          <span class="qia-section-eyebrow">FAQ</span>
+          <h2 class="qia-section-title">Pertanyaan Yang Sering Diajukan</h2>
+          <p class="qia-section-desc">Informasi seputar pendaftaran dan sistem pembelajaran di Quran Insight Academy.</p>
+        </div>
+
+        <div class="qia-faq-list">
+          <div class="qia-faq-item">
+            <button class="qia-faq-btn" type="button">
+              <span>Bagaimana cara mendaftar di Quran Insight Academy?</span>
+              <span class="qia-faq-icon">+</span>
+            </button>
+            <div class="qia-faq-body">
+              Pendaftaran sangat mudah! Ayah Bunda cukup klik tombol "Daftar via WhatsApp", tim admin kami akan menyapa Ayah Bunda untuk konsultasi level peserta didik dan penyesuaian jadwal belajar.
+            </div>
+          </div>
+
+          <div class="qia-faq-item">
+            <button class="qia-faq-btn" type="button">
+              <span>Bagaimana cara mendapatkan Kode Akses Portal Wali?</span>
+              <span class="qia-faq-icon">+</span>
+            </button>
+            <div class="qia-faq-body">
+              Kode Akses Portal Wali (6 karakter unik) diberikan oleh Admin setelah peserta didik terdaftar secara resmi. Kode ini digunakan untuk melihat perkembangan belajar peserta didik di halaman Portal Wali.
+            </div>
+          </div>
+
+          <div class="qia-faq-item">
+            <button class="qia-faq-btn" type="button">
+              <span>Apakah kelas dapat dilakukan secara online atau offline?</span>
+              <span class="qia-faq-icon">+</span>
+            </button>
+            <div class="qia-faq-body">
+              QIA menyediakan opsi bimbingan privat online fleksibel dari mana saja maupun privat offline sesuai kesepakatan area lokasi pengajar.
+            </div>
+          </div>
+
+          <div class="qia-faq-item">
+            <button class="qia-faq-btn" type="button">
+              <span>Berapa usia peserta didik yang diterima di QIA?</span>
+              <span class="qia-faq-icon">+</span>
+            </button>
+            <div class="qia-faq-body">
+              Kami menerima peserta didik mulai usia anak-anak (4 tahun), remaja, hingga kelas tahsin tajwid khusus untuk usia dewasa.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA BANNER -->
+    <section class="qia-section" id="kontak">
+      <div class="qia-container">
+        <div class="qia-cta-box">
+          <h2>Mulai Perjalanan Quran Putra-Putri Ayah Bunda Hari Ini</h2>
+          <p>Konsultasikan kebutuhan belajar anak dan dapatkan sesi perkenalan bersama pengajar berpengalaman kami.</p>
+          <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+            <a class="qia-btn qia-btn-wa qia-btn-lg" href="https://wa.me/6285355258891" target="_blank">
+              💬 Chat WhatsApp Admin (+62 853-5525-8891)
+            </a>
+            <a class="qia-btn qia-btn-primary qia-btn-lg" href="/p/portalwali">
+              🔑 Buka Portal Wali
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="qia-footer">
+      <div class="qia-container qia-footer-inner">
+        <div>
+          <p><strong>Quran Insight Academy (QIA)</strong> — Bimbel &amp; Privat Al Quran Modern.</p>
+          <p style="font-size: 13px; margin-top: 4px;">© 2026 Quran Insight Academy. All rights reserved.</p>
+        </div>
+        <div class="qia-footer-links">
+          <a href="https://wa.me/6285355258891" target="_blank">WhatsApp Admin</a>
+          <a href="https://instagram.com/quraninsightacademy" target="_blank">Instagram</a>
+          <a href="/p/portalwali">Portal Wali</a>
+          <a href="/p/mentor">Portal Mentor</a>
+          <a href="/p/admin">Portal Admin</a>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    (function() {
+      // 1. Mobile Menu Toggle
+      var mobileToggle = document.getElementById('qiaMobileToggle');
+      var navLinks     = document.getElementById('qiaNavLinks');
+      if (mobileToggle && navLinks) {
+        mobileToggle.addEventListener('click', function() {
+          navLinks.classList.toggle('is-open');
+        });
+      }
+
+      // 2. FAQ Accordion Toggles
+      var faqBtns = document.querySelectorAll('.qia-faq-btn');
+      faqBtns.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var item = this.parentElement;
+          var isActive = item.classList.contains('is-active');
+          document.querySelectorAll('.qia-faq-item').forEach(function(el) {
+            el.classList.remove('is-active');
+          });
+          if (!isActive) {
+            item.classList.add('is-active');
+          }
+        });
+      });
+
+      // 3. Portal Route Iframe Inserter
+      var path = window.location.pathname.toLowerCase();
+      if (path.indexOf('/p/') !== -1) {
+        var landing = document.querySelector('.qia-landing');
+        if (landing) { landing.style.display = 'none'; }
+        var root = document.getElementById('qia-portal-root');
+        if (root) {
+          root.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;background:#221104;display:block;';
+          var GAS_BASE = 'https://script.google.com/macros/s/AKfycbxdMQpEUGCxa3W9BB_HM5zIU71Q8b0OZFepAgOY0thu2hRzxC2HbNfEPFvzpoqNQoTc/exec?authuser=0';
+          var iframeSrc = GAS_BASE;
+          if (path.indexOf('/p/admin') !== -1) {
+            iframeSrc = GAS_BASE + '&p=admin';
+          } else if (path.indexOf('/p/mentor') !== -1) {
+            iframeSrc = GAS_BASE + '&p=mentor';
+          }
+          var frame = document.createElement('iframe');
+          frame.src = iframeSrc;
+          frame.style.cssText = 'width:100%;height:100%;border:none;display:block;';
+          frame.setAttribute('allowfullscreen', 'true');
+          frame.setAttribute('scrolling', 'yes');
+          frame.setAttribute('title', 'Portal QIA');
+          root.innerHTML = '';
+          root.appendChild(frame);
+        }
+      }
+    })();
+  </script>
+</body>
+</html>

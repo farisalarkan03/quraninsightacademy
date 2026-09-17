@@ -1,0 +1,205 @@
+/* ============================================================
+   QIA — Spreadsheet Grid Editor CSS
+   src/styles/spreadsheet.css
+   ============================================================ */
+
+/* ── Wrapper ── */
+.spreadsheet-wrapper {
+  width: 100%;
+  overflow: hidden;
+  border: 1.5px solid var(--cream-300);
+  border-radius: var(--radius);
+  background: white;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Toolbar ── */
+.spreadsheet-toolbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px;
+  background: var(--brown-800);
+  border-bottom: 1px solid var(--border-dark);
+  flex-wrap: wrap;
+}
+.spreadsheet-toolbar .toolbar-title {
+  font-size: 0.85rem; font-weight: 700; color: var(--gold-400);
+  margin-right: 8px;
+}
+.spreadsheet-toolbar .spacer { flex: 1; }
+
+/* ── Tab bar ── */
+.spreadsheet-tabs {
+  display: flex; gap: 0;
+  padding: 0 16px;
+  background: var(--brown-900);
+  border-bottom: 1px solid var(--border-dark);
+  overflow-x: auto;
+}
+.spreadsheet-tabs::-webkit-scrollbar { height: 3px; }
+.spreadsheet-tabs::-webkit-scrollbar-thumb { background: var(--brown-500); }
+.sheet-tab {
+  padding: 10px 20px; font-size: 0.8rem; font-weight: 600;
+  color: var(--text-card-muted); cursor: pointer;
+  border-bottom: 2px solid transparent; white-space: nowrap;
+  transition: var(--transition);
+}
+.sheet-tab:hover { color: var(--gold-400); }
+.sheet-tab.active { color: var(--gold-500); border-bottom-color: var(--gold-500); background: rgba(240,175,67,0.08); }
+
+/* ── Scroll container ── */
+.spreadsheet-scroll {
+  overflow: auto;
+  max-height: 520px;
+  position: relative;
+}
+.spreadsheet-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.spreadsheet-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
+.spreadsheet-scroll::-webkit-scrollbar-thumb { background: var(--brown-300); border-radius: 4px; }
+.spreadsheet-scroll::-webkit-scrollbar-corner { background: #f1f5f9; }
+
+/* ── Table ── */
+.ss-table {
+  border-collapse: collapse;
+  width: max-content; min-width: 100%;
+  font-size: 0.82rem;
+}
+
+/* Row number column */
+.ss-table .row-num {
+  background: #f8fafc; color: #94a3b8;
+  font-size: 0.72rem; font-weight: 600;
+  padding: 0 10px; text-align: center;
+  border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;
+  user-select: none; position: sticky; left: 0; z-index: 2;
+  min-width: 44px;
+}
+.ss-table .row-num.header-row-num {
+  background: var(--brown-800); color: var(--gold-400);
+  border-color: var(--border-dark);
+  position: sticky; top: 0; z-index: 10;
+}
+
+/* ── Header row ── */
+.ss-table thead { position: sticky; top: 0; z-index: 5; }
+.ss-table thead th.ss-th {
+  background: var(--brown-800);
+  color: var(--gold-400);
+  font-size: 0.72rem; text-transform: uppercase;
+  letter-spacing: 0.5px; font-weight: 700;
+  padding: 10px 12px; text-align: left;
+  border-right: 1px solid var(--border-dark);
+  border-bottom: 1px solid var(--border-dark);
+  white-space: nowrap; min-width: 120px;
+  user-select: none; cursor: pointer;
+  position: relative;
+}
+.ss-table thead th.ss-th:hover { background: var(--brown-700); }
+.ss-table thead th.ss-th.sorted-asc::after  { content: ' ▲'; font-size: 0.65rem; }
+.ss-table thead th.ss-th.sorted-desc::after { content: ' ▼'; font-size: 0.65rem; }
+
+/* ── Body rows ── */
+.ss-table tbody tr { transition: background 0.15s; }
+.ss-table tbody tr:nth-child(even) { background: #f8fafb; }
+.ss-table tbody tr:hover { background: #fff8ee !important; }
+.ss-table tbody tr.row-selected { background: #fff3cd !important; }
+.ss-table tbody tr.row-dirty td.row-num { background: #fef3c7 !important; color: #d97706 !important; }
+.ss-table tbody tr.row-new td.row-num { background: #d1fae5 !important; color: #059669 !important; }
+
+/* ── Cells ── */
+.ss-table td.ss-cell {
+  padding: 0; border-right: 1px solid #e8edf2; border-bottom: 1px solid #e8edf2;
+  position: relative;
+}
+.ss-cell-inner {
+  padding: 7px 12px; min-height: 36px;
+  display: flex; align-items: center;
+  color: var(--brown-900);
+  cursor: cell;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  min-width: 120px; max-width: 260px;
+}
+.ss-cell-inner.text-red    { color: var(--red-500); }
+.ss-cell-inner.text-green  { color: var(--emerald-600); }
+.ss-cell-inner.text-yellow { color: var(--gold-600); }
+.ss-cell-inner.text-blue   { color: var(--blue-500); }
+
+/* Active / editing cell */
+.ss-cell.cell-active .ss-cell-inner {
+  outline: 2px solid var(--gold-500);
+  outline-offset: -2px;
+  z-index: 1;
+}
+.ss-cell.cell-editing { padding: 0 !important; }
+.ss-cell-editor {
+  width: 100%; height: 100%; min-height: 36px; padding: 7px 12px;
+  border: 2px solid var(--gold-500); outline: none;
+  font-size: 0.82rem; font-family: 'Plus Jakarta Sans', sans-serif;
+  background: #fffbeb; color: var(--brown-900);
+  box-shadow: 0 0 0 4px rgba(240,175,67,0.15);
+}
+.ss-cell-editor-select {
+  width: 100%; height: 38px; padding: 0 10px;
+  border: 2px solid var(--gold-500); outline: none;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.82rem;
+  background: #fffbeb; color: var(--brown-900);
+}
+
+/* ── Status bar ── */
+.spreadsheet-statusbar {
+  display: flex; align-items: center; gap: 16px;
+  padding: 8px 16px;
+  background: #f8fafc; border-top: 1px solid #e2e8f0;
+  font-size: 0.75rem; color: #64748b;
+}
+.statusbar-item strong { color: var(--brown-700); }
+.statusbar-item.dirty { color: #d97706; font-weight: 600; }
+.statusbar-spacer { flex: 1; }
+
+/* ── Add row button row ── */
+.ss-add-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 16px;
+  background: #f8fafc; border-top: 1px dashed #cbd5e1;
+  cursor: pointer; color: #64748b; font-size: 0.82rem; font-weight: 500;
+  transition: var(--transition);
+}
+.ss-add-row:hover { background: #fef3c7; color: var(--gold-600); }
+.ss-add-row i { font-size: 13px; }
+
+/* ── Search / filter bar ── */
+.ss-search-bar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 10px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0;
+}
+.ss-search-input {
+  flex: 1; min-width: 200px; max-width: 320px;
+  padding: 7px 12px 7px 36px; border: 1.5px solid #e2e8f0;
+  border-radius: 8px; font-size: 0.82rem; outline: none;
+  transition: var(--transition);
+}
+.ss-search-input:focus { border-color: var(--gold-500); box-shadow: 0 0 0 3px rgba(240,175,67,0.15); }
+.ss-row-count { font-size: 0.78rem; color: #94a3b8; white-space: nowrap; }
+
+/* ── Column resize handle ── */
+.col-resize-handle {
+  position: absolute; right: 0; top: 0; width: 4px; height: 100%;
+  cursor: col-resize; z-index: 2;
+}
+.col-resize-handle:hover, .col-resize-handle.resizing { background: var(--gold-400); }
+
+/* ── Export panel ── */
+.export-panel {
+  display: flex; align-items: center; gap: 8px; padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(240,175,67,0.06), rgba(16,185,129,0.04));
+  border-top: 1px solid var(--cream-300);
+  flex-wrap: wrap;
+}
+.export-panel .export-label { font-size: 0.8rem; font-weight: 600; color: var(--brown-600); }
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+  .spreadsheet-toolbar { gap: 6px; padding: 10px 12px; }
+  .sheet-tab { padding: 8px 12px; font-size: 0.75rem; }
+  .ss-table thead th.ss-th { min-width: 100px; }
+  .ss-cell-inner { min-width: 100px; max-width: 180px; }
+}

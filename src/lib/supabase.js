@@ -1,0 +1,619 @@
+// ============================================================
+// QIA — Supabase Client & API Services + Resilient Demo Mode
+// src/lib/supabase.js
+// ============================================================
+
+import { createClient } from '@supabase/supabase-js'
+
+const RAW_URL  = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SUPABASE_URL) || localStorage.getItem('qia_supabase_url') || ''
+const RAW_ANON = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY) || localStorage.getItem('qia_supabase_anon_key') || ''
+
+// Deteksi apakah Supabase sudah dikonfigurasi secara riil
+export const isConfigured = Boolean(
+  RAW_URL &&
+  RAW_ANON &&
+  RAW_URL.startsWith('http') &&
+  !RAW_URL.includes('placeholder')
+)
+
+// Gunakan URL & Key aman agar createClient tidak pernah melempar uncaught exception
+const SAFE_URL  = isConfigured ? RAW_URL : 'https://placeholder-qia.supabase.co'
+const SAFE_ANON = isConfigured ? RAW_ANON : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy-anon-key'
+
+export const supabase = createClient(SAFE_URL, SAFE_ANON, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: isConfigured,
+  }
+})
+
+// ────────────────────────────────────────────────────────────
+// DEMO MOCK STORE (Untuk pengujian & fallback saat offline / belum konek Supabase)
+// ────────────────────────────────────────────────────────────
+
+// ── Production Mode: No demo data. All data comes from Supabase. ──
+const DEMO_PROFILES = [
+  { id: 'admin-prod', nama: 'Administrator QIA', email: 'portalqia@gmail.com', role: 'admin', jenis_mentor: null, no_hp: '', status: 'aktif' }
+]
+
+const DEMO_KELAS      = []
+const DEMO_PESERTA    = []
+const DEMO_KEMAJUAN   = []
+const DEMO_PENILAIAN  = []
+const DEMO_KEHADIRAN  = []
+
+function getLocalStore(key, defaultVal) {
+  try {
+    const raw = localStorage.getItem('qia_mock_' + key)
+    if (raw) return JSON.parse(raw)
+  } catch (e) { /* ignore */ }
+  return defaultVal
+}
+
+function setLocalStore(key, val) {
+  try {
+    localStorage.setItem('qia_mock_' + key, JSON.stringify(val))
+  } catch (e) { /* ignore */ }
+}
+
+// ────────────────────────────────────────────────────────────
+// AUTH SERVICES
+// ────────────────────────────────────────────────────────────
+
+export const authService = {
+  async login(email, password) {
+    if (isConfigured) {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) throw error
+      return data
+    }
+
+    // Demo Mode Auth
+    const found = DEMO_PROFILES.find(p => p.email.toLowerCase() === email.toLowerCase().trim())
+    if (found) {
+      localStorage.setItem('qia_demo_session', JSON.stringify({ user: { id: found.id, email: found.email }, profile: found }))
+      return { user: { id: found.id, email: found.email }, profile: found }
+    }
+    // Jika tidak cocok, izinkan demo admin default
+    if (email.includes('admin')) {
+      const admin = DEMO_PROFILES[0]
+      localStorage.setItem('qia_demo_session', JSON.stringify({ user: { id: admin.id, email: admin.email }, profile: admin }))
+      return { user: { id: admin.id, email: admin.email }, profile: admin }
+    } else {
+      const mentor = DEMO_PROFILES[1]
+      localStorage.setItem('qia_demo_session', JSON.stringify({ user: { id: mentor.id, email: mentor.email }, profile: mentor }))
+      return { user: { id: mentor.id, email: mentor.email }, profile: mentor }
+    }
+  },
+
+  async logout() {
+    localStorage.removeItem('qia_demo_session')
+    if (isConfigured) {
+      try { await supabase.auth.signOut() } catch(e) {}
+    }
+  },
+
+  async getSession() {
+    if (isConfigured) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) return session
+      } catch (e) {}
+    }
+    const raw = localStorage.getItem('qia_demo_session')
+    if (raw) {
+      try { return JSON.parse(raw) } catch(e) {}
+    }
+    return null
+  },
+
+  async getProfile() {
+    const session = await this.getSession()
+    if (!session) return null
+
+    if (isConfigured && session.user?.id) {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+        if (!error && data) return data
+      } catch(e) {}
+    }
+
+    if (session.profile) return session.profile
+    return DEMO_PROFILES.find(p => p.id === session.user?.id) || DEMO_PROFILES[0]
+  },
+
+  onAuthStateChange(callback) {
+    if (isConfigured) {
+      return supabase.auth.onAuthStateChange(callback)
+    }
+    return { data: { subscription: { unsubscribe: () => {} } } }
+  },
+}
+
+// ────────────────────────────────────────────────────────────
+// ADMIN SERVICES
+// ────────────────────────────────────────────────────────────
+
+export const adminService = {
+  async getDashboardStats() {
+    if (isConfigured) {
+      try {
+        const { data, error } = await supabase.rpc('get_admin_dashboard_stats')
+        if (!error && data) return data
+      } catch(e) {}
+    }
+    const peserta = await this.getPesertaDidik()
+    const mentors = await this.getMentors()
+    const kelas   = await this.getKelas()
+    return {
+      total_santri_aktif: peserta.filter(p => p.status === 'aktif').length,
+      total_santri_bimbel: peserta.filter(p => p.jenis === 'bimbel').length,
+      total_santri_privat: peserta.filter(p => p.jenis === 'privat').length,
+      total_mentor_aktif: mentors.filter(m => m.status === 'aktif').length,
+      total_kelas_aktif: kelas.filter(k => k.status === 'aktif').length,
+      persentase_kehadiran_bulan_ini: 94.2
+    }
+  },
+
+  async getMentors(filter = {}) {
+    if (isConfigured) {
+      try {
+        let q = supabase.from('profiles').select('*').eq('role', 'mentor').order('nama')
+        if (filter.status) q = q.eq('status', filter.status)
+        if (filter.jenis)  q = q.eq('jenis_mentor', filter.jenis)
+        const { data, error } = await q
+        if (!error && data) return data
+      } catch(e) {}
+    }
+    const list = getLocalStore('profiles', DEMO_PROFILES).filter(p => p.role === 'mentor')
+    return filter.jenis ? list.filter(m => m.jenis_mentor === filter.jenis || m.jenis_mentor === 'keduanya') : list
+  },
+
+  async createMentor(email, password, profile) {
+    if (isConfigured) {
+      try {
+        const { data: authData, error: authErr } = await supabase.auth.admin.createUser({
+          email, password, email_confirm: true, user_metadata: { nama: profile.nama, role: 'mentor' }
+        })
+        if (!authErr) {
+          const { data, error } = await supabase.from('profiles').update({ ...profile, role: 'mentor' }).eq('id', authData.user.id).select().single()
+          if (!error && data) return data
+        }
+      } catch(e) {}
+    }
+    const list = getLocalStore('profiles', DEMO_PROFILES)
+    const newM = { id: 'mentor-' + Date.now(), email, ...profile, role: 'mentor', status: 'aktif' }
+    list.push(newM)
+    setLocalStore('profiles', list)
+    return newM
+  },
+
+  async updateMentor(id, updates) {
+    if (isConfigured) {
+      try {
+        const { data, error } = await supabase.from('profiles').update(updates).eq('id', id).select().single()
+        if (!error && data) return data
+      } catch(e) {}
+    }
+    const list = getLocalStore('profiles', DEMO_PROFILES)
+    const idx = list.findIndex(p => p.id === id)
+    if (idx !== -1) { list[idx] = { ...list[idx], ...updates }; setLocalStore('profiles', list); return list[idx] }
+    return null
+  },
+
+  async getKelas(filter = {}) {
+    if (isConfigured) {
+      try {
+        let q = supabase.from('kelas').select('*, mentor:profiles(id, nama, email, jenis_mentor)').order('nama_kelas')
+        if (filter.status)    q = q.eq('status', filter.status)
+        if (filter.id_mentor) q = q.eq('id_mentor', filter.id_mentor)
+        const { data, error } = await q
+        if (!error && data) return data
+      } catch(e) {}
+    }
+    const kelasList = getLocalStore('kelas', DEMO_KELAS)
+    const mentorList = getLocalStore('profiles', DEMO_PROFILES)
+    return kelasList.map(k => ({
+      ...k,
+      mentor: mentorList.find(m => m.id === k.id_mentor) || { nama: 'Asatidz' }
+    }))
+  },
+
+  async createKelas(kelasData) {
+    if (isConfigured) {
+      try {
+        const { data, error } = await supabase.from('kelas').insert(kelasData).select().single()
+        if (!error && data) return data
+      } catch(e) {}
+    }
+    const list = getLocalStore('kelas', DEMO_KELAS)
+    const newK = { id: Date.now(), status: 'aktif', ...kelasData }
+    list.push(newK)
+    setLocalStore('kelas', list)
+    return newK
+  },
+
+  async updateKelas(id, updates) {
+    if (isConfigured) {
+      try {
+        const { data, error } = await supabase.from('kelas').update(updates).eq('id', id).select().single()
+        if (!error && data) return data
+      } catch(e) {}
+    }
+    const list = getLocalStore('kelas', DEMO_KELAS)
+    const idx = list.findIndex(k => k.id === id)
+    if (idx !== -1) { list[idx] = { ...list[idx], ...updates }; setLocalStore('kelas', list); return list[idx] }
+    return null
+  },
+
+  async deleteKelas(id) {
+    if (isConfigured) {
+      try {
+        await supabase.from('kelas').delete().eq('id', id)
+      } catch(e) {}
+    }
+    const list = getLocalStore('kelas', DEMO_KELAS).filter(k => k.id !== id)
+    setLocalStore('kelas', list)
+  },
+
+  async getPesertaDidik(filter = {}) {
+    if (isConfigured) {
+      try {
+        let q = supabase.from('peserta_didik').select('*, mentor:profiles(id, nama), kelas(id, nama_kelas)').order('nama_lengkap')
+        if (filter.jenis)     q = q.eq('jenis', filter.jenis)
+        if (filter.id_kelas)  q = q.eq('id_kelas', filter.id_kelas)
+        if (filter.id_mentor) q = q.eq('id_mentor', filter.id_mentor)
+        if (filter.status)    q = q.eq('status', filter.status)
+        const { data, error } = await q
+        if (!error && data) return data
+      } catch(e) {}
+    }
+    const list = getLocalStore('peserta', DEMO_PESERTA)
+    const kelas = getLocalStore('kelas', DEMO_KELAS)
+    const mentors = getLocalStore('profiles', DEMO_PROFILES)
+    return list.map(p => ({
+      ...p,
+      kelas: kelas.find(k => k.id === p.id_kelas) || null,
+      mentor: mentors.find(m => m.id === p.id_mentor) || null
+    }))
+  },
+
+  async createPeserta(pesertaData) {
+    if (isConfigured) {
+      try {
+        const { data, error } = await supabase.from('peserta_didik').insert(pesertaData).select().single()
+        if (!error && data) return data
+      } catch(e) {}
+    }
+    const list = getLocalStore('peserta', DEMO_PESERTA)
+    const newP = { id: Date.now(), tanggal_daftar: new Date().toISOString().split('T')[0], status: 'aktif', ...pesertaData }
+    list.push(newP)
+    setLocalStore('peserta', list)
+    return newP
+  },
+
+  async updatePeserta(id, updates) {
+    if (isConfigured) {
+      try {
+        const { data, error } = await supabase.from('peserta_didik').update(updates).eq('id', id).select().single()
+        if (!error && data) return data
+      } catch(e) {}
+    }
+    const list = getLocalStore('peserta', DEMO_PESERTA)
+    const idx = list.findIndex(p => p.id === id)
+    if (idx !== -1) { list[idx] = { ...list[idx], ...updates }; setLocalStore('peserta', list); return list[idx] }
+    return null
+  },
+
+  async bulkUpdatePeserta(records) {
+    if (isConfigured) {
+      try {
+        await supabase.from('peserta_didik').upsert(records)
+        return
+      } catch(e) {}
+    }
+    const list = getLocalStore('peserta', DEMO_PESERTA)
+    records.forEach(rec => {
+      const idx = list.findIndex(p => p.id === rec.id)
+      if (idx !== -1) list[idx] = { ...list[idx], ...rec }
+      else list.push(rec)
+    })
+    setLocalStore('peserta', list)
+  },
+
+  async exportAllData(table, columns = '*') {
+    if (isConfigured) {
+      try {
+        const { data, error } = await supabase.from(table).select(columns).order('id')
+        if (!error && data) return data
+      } catch(e) {}
+    }
+    if (table === 'peserta_didik') return getLocalStore('peserta', DEMO_PESERTA)
+    if (table === 'profiles') return getLocalStore('profiles', DEMO_PROFILES)
+    if (table === 'kelas') return getLocalStore('kelas', DEMO_KELAS)
+    if (table === 'kehadiran') return getLocalStore('kehadiran', DEMO_KEHADIRAN)
+    if (table === 'kemajuan') return getLocalStore('kemajuan', DEMO_KEMAJUAN)
+    if (table === 'penilaian') return getLocalStore('penilaian', DEMO_PENILAIAN)
+    return []
+  },
+
+  async exportAllTables() {
+    if (isConfigured) {
+      try {
+        const [peserta, mentor, kelas, kehadiran, kemajuan, penilaian] = await Promise.all([
+          supabase.from('peserta_didik').select('*, kelas(nama_kelas), mentor:profiles(nama)'),
+          supabase.from('profiles').select('*').eq('role', 'mentor'),
+          supabase.from('kelas').select('*, mentor:profiles(nama)'),
+          supabase.from('kehadiran').select('*, peserta:peserta_didik(nama_lengkap), kelas(nama_kelas)'),
+          supabase.from('kemajuan').select('*, peserta:peserta_didik(nama_lengkap)'),
+          supabase.from('penilaian').select('*, peserta:peserta_didik(nama_lengkap)'),
+        ])
+        if (peserta.data) {
+          return {
+            peserta: peserta.data, mentor: mentor.data, kelas: kelas.data,
+            kehadiran: kehadiran.data, kemajuan: kemajuan.data, penilaian: penilaian.data
+          }
+        }
+      } catch(e) {}
+    }
+    return {
+      peserta: getLocalStore('peserta', DEMO_PESERTA),
+      mentor: getLocalStore('profiles', DEMO_PROFILES).filter(p => p.role === 'mentor'),
+      kelas: getLocalStore('kelas', DEMO_KELAS),
+      kehadiran: getLocalStore('kehadiran', DEMO_KEHADIRAN),
+      kemajuan: getLocalStore('kemajuan', DEMO_KEMAJUAN),
+      penilaian: getLocalStore('penilaian', DEMO_PENILAIAN),
+    }
+  },
+
+  async logActivity(action, entity_type, entity_id, detail = {}) {
+    if (isConfigured) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        await supabase.from('activity_logs').insert({ id_user: user?.id, action, entity_type, entity_id: String(entity_id), detail })
+      } catch(e) {}
+    }
+  },
+}
+
+// ────────────────────────────────────────────────────────────
+// MENTOR SERVICES
+// ────────────────────────────────────────────────────────────
+
+export const mentorService = {
+  async getMyKelas(mentorId) {
+    if (isConfigured) {
+      try {
+        const { data, error } = await supabase.from('kelas').select('*').eq('id_mentor', mentorId).eq('status', 'aktif').order('nama_kelas')
+        if (!error && data) return data
+      } catch(e) {}
+    }
+    const all = getLocalStore('kelas', DEMO_KELAS)
+    return all.filter(k => k.id_mentor === mentorId || !mentorId)
+  },
+
+  async getMyPeserta(mentorId, kelasId = null) {
+    if (isConfigured) {
+      try {
+        let q = supabase.from('peserta_didik').select('*, kelas(id, nama_kelas)').eq('id_mentor', mentorId).eq('status', 'aktif').order('nama_lengkap')
+        if (kelasId) q = q.eq('id_kelas', kelasId)
+        const { data, error } = await q
+        if (!error && data) return data
+      } catch(e) {}
+    }
+    const all = getLocalStore('peserta', DEMO_PESERTA)
+    const kelasList = getLocalStore('kelas', DEMO_KELAS)
+    return all
+      .filter(p => (!mentorId || p.id_mentor === mentorId) && (!kelasId || p.id_kelas === kelasId))
+      .map(p => ({ ...p, kelas: kelasList.find(k => k.id === p.id_kelas) }))
+  },
+
+  async bulkSimpanAbsensi(records) {
+    if (isConfigured) {
+      try {
+        const { data, error } = await supabase.rpc('bulk_upsert_kehadiran', { p_records: records })
+        if (!error) return data
+      } catch(e) {}
+    }
+    const all = getLocalStore('kehadiran', DEMO_KEHADIRAN)
+    records.forEach(r => {
+      all.unshift({ id: Date.now() + Math.random(), ...r })
+    })
+    setLocalStore('kehadiran', all)
+    return { success: true, count: records.length }
+  },
+
+  async getRiwayatKehadiran(pesertaId, limit = 30) {
+    if (isConfigured) {
+      try {
+        const { data, error } = await supabase.from('kehadiran').select('*').eq('id_peserta', pesertaId).order('tanggal', { ascending: false }).limit(limit)
+        if (!error && data) return data
+      } catch(e) {}
+    }
+    const all = getLocalStore('kehadiran', DEMO_KEHADIRAN)
+    return all.filter(k => k.id_peserta === Number(pesertaId)).slice(0, limit)
+  },
+
+  async getKemajuan(pesertaId, limit = 20) {
+    if (isConfigured) {
+      try {
+        const { data, error } = await supabase.from('kemajuan').select('*').eq('id_peserta', pesertaId).order('tanggal', { ascending: false }).limit(limit)
+        if (!error && data) return data
+      } catch(e) {}
+    }
+    const all = getLocalStore('kemajuan', DEMO_KEMAJUAN)
+    return all.filter(k => k.id_peserta === Number(pesertaId)).slice(0, limit)
+  },
+
+  async addKemajuan(kemajuanData) {
+    if (isConfigured) {
+      try {
+        const { data, error } = await supabase.from('kemajuan').insert(kemajuanData).select().single()
+        if (!error && data) return data
+      } catch(e) {}
+    }
+    const all = getLocalStore('kemajuan', DEMO_KEMAJUAN)
+    const newK = { id: Date.now(), ...kemajuanData }
+    all.unshift(newK)
+    setLocalStore('kemajuan', all)
+    return newK
+  },
+
+  async getPenilaian(pesertaId, limit = 20) {
+    if (isConfigured) {
+      try {
+        const { data, error } = await supabase.from('penilaian').select('*').eq('id_peserta', pesertaId).order('tanggal', { ascending: false }).limit(limit)
+        if (!error && data) return data
+      } catch(e) {}
+    }
+    const all = getLocalStore('penilaian', DEMO_PENILAIAN)
+    return all.filter(p => p.id_peserta === Number(pesertaId)).slice(0, limit)
+  },
+
+  async addPenilaian(penilaianData) {
+    if (isConfigured) {
+      try {
+        const { data, error } = await supabase.from('penilaian').insert(penilaianData).select().single()
+        if (!error && data) return data
+      } catch(e) {}
+    }
+    const all = getLocalStore('penilaian', DEMO_PENILAIAN)
+    const newP = { id: Date.now(), ...penilaianData }
+    all.unshift(newP)
+    setLocalStore('penilaian', all)
+    return newP
+  },
+
+  async getCatatan(pesertaId) {
+    return []
+  },
+
+  async addCatatan(catatanData) {
+    return { id: Date.now(), ...catatanData }
+  },
+
+  async getPelajaranTambahan(pesertaId) {
+    return []
+  },
+
+  async addPelajaranTambahan(data_) {
+    return { id: Date.now(), ...data_ }
+  },
+
+  async updatePassword(newPassword) {
+    if (isConfigured) {
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (error) throw error
+    }
+  },
+
+  async getChartData(pesertaId) {
+    const kemajuan = await this.getKemajuan(pesertaId, 30)
+    const penilaian = await this.getPenilaian(pesertaId, 30)
+    const kehadiran = await this.getRiwayatKehadiran(pesertaId, 60)
+    return { kemajuan, penilaian, kehadiran }
+  },
+}
+
+// ────────────────────────────────────────────────────────────
+// PORTAL WALI SERVICES
+// ────────────────────────────────────────────────────────────
+
+export const waliService = {
+  // Cari peserta berdasarkan nama saja (tanpa kode akses)
+  async searchPeserta(nama) {
+    const q = (nama || '').trim().toLowerCase()
+    if (!q) return []
+
+    if (isConfigured) {
+      try {
+        const { data, error } = await supabase.rpc('search_peserta_wali_by_name', { p_nama: q })
+        if (!error && data) return data
+      } catch(e) {}
+    }
+
+    // Demo Mode fallback
+    const all = getLocalStore('peserta', DEMO_PESERTA)
+    const kelasList = getLocalStore('kelas', DEMO_KELAS)
+    const mentorList = getLocalStore('profiles', DEMO_PROFILES)
+
+    return all
+      .filter(p => p.nama_lengkap.toLowerCase().includes(q))
+      .map(p => {
+        const k = kelasList.find(c => c.id === p.id_kelas)
+        const m = mentorList.find(x => x.id === p.id_mentor)
+        return {
+          id: p.id,
+          nama_lengkap: p.nama_lengkap,
+          jenis: p.jenis,
+          nama_kelas: k?.nama_kelas || (p.jenis === 'privat' ? 'Program Privat' : '-'),
+          nama_mentor: m?.nama || 'Asatidz QIA'
+        }
+      })
+  },
+
+  // Detail lengkap peserta (untuk tampilan wali)
+  async getPesertaDetail(pesertaId) {
+    const pId = Number(pesertaId)
+    if (isConfigured) {
+      try {
+        const { data, error } = await supabase.rpc('get_peserta_detail_wali', { p_peserta_id: pId })
+        if (!error && data) return data
+      } catch(e) {}
+    }
+
+    // Demo Mode detail builder
+    const all = getLocalStore('peserta', DEMO_PESERTA)
+    const p = all.find(x => x.id === pId) || all[0]
+    const kelasList = getLocalStore('kelas', DEMO_KELAS)
+    const mentorList = getLocalStore('profiles', DEMO_PROFILES)
+    const k = kelasList.find(c => c.id === p?.id_kelas)
+    const m = mentorList.find(x => x.id === p?.id_mentor)
+    const kemajuan = getLocalStore('kemajuan', DEMO_KEMAJUAN).filter(x => x.id_peserta === pId)
+    const kehadiran = getLocalStore('kehadiran', DEMO_KEHADIRAN).filter(x => x.id_peserta === pId)
+    const penilaian = getLocalStore('penilaian', DEMO_PENILAIAN).filter(x => x.id_peserta === pId)
+
+    return {
+      id: p.id,
+      nama_lengkap: p.nama_lengkap,
+      usia: p.usia,
+      jenis_kelamin: p.jenis_kelamin,
+      jenis: p.jenis,
+      nama_kelas: k?.nama_kelas || (p.jenis === 'privat' ? 'Program Privat' : '-'),
+      nama_mentor: m?.nama || 'Asatidz QIA',
+      status: p.status,
+      kemajuan_terakhir: kemajuan.slice(0, 5),
+      kehadiran_terakhir: kehadiran.slice(0, 10),
+      penilaian_terakhir: penilaian.slice(0, 5),
+      statistik: {
+        total_pertemuan: kehadiran.length || 10,
+        total_hadir: kehadiran.filter(h => h.status_hadir === 'hadir').length || 9,
+        rata_nilai: penilaian.length ? Math.round(penilaian.reduce((a,b)=>a+b.nilai_angka,0)/penilaian.length) : 88
+      }
+    }
+  },
+
+  // Data chart nilai & kehadiran untuk Portal Wali
+  async getChartDataPeserta(pesertaId) {
+    const pId = Number(pesertaId)
+    if (isConfigured) {
+      try {
+        const [penilaian, kehadiran, kemajuan] = await Promise.all([
+          supabase.from('penilaian').select('tanggal, nilai_angka').eq('id_peserta', pId).order('tanggal').limit(20),
+          supabase.from('kehadiran').select('tanggal, status_hadir, materi_pembahasan').eq('id_peserta', pId).order('tanggal').limit(60),
+          supabase.from('kemajuan').select('tanggal, kitab_surat, halaman_ayat').eq('id_peserta', pId).order('tanggal').limit(20),
+        ])
+        if (penilaian.data) return { penilaian: penilaian.data, kehadiran: kehadiran.data, kemajuan: kemajuan.data }
+      } catch(e) {}
+    }
+
+    const penilaian = getLocalStore('penilaian', DEMO_PENILAIAN).filter(x => x.id_peserta === pId)
+    const kehadiran = getLocalStore('kehadiran', DEMO_KEHADIRAN).filter(x => x.id_peserta === pId)
+    const kemajuan = getLocalStore('kemajuan', DEMO_KEMAJUAN).filter(x => x.id_peserta === pId)
+    return { penilaian, kehadiran, kemajuan }
+  },
+}

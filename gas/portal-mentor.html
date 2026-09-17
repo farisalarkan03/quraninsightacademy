@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Mentor — Quran Insight Academy</title>
+  <meta name="description"
+    content="Portal Mentor Quran Insight Academy untuk input kemajuan, penilaian, dan kehadiran peserta didik">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Amiri:wght@700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* ════════════════════════════════════════════════════
+       QIA PORTAL MENTOR — DESIGN SYSTEM
+       TIER 1: Body bg #f3e9dc  -> teks gelap (#1a0a02)
+       TIER 2: Card/Sidebar/Modal bg #221104 -> teks terang (#fdf0e2)
+    ════════════════════════════════════════════════════ */
+    :root {
+      --clr-brown-900: #1a0a02;
+      --clr-brown-800: #221104;
+      --clr-brown-600: #4F280C;
+      --clr-brown-500: #81511D;
+      --clr-brown-300: #D4934E;
+      --clr-gold:      #F0AF43;
+      --clr-gold-lt:   #fbbf24;
+      --clr-cream-100: #fdf0e2;
+      --clr-cream-200: #f3e9dc;
+      --clr-cream-300: #e8d4bc;
+
+      --bg:         var(--clr-cream-200);
+      --bg-card:    var(--clr-brown-800);
+      --border-lt:  rgba(129,81,29,0.18);
+      --border-dk:  rgba(240,175,67,0.20);
+
+      --tx-body:    var(--clr-brown-900);
+      --tx-body-md: var(--clr-brown-600);
+      --tx-body-sm: var(--clr-brown-500);
+
+      --tx-card:    var(--clr-cream-100);
+      --tx-card-md: var(--clr-cream-300);
+      --tx-card-sm: #c9a87a;
+
+      --accent:    var(--clr-gold);
+      --accent-lt: var(--clr-gold-lt);
+      --danger:    #e05c4b;
+      --success:   #6fcf97;
+      --warning:   #F0AF43;
+      --radius:    16px;
+      --radius-sm: 10px;
+      --shadow:    0 8px 32px rgba(0,0,0,0.25);
+      --transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--tx-body);
+      min-height: 100vh;
+    }
+
+    /* ── SIDEBAR (dark) ─────────────────────────── */
+    #sidebar {
+      position:fixed; top:0; left:0; width:260px; height:100vh;
+      background:var(--bg-card); border-right:1px solid var(--border-dk);
+      display:flex; flex-direction:column; z-index:100;
+    }
+    .sidebar-logo { padding:28px 24px 20px; border-bottom:1px solid var(--border-dk); display:flex; align-items:center; gap:12px; }
+    .sidebar-logo-icon {
+      width:44px; height:44px;
+      background:linear-gradient(135deg, var(--clr-brown-500), var(--clr-brown-300));
+      border-radius:12px; display:flex; align-items:center; justify-content:center;
+      font-size:20px; color:#fff; box-shadow:0 4px 16px rgba(0,0,0,0.3);
+    }
+    .sidebar-logo-text h1 { font-size:15px; font-weight:700; color:var(--tx-card); }
+    .sidebar-logo-text p  { font-size:11px; color:var(--tx-card-sm); margin-top:2px; }
+    .sidebar-nav       { flex:1; padding:16px 12px; overflow-y:auto; }
+    .nav-section-label { font-size:10px; font-weight:700; letter-spacing:1.5px; color:var(--tx-card-sm); text-transform:uppercase; padding:8px 12px 4px; }
+    .nav-item {
+      display:flex; align-items:center; gap:12px;
+      padding:11px 14px; border-radius:var(--radius-sm);
+      color:var(--tx-card-md);
+      font-size:14px; font-weight:500; transition:var(--transition);
+      border:1px solid transparent; cursor:pointer;
+    }
+    .nav-item:hover  { background:rgba(240,175,67,0.08); color:var(--clr-gold); }
+    .nav-item.active { background:rgba(240,175,67,0.15); color:var(--clr-gold); border-color:rgba(240,175,67,0.3); font-weight:700; }
+    .nav-item .nav-icon { width:20px; text-align:center; font-size:15px; }
+    .sidebar-footer { padding:16px 12px; border-top:1px solid var(--border-dk); }
+    .user-card { display:flex; align-items:center; gap:10px; padding:10px 12px; background:rgba(255,255,255,0.04); border-radius:var(--radius-sm); border:1px solid var(--border-dk); }
+    .user-avatar { width:36px; height:36px; background:linear-gradient(135deg, var(--clr-brown-500), var(--clr-gold)); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:#fff; }
+    .user-info p    { font-size:13px; font-weight:600; color:var(--tx-card); }
+    .user-info span { font-size:11px; color:var(--tx-card-sm); }
+    .btn-logout { margin-left:auto; background:none; border:none; color:var(--tx-card-sm); cursor:pointer; font-size:15px; transition:var(--transition); padding:4px; }
+    .btn-logout:hover { color:var(--danger); }
+
+    /* ── MAIN (cream) ──────────────────────────── */
+    #main { margin-left:260px; min-height:100vh; padding:28px; }
+    .page        { display:none; animation:fadeIn 0.3s ease; }
+    .page.active { display:block; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+    /* TOPBAR (cream bg) */
+    .topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; }
+    .topbar-title h2 { font-size:22px; font-weight:800; color:var(--tx-body); }
+    .topbar-title p  { font-size:13px; color:var(--tx-body-md); margin-top:2px; }
+
+    /* PESERTA CARDS (dark) */
+    .cards-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr)); gap:16px; margin-bottom:24px; }
+    .peserta-card { background:var(--bg-card); border:1px solid var(--border-dk); border-radius:var(--radius); padding:20px; cursor:pointer; transition:var(--transition); position:relative; overflow:hidden; }
+    .peserta-card:hover { border-color:rgba(240,175,67,0.4); transform:translateY(-3px); box-shadow:0 12px 32px rgba(0,0,0,0.3); }
+    .peserta-card::before { content:''; position:absolute; top:-30px; right:-30px; width:80px; height:80px; border-radius:50%; background:rgba(240,175,67,0.06); }
+    .peserta-card .pc-avatar { width:48px; height:48px; border-radius:14px; background:linear-gradient(135deg, var(--clr-brown-500), var(--clr-brown-300)); display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:700; color:#fff; margin-bottom:12px; }
+    .peserta-card .pc-name  { font-size:15px; font-weight:600; color:var(--tx-card); }
+    .peserta-card .pc-meta  { font-size:12px; color:var(--tx-card-sm); margin-top:4px; }
+    .peserta-card .pc-badge { display:inline-flex; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; margin-top:8px; }
+
+    /* DETAIL PESERTA */
+    .detail-header { background:var(--bg-card); border:1px solid var(--border-dk); border-radius:var(--radius); padding:24px; margin-bottom:20px; }
+    .detail-hero   { display:flex; align-items:center; gap:16px; }
+    .detail-avatar { width:60px; height:60px; border-radius:16px; background:linear-gradient(135deg, var(--clr-brown-500), var(--clr-brown-300)); display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:800; color:#fff; flex-shrink:0; }
+    .detail-info h3 { font-size:20px; font-weight:700; color:var(--tx-card); }
+    .detail-info p  { font-size:13px; color:var(--tx-card-sm); margin-top:4px; }
+    .detail-actions { margin-left:auto; display:flex; gap:8px; }
+
+    /* TABS (dark bg container) */
+    .tabs { display:flex; gap:4px; background:var(--bg-card); border:1px solid var(--border-dk); border-radius:var(--radius-sm); padding:4px; margin-bottom:20px; overflow-x:auto; }
+    .tab { flex-shrink:0; padding:9px 16px; border-radius:8px; font-size:13px; font-weight:500; cursor:pointer; transition:var(--transition); color:var(--tx-card-sm); border:none; background:none; font-family:'Plus Jakarta Sans',system-ui,sans-serif; white-space:nowrap; }
+    .tab.active { background:linear-gradient(135deg, var(--clr-gold), var(--clr-brown-300)); color:var(--clr-brown-900); font-weight:700; box-shadow:0 2px 8px rgba(240,175,67,0.3); }
+
+    /* FORM CARDS (dark) */
+    .form-card   { background:var(--bg-card); border:1px solid var(--border-dk); border-radius:var(--radius); padding:24px; margin-bottom:16px; }
+    .form-card h4 { font-size:14px; font-weight:700; color:var(--tx-card); margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+    .form-group  { margin-bottom:14px; }
+    .form-label  { display:block; font-size:12px; font-weight:600; color:var(--tx-card-md); margin-bottom:7px; }
+    .form-input, .form-select, .form-textarea, select {
+      width:100%; padding:11px 14px;
+      background:rgba(255,255,255,0.05); border:1px solid rgba(240,175,67,0.25);
+      border-radius:var(--radius-sm); color:var(--tx-card); font-size:14px;
+      font-family:'Plus Jakarta Sans',system-ui,sans-serif; transition:var(--transition); outline:none;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus, select:focus { border-color:var(--clr-gold); background:rgba(240,175,67,0.08); box-shadow:0 0 0 3px rgba(240,175,67,0.15); }
+    .form-input::placeholder, .form-textarea::placeholder { color:var(--tx-card-sm); opacity:0.7; }
+    .form-select option, select option { background:var(--clr-brown-800); color:var(--clr-cream-100); }
+    .form-textarea { resize:vertical; min-height:80px; }
+    .form-row   { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .form-row-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+
+    /* BUTTONS */
+    .btn { display:inline-flex; align-items:center; gap:7px; padding:9px 18px; border-radius:var(--radius-sm); font-size:13px; font-weight:600; cursor:pointer; border:none; transition:var(--transition); font-family:'Plus Jakarta Sans',system-ui,sans-serif; }
+    .btn-primary { background:linear-gradient(135deg, var(--clr-gold), var(--clr-brown-300)); color:var(--clr-brown-900); font-weight:700; box-shadow:0 4px 12px rgba(240,175,67,0.3); }
+    .btn-primary:hover { box-shadow:0 6px 20px rgba(240,175,67,0.5); transform:translateY(-1px); }
+    .btn-ghost   { background:rgba(255,255,255,0.05); color:var(--tx-card-md); border:1px solid var(--border-dk); }
+    .btn-ghost:hover { background:rgba(255,255,255,0.1); color:var(--tx-card); }
+    .btn-success { background:rgba(111,207,151,0.15); color:#6fcf97; border:1px solid rgba(111,207,151,0.3); }
+    .btn-success:hover { background:rgba(111,207,151,0.25); }
+    .btn-sm { padding:6px 12px; font-size:12px; }
+
+    /* BADGES */
+    .badge        { display:inline-flex; align-items:center; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; }
+    .badge-blue   { background:rgba(212,147,78,0.15);  color:#D4934E; border:1px solid rgba(212,147,78,0.3);  }
+    .badge-gold   { background:rgba(240,175,67,0.15);  color:#F0AF43; border:1px solid rgba(240,175,67,0.3);  }
+    .badge-green  { background:rgba(111,207,151,0.15); color:#6fcf97; border:1px solid rgba(111,207,151,0.3); }
+    .badge-orange { background:rgba(240,175,67,0.15);  color:#F0AF43; border:1px solid rgba(240,175,67,0.3);  }
+    .badge-red    { background:rgba(224,92,75,0.15);   color:#e05c4b; border:1px solid rgba(224,92,75,0.3);   }
+
+    /* TIMELINE */
+    .timeline { position:relative; padding-left:24px; }
+    .timeline::before { content:''; position:absolute; left:8px; top:0; bottom:0; width:2px; background:var(--border-dk); }
+    .timeline-item { position:relative; margin-bottom:20px; }
+    .timeline-dot { position:absolute; left:-20px; top:14px; width:12px; height:12px; border-radius:50%; border:2px solid var(--clr-brown-800); }
+    .timeline-dot.kemajuan { background:var(--clr-brown-300); }
+    .timeline-dot.penilaian { background:var(--clr-gold); }
+    .timeline-dot.kehadiran { background:var(--success); }
+    .timeline-dot.pelajaran { background:#a29bfe; }
+    .timeline-dot.catatan   { background:#fd79a8; }
+    .timeline-card { background:var(--bg-card); border:1px solid var(--border-dk); border-radius:var(--radius-sm); padding:14px; margin-left:8px; }
+    .timeline-card .tc-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+    .timeline-card .tc-type   { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--clr-gold); }
+    .timeline-card .tc-date   { font-size:11px; color:var(--tx-card-sm); }
+    .timeline-card .tc-content { font-size:13px; color:var(--tx-card-md); }
+    .timeline-card .tc-value  { font-size:16px; font-weight:700; color:var(--tx-card); }
+
+    /* NILAI DISPLAY */
+    .nilai-display { width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg, var(--clr-brown-500), var(--clr-brown-300)); display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:800; color:#fff; box-shadow:0 4px 16px rgba(0,0,0,0.3); }
+
+    /* RADIO GROUP */
+    .radio-group  { display:flex; gap:8px; }
+    .radio-option { flex:1; }
+    .radio-option input[type="radio"] { display:none; }
+    .radio-option label {
+      display:flex; align-items:center; justify-content:center; gap:6px; padding:10px;
+      border-radius:var(--radius-sm); border:1px solid rgba(240,175,67,0.25); cursor:pointer;
+      font-size:13px; color:var(--tx-card-md); transition:var(--transition);
+      background:rgba(255,255,255,0.04); font-weight:500;
+    }
+    .radio-option input[type="radio"]:checked+label { border-color:var(--clr-gold); background:rgba(240,175,67,0.12); color:var(--clr-gold); font-weight:700; }
+    input[name="status-hadir"][value="hadir"]:checked+label { border-color:var(--success); background:rgba(111,207,151,0.1); color:var(--success); }
+    input[name="status-hadir"][value="izin"]:checked+label  { border-color:var(--warning); background:rgba(240,175,67,0.1); color:var(--clr-gold); }
+
+    /* LOGIN */
+    #login-page { min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--bg); }
+    #login-page::before { content:''; position:fixed; inset:0; background:radial-gradient(ellipse at center, rgba(129,81,29,0.06) 0%, transparent 60%); }
+    .login-card { background:var(--bg-card); border:1px solid var(--border-dk); border-radius:24px; padding:40px; width:400px; max-width:95vw; box-shadow:var(--shadow); position:relative; z-index:1; }
+    .login-logo { text-align:center; margin-bottom:28px; }
+    .login-logo-icon { width:64px; height:64px; background:linear-gradient(135deg, var(--clr-brown-500), var(--clr-brown-300)); border-radius:20px; display:inline-flex; align-items:center; justify-content:center; font-size:28px; color:#fff; box-shadow:0 8px 24px rgba(0,0,0,0.3); margin-bottom:12px; }
+    .login-logo h1 { font-size:20px; font-weight:800; color:var(--tx-card); }
+    .login-logo p  { font-size:13px; color:var(--tx-card-sm); margin-top:4px; }
+    .login-role-label { background:rgba(240,175,67,0.12); border:1px solid rgba(240,175,67,0.3); border-radius:8px; padding:8px 16px; text-align:center; font-size:12px; font-weight:700; color:var(--clr-gold); margin-bottom:20px; letter-spacing:0.5px; }
+
+    /* TOAST */
+    #toast-container { position:fixed; bottom:24px; right:24px; z-index:9999; display:flex; flex-direction:column; gap:8px; }
+    .toast { background:var(--bg-card); border:1px solid var(--border-dk); border-radius:var(--radius-sm); padding:12px 18px; font-size:13px; color:var(--tx-card); box-shadow:var(--shadow); display:flex; align-items:center; gap:10px; animation:toastIn 0.3s ease; min-width:250px; }
+    @keyframes toastIn { from { transform:translateX(100%); opacity:0; } to { transform:translateX(0); opacity:1; } }
+
+    /* RESPONSIVE */
+    @media (max-width:768px) {
+      #sidebar { width:0; overflow:hidden; }
+      #main { margin-left:0; padding:16px; }
+      .form-row, .form-row-3 { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- LOGIN PAGE -->
+  <div id="login-page">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="login-logo-icon"><i class="fas fa-chalkboard-teacher"></i></div>
+        <h1>Quran Insight Academy</h1>
+        <p>Portal Mentor</p>
+      </div>
+      <div class="login-role-label"><i class="fas fa-user-tie"></i>&nbsp; Login Mentor</div>
+      <div class="form-group">
+        <label class="form-label" for="login-email">Email</label>
+        <input class="form-input" type="email" id="login-email" placeholder="mentor@example.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="login-password">Password</label>
+        <input class="form-input" type="password" id="login-password" placeholder="••••••••">
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;" id="btn-login-submit">
+        <i class="fas fa-sign-in-alt"></i> Masuk
+      </button>
+      <p style="text-align:center;font-size:12px;color:var(--text-dim);margin-top:16px;">
+        Portal Admin: <a href="portal-admin.html" style="color:var(--primary-light)">klik di sini</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="app" style="display:none">
+    <aside id="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon"><i class="fas fa-chalkboard-teacher"></i></div>
+        <div class="sidebar-logo-text">
+          <h1>QIA Mentor</h1>
+          <p id="sidebar-jenis">Portal Mentor</p>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Menu</div>
+        <div class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard">
+          <span class="nav-icon"><i class="fas fa-home"></i></span> Daftar Peserta
+        </div>
+        <div class="nav-item" onclick="backToDashboard()" id="nav-detail" style="display:none">
+          <span class="nav-icon"><i class="fas fa-user"></i></span> Detail Peserta
+        </div>
+        <div class="nav-section-label" style="margin-top:8px;">Akun</div>
+        <div class="nav-item" onclick="showPage('sandi')" id="nav-sandi">
+          <span class="nav-icon"><i class="fas fa-key"></i></span> Ganti Password
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-card">
+          <div class="user-avatar" id="user-avatar-char">M</div>
+          <div class="user-info">
+            <p id="sidebar-nama">Mentor</p>
+            <span id="sidebar-role">Mentor</span>
+          </div>
+          <button class="btn-logout" onclick="doLogout()"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
+      </div>
+    </aside>
+
+    <main id="main">
+      <!-- DASHBOARD: Daftar Peserta -->
+      <div class="page active" id="page-dashboard">
+        <div class="topbar">
+          <div>
+            <h2 id="dash-title">Peserta Saya</h2>
+            <p id="dash-sub">Klik kartu peserta untuk input data</p>
+          </div>
+          <button class="btn btn-ghost" onclick="loadPeserta()"><i class="fas fa-sync-alt"></i></button>
+        </div>
+        <div class="cards-grid" id="peserta-grid">
+          <div style="text-align:center;padding:40px;color:var(--text-dim);grid-column:1/-1"><i
+              class="fas fa-spinner fa-spin"></i> Memuat...</div>
+        </div>
+      </div>
+
+      <!-- DETAIL PESERTA -->
+      <div class="page" id="page-detail">
+        <div class="topbar">
+          <div>
+            <button class="btn btn-ghost btn-sm" onclick="backToDashboard()"><i class="fas fa-arrow-left"></i>
+              Kembali</button>
+          </div>
+          <button class="btn btn-ghost" onclick="loadRiwayat()"><i class="fas fa-sync-alt"></i> Refresh</button>
+        </div>
+
+        <div class="detail-header">
+          <div class="detail-hero">
+            <div class="detail-avatar" id="detail-avatar">?</div>
+            <div class="detail-info">
+              <h3 id="detail-nama">—</h3>
+              <p id="detail-meta">—</p>
+            </div>
+            <div class="detail-actions">
+              <button class="btn btn-ghost btn-sm" onclick="openPDFSection()"><i class="fas fa-file-pdf"></i> Kirim
+                Laporan PDF</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab('input')" id="tab-input">Input Data</button>
+          <button class="tab" onclick="switchTab('riwayat')" id="tab-riwayat">Riwayat / Timeline</button>
+        </div>
+
+        <!-- Form Input Terpadu -->
+        <div id="tab-content-input">
+          <div class="form-card" style="border:2px solid rgba(240,175,67,0.25)">
+            <h4 style="margin-bottom:18px;font-size:16px;color:var(--accent)">
+              <i class="fas fa-clipboard-list" style="margin-right:8px"></i>
+              Laporan Sesi Pembelajaran
+            </h4>
+
+            <!-- Kehadiran -->
+            <div style="background:rgba(85,239,196,0.06);border:1px solid rgba(85,239,196,0.2);border-radius:10px;padding:16px;margin-bottom:16px">
+              <p style="font-weight:700;font-size:13px;color:#55efc4;margin-bottom:12px"><i class="fas fa-calendar-check"></i> Kehadiran</p>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Tanggal Sesi</label>
+                  <input class="form-input" type="date" id="inp-tanggal">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Status Kehadiran</label>
+                  <div class="radio-group">
+                    <div class="radio-option">
+                      <input type="radio" name="status-hadir" id="hadir-hadir" value="hadir" checked>
+                      <label for="hadir-hadir"><i class="fas fa-check"></i> Hadir</label>
+                    </div>
+                    <div class="radio-option">
+                      <input type="radio" name="status-hadir" id="hadir-izin" value="izin">
+                      <label for="hadir-izin"><i class="fas fa-minus-circle"></i> Izin</label>
+                    </div>
+                    <div class="radio-option">
+                      <input type="radio" name="status-hadir" id="hadir-alpha" value="alpha">
+                      <label for="hadir-alpha"><i class="fas fa-times-circle"></i> Absen</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Keterangan Kehadiran (opsional)</label>
+                <input class="form-input" type="text" id="inp-keterangan-hadir" placeholder="Alasan izin / keterangan lain">
+              </div>
+            </div>
+
+            <!-- Hafalan -->
+            <div style="background:rgba(116,185,255,0.06);border:1px solid rgba(116,185,255,0.2);border-radius:10px;padding:16px;margin-bottom:16px">
+              <p style="font-weight:700;font-size:13px;color:#74b9ff;margin-bottom:12px"><i class="fas fa-book-open"></i> Kemajuan Hafalan</p>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Kitab / Surah</label>
+                  <input class="form-input" type="text" id="inp-kitab" placeholder="Contoh: Al-Baqarah, Juz Amma">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Halaman / Ayat</label>
+                  <input class="form-input" type="text" id="inp-halaman" placeholder="Contoh: hal.45 atau ayat 10-15">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Catatan Hafalan (opsional)</label>
+                <input class="form-input" type="text" id="inp-catatan-hafalan" placeholder="Catatan tentang hafalan sesi ini...">
+              </div>
+            </div>
+
+            <!-- Penilaian -->
+            <div style="background:rgba(253,121,168,0.06);border:1px solid rgba(253,121,168,0.2);border-radius:10px;padding:16px;margin-bottom:16px">
+              <p style="font-weight:700;font-size:13px;color:#fd79a8;margin-bottom:12px"><i class="fas fa-star"></i> Penilaian (0–10)</p>
+              <div class="form-row" style="align-items:center">
+                <div class="form-group">
+                  <label class="form-label">Nilai</label>
+                  <input class="form-input" type="number" id="inp-nilai" min="0" max="10" step="0.5" placeholder="0 – 10" oninput="previewNilai(this.value)">
+                </div>
+                <div style="display:flex;align-items:center;justify-content:center;padding-top:12px">
+                  <div class="nilai-display" id="preview-nilai">—</div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Catatan Penilaian (opsional)</label>
+                <input class="form-input" type="text" id="inp-catatan-nilai" placeholder="Feedback singkat untuk peserta...">
+              </div>
+            </div>
+
+            <!-- Pelajaran Tambahan -->
+            <div style="background:rgba(162,155,254,0.06);border:1px solid rgba(162,155,254,0.2);border-radius:10px;padding:16px;margin-bottom:16px">
+              <p style="font-weight:700;font-size:13px;color:#a29bfe;margin-bottom:12px"><i class="fas fa-graduation-cap"></i> Pelajaran Tambahan (opsional)</p>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Nama Pelajaran</label>
+                  <input class="form-input" type="text" id="inp-pelajaran-nama" placeholder="Contoh: Tajwid, Bahasa Arab">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Deskripsi / Topik</label>
+                  <input class="form-input" type="text" id="inp-pelajaran-desk" placeholder="Topik yang dibahas">
+                </div>
+              </div>
+            </div>
+
+            <!-- Catatan Mentor -->
+            <div style="background:rgba(240,175,67,0.06);border:1px solid rgba(240,175,67,0.2);border-radius:10px;padding:16px;margin-bottom:20px">
+              <p style="font-weight:700;font-size:13px;color:var(--accent);margin-bottom:12px"><i class="fas fa-pen-fancy"></i> Pesan / Catatan Mentor untuk Wali (opsional)</p>
+              <textarea class="form-textarea" id="inp-catatan-mentor" placeholder="Tulis pesan atau catatan perkembangan peserta yang ingin disampaikan kepada orang tua..." rows="3"></textarea>
+            </div>
+
+            <!-- Tombol Simpan Terpadu -->
+            <button class="btn btn-primary" onclick="simpanLaporanSesi()" id="btn-simpan-sesi"
+              style="width:100%;padding:14px;font-size:15px;font-weight:700;border-radius:12px;letter-spacing:0.3px">
+              <i class="fas fa-paper-plane"></i> Simpan & Kirim Laporan ke Wali Santri
+            </button>
+            <p style="font-size:11px;color:var(--text-dim);text-align:center;margin-top:10px">
+              <i class="fas fa-info-circle"></i> Laporan akan otomatis dikirim ke email wali santri setelah disimpan
+            </p>
+          </div>
+
+          <!-- PDF -->
+          <div class="pdf-section" id="pdf-section">
+            <div class="pdf-icon"><i class="fas fa-file-pdf"></i></div>
+            <div>
+              <p style="font-size:14px;font-weight:600;color:var(--text)">Kirim Laporan PDF Lengkap ke Orang Tua</p>
+              <p style="font-size:12px;color:var(--text-muted);margin-top:4px">Generate laporan lengkap perkembangan peserta dan kirim ke email wali secara otomatis.</p>
+            </div>
+            <button class="btn"
+              style="background:rgba(240,165,0,0.2);color:var(--accent-light);border:1px solid rgba(240,165,0,0.3);margin-left:auto;flex-shrink:0"
+              onclick="kirimLaporanPDF()">
+              <i class="fas fa-paper-plane"></i> Kirim PDF
+            </button>
+          </div>
+        </div>
+
+        <!-- Tab Riwayat -->
+        <div id="tab-content-riwayat" style="display:none">
+          <div id="timeline-container">
+            <div style="text-align:center;padding:40px;color:var(--text-dim)"><i class="fas fa-spinner fa-spin"></i>
+              Memuat riwayat...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GANTI SANDI -->
+      <div class="page" id="page-sandi">
+        <div class="topbar">
+          <div>
+            <h2>Ganti Password</h2>
+            <p>Perbarui keamanan akun Anda</p>
+          </div>
+        </div>
+        <div class="form-card" style="max-width:400px">
+          <div class="form-group">
+            <label class="form-label">Password Baru</label>
+            <input class="form-input" type="password" id="sandi-baru" placeholder="Minimal 6 karakter">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Konfirmasi Password</label>
+            <input class="form-input" type="password" id="sandi-konfirm" placeholder="Ulangi password baru">
+          </div>
+          <button class="btn btn-primary" onclick="gantiSandi()"><i class="fas fa-save"></i> Simpan</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script>
+    // CONFIG
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbxdMQpEUGCxa3W9BB_HM5zIU71Q8b0OZFepAgOY0thu2hRzxC2HbNfEPFvzpoqNQoTc/exec?p=mentor';
+
+    // STATE
+    let token = sessionStorage.getItem('qia_mentor_token') || null;
+    let sessionData = JSON.parse(sessionStorage.getItem('qia_mentor_data') || 'null');
+    let currentPeserta = null;
+
+    // INIT
+    window.addEventListener('DOMContentLoaded', () => {
+      // Set hari ini sebagai default tanggal kehadiran
+      document.getElementById('inp-tanggal').value = new Date().toISOString().split('T')[0];
+      if (token && sessionData) showApp();
+    });
+
+    function showApp() {
+      document.getElementById('login-page').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      document.getElementById('sidebar-nama').textContent = sessionData.nama;
+      document.getElementById('sidebar-jenis').textContent = 'Mentor ' + (sessionData.jenis_mentor || '');
+      document.getElementById('sidebar-role').textContent = 'Mentor ' + (sessionData.jenis_mentor || '');
+      document.getElementById('user-avatar-char').textContent = sessionData.nama.charAt(0).toUpperCase();
+      document.getElementById('dash-title').textContent = 'Peserta Saya';
+      document.getElementById('dash-sub').textContent = 'Program ' + (sessionData.jenis_mentor || '') + ' — klik kartu untuk input data';
+      loadPeserta();
+    }
+
+    // API
+    async function api(params) {
+      if (token) params.token = token;
+      try {
+        const res = await fetch(GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(params) });
+        return await res.json();
+      } catch (e) { return { ok: false, error: 'Koneksi gagal: ' + e.message }; }
+    }
+
+    // AUTH
+    document.getElementById('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+    document.getElementById('btn-login-submit').addEventListener('click', doLogin);
+
+    async function doLogin() {
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      if (!email || !password) { showToast('Email dan password wajib diisi', 'error'); return; }
+      const btn = document.getElementById('btn-login-submit');
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Masuk...'; btn.disabled = true;
+      const res = await api({ action: 'mentorLogin', email, password });
+      btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Masuk'; btn.disabled = false;
+      if (res.ok) {
+        token = res.token;
+        sessionData = { nama: res.nama, jenis_mentor: res.jenis_mentor, id_mentor: res.id_mentor };
+        sessionStorage.setItem('qia_mentor_token', token);
+        sessionStorage.setItem('qia_mentor_data', JSON.stringify(sessionData));
+        showToast('Selamat datang, ' + res.nama + '!', 'success');
+        showApp();
+      } else showToast(res.error, 'error');
+    }
+
+    async function doLogout() {
+      await api({ action: 'logout' });
+      sessionStorage.clear(); token = null;
+      document.getElementById('login-page').style.display = 'flex';
+      document.getElementById('app').style.display = 'none';
+    }
+
+    // NAVIGATION
+    function showPage(name) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.getElementById('page-' + name).classList.add('active');
+      const nav = document.getElementById('nav-' + name);
+      if (nav) nav.classList.add('active');
+    }
+
+    function backToDashboard() { showPage('dashboard'); document.getElementById('nav-detail').style.display = 'none'; }
+
+    // PESERTA
+    async function loadPeserta() {
+      const res = await api({ action: 'getPesertaByMentor' });
+      const grid = document.getElementById('peserta-grid');
+      if (!res.ok) { grid.innerHTML = `<div style="color:var(--danger);grid-column:1/-1">${res.error}</div>`; return; }
+      if (!res.data.length) { grid.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);grid-column:1/-1">Belum ada peserta yang diampu</div>'; return; }
+
+      grid.innerHTML = res.data.map(p => `
+    <div class="peserta-card" onclick="openPeserta('${p.id_peserta}','${p.nama_lengkap}','${p.usia}','${p.jenis}')">
+      <div class="pc-avatar">${p.nama_lengkap.charAt(0).toUpperCase()}</div>
+      <div class="pc-name">${p.nama_lengkap}</div>
+      <div class="pc-meta">${p.usia ? p.usia + ' tahun' : ''} · Daftar: ${(p.tanggal_daftar + '').substring(0, 10)}</div>
+      <span class="pc-badge ${p.jenis === 'bimbel' ? 'badge-blue' : 'badge-gold'}">${p.jenis}</span>
+    </div>
+  `).join('');
+    }
+
+    function openPeserta(id, nama, usia, jenis) {
+      currentPeserta = { id_peserta: id, nama_lengkap: nama, usia, jenis };
+      document.getElementById('detail-avatar').textContent = nama.charAt(0).toUpperCase();
+      document.getElementById('detail-nama').textContent = nama;
+      document.getElementById('detail-meta').textContent = (usia ? usia + ' tahun · ' : '') + 'Program ' + jenis;
+      document.getElementById('nav-detail').style.display = 'flex';
+      showPage('detail');
+      document.getElementById('nav-detail').classList.add('active');
+      document.getElementById('nav-dashboard').classList.remove('active');
+      // Reset form
+      document.getElementById('inp-kitab').value = '';
+      document.getElementById('inp-halaman').value = '';
+      document.getElementById('inp-catatan-hafalan').value = '';
+      document.getElementById('inp-nilai').value = '';
+      document.getElementById('preview-nilai').textContent = '—';
+      document.getElementById('inp-tanggal').value = new Date().toISOString().split('T')[0];
+      document.getElementById('inp-keterangan-hadir').value = '';
+      document.getElementById('inp-pelajaran-nama').value = '';
+      document.getElementById('inp-catatan-mentor').value = '';
+      switchTab('input');
+    }
+
+    // TAB SWITCH
+    function switchTab(tab) {
+      document.getElementById('tab-content-input').style.display = tab === 'input' ? 'block' : 'none';
+      document.getElementById('tab-content-riwayat').style.display = tab === 'riwayat' ? 'block' : 'none';
+      document.getElementById('tab-input').classList.toggle('active', tab === 'input');
+      document.getElementById('tab-riwayat').classList.toggle('active', tab === 'riwayat');
+      if (tab === 'riwayat') loadRiwayat();
+    }
+
+    // INPUT ACTIONS
+    function previewNilai(val) {
+      const n = parseFloat(val);
+      document.getElementById('preview-nilai').textContent = isNaN(n) ? '—' : n;
+    }
+
+    async function simpanLaporanSesi() {
+      if (!currentPeserta) return;
+      const btn = document.getElementById('btn-simpan-sesi');
+
+      // Kumpulkan semua data
+      const tanggal         = document.getElementById('inp-tanggal').value;
+      const status_hadir    = document.querySelector('input[name="status-hadir"]:checked')?.value || '';
+      const keterangan_hadir= document.getElementById('inp-keterangan-hadir').value.trim();
+      const kitab           = document.getElementById('inp-kitab').value.trim();
+      const halaman         = document.getElementById('inp-halaman').value.trim();
+      const catatan_hafalan = document.getElementById('inp-catatan-hafalan').value.trim();
+      const nilai           = document.getElementById('inp-nilai').value;
+      const catatan_nilai   = document.getElementById('inp-catatan-nilai').value.trim();
+      const nama_pelajaran  = document.getElementById('inp-pelajaran-nama').value.trim();
+      const deskripsi_pelajaran = document.getElementById('inp-pelajaran-desk').value.trim();
+      const catatan_mentor  = document.getElementById('inp-catatan-mentor').value.trim();
+
+      // Minimal 1 data yang diisi selain tanggal & kehadiran
+      const adaData = kitab || nilai || nama_pelajaran || catatan_mentor;
+      if (!tanggal) { showToast('Tanggal sesi wajib diisi', 'error'); return; }
+      if (!status_hadir) { showToast('Status kehadiran wajib dipilih', 'error'); return; }
+      if (!adaData) { showToast('Isi minimal satu data: hafalan, nilai, pelajaran, atau catatan', 'error'); return; }
+      if (kitab && !halaman) { showToast('Halaman/ayat wajib diisi jika mengisi hafalan', 'error'); return; }
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan & Mengirim...';
+
+      const payload = {
+        action: 'simpanLaporanSesi',
+        id_peserta: currentPeserta.id_peserta,
+        tanggal,
+        status_hadir,
+        keterangan_hadir,
+        kitab,
+        halaman,
+        catatan_hafalan,
+        nilai,
+        catatan_nilai,
+        nama_pelajaran,
+        deskripsi_pelajaran,
+        catatan_mentor
+      };
+
+      const res = await api(payload);
+
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-paper-plane"></i> Simpan & Kirim Laporan ke Wali Santri';
+
+      if (res.ok) {
+        const saved = res.hasil || {};
+        const parts = [];
+        if (saved.kehadiran) parts.push('kehadiran');
+        if (saved.kemajuan)  parts.push('hafalan');
+        if (saved.penilaian) parts.push('penilaian');
+        if (saved.pelajaran) parts.push('pelajaran tambahan');
+        if (saved.catatan)   parts.push('catatan mentor');
+        showToast('✅ Tersimpan (' + parts.join(', ') + ') & laporan terkirim ke wali!', 'success');
+
+        // Reset semua field
+        document.getElementById('inp-kitab').value = '';
+        document.getElementById('inp-halaman').value = '';
+        document.getElementById('inp-catatan-hafalan').value = '';
+        document.getElementById('inp-nilai').value = '';
+        document.getElementById('preview-nilai').textContent = '—';
+        document.getElementById('inp-catatan-nilai').value = '';
+        document.getElementById('inp-keterangan-hadir').value = '';
+        document.getElementById('inp-pelajaran-nama').value = '';
+        document.getElementById('inp-pelajaran-desk').value = '';
+        document.getElementById('inp-catatan-mentor').value = '';
+        document.getElementById('inp-tanggal').value = new Date().toISOString().split('T')[0];
+        document.querySelector('input[name="status-hadir"][value="hadir"]').checked = true;
+      } else {
+        showToast('Gagal: ' + (res.error || 'Terjadi kesalahan'), 'error');
+      }
+    }
+
+    async function kirimLaporanPDF() {
+      if (!currentPeserta) return;
+      if (!confirm('Generate dan kirim laporan PDF ke email orang tua ' + currentPeserta.nama_lengkap + '?')) return;
+      showToast('Sedang generate PDF...', 'info');
+      const res = await api({ action: 'generateDanKirimLaporanPDF', id_peserta: currentPeserta.id_peserta });
+      if (res.ok) showToast('Laporan PDF berhasil dikirim ke email orang tua!', 'success');
+      else showToast(res.error, 'error');
+    }
+
+    function openPDFSection() { document.getElementById('pdf-section').scrollIntoView({ behavior: 'smooth' }); }
+
+    // RIWAYAT
+    async function loadRiwayat() {
+      if (!currentPeserta) return;
+      const container = document.getElementById('timeline-container');
+      container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim)"><i class="fas fa-spinner fa-spin"></i> Memuat...</div>';
+      const res = await api({ action: 'getRiwayatPeserta', id_peserta: currentPeserta.id_peserta });
+      if (!res.ok) { container.innerHTML = `<p style="color:var(--danger)">${res.error}</p>`; return; }
+
+      // Gabungkan semua riwayat dan sort berdasarkan tanggal
+      const all = [];
+      res.kemajuan.forEach(r => all.push({ ...r, _type: 'kemajuan', _date: r.tanggal }));
+      res.penilaian.forEach(r => all.push({ ...r, _type: 'penilaian', _date: r.tanggal }));
+      res.kehadiran.forEach(r => all.push({ ...r, _type: 'kehadiran', _date: r.tanggal }));
+      res.pelajaran_tambahan.forEach(r => all.push({ ...r, _type: 'pelajaran', _date: r.tanggal }));
+      res.catatan_mentor.forEach(r => all.push({ ...r, _type: 'catatan', _date: r.tanggal }));
+      all.sort((a, b) => b._date > a._date ? 1 : -1);
+
+      if (!all.length) { container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim)">Belum ada riwayat untuk peserta ini</div>'; return; }
+
+      const typeConfig = {
+        kemajuan: { label: 'Kemajuan Hafalan', color: '#74b9ff', dot: 'kemajuan' },
+        penilaian: { label: 'Penilaian', color: '#ffd166', dot: 'penilaian' },
+        kehadiran: { label: 'Kehadiran', color: '#55efc4', dot: 'kehadiran' },
+        pelajaran: { label: 'Pelajaran Tambahan', color: '#a29bfe', dot: 'pelajaran' },
+        catatan: { label: 'Catatan Mentor', color: '#fd79a8', dot: 'catatan' }
+      };
+
+      container.innerHTML = '<div class="timeline">' + all.map(item => {
+        const cfg = typeConfig[item._type];
+        let content = '';
+        if (item._type === 'kemajuan') content = `<div class="tc-value">${item.kitab} — Hal. ${item.halaman}</div>${item.catatan_hafalan ? `<div class="tc-content" style="margin-top:6px">${item.catatan_hafalan}</div>` : ''}`;
+        else if (item._type === 'penilaian') content = `<div class="tc-value">${item.nilai} / 10</div>${item.catatan ? `<div class="tc-content" style="margin-top:6px">${item.catatan}</div>` : ''}`;
+        else if (item._type === 'kehadiran') content = `<div class="tc-value">${item.status_hadir === 'hadir' ? '✓ Hadir' : '⚠ Izin'}</div>${item.keterangan ? `<div class="tc-content" style="margin-top:6px">${item.keterangan}</div>` : ''}`;
+        else if (item._type === 'pelajaran') content = `<div class="tc-value">${item.nama_pelajaran}</div>${item.deskripsi ? `<div class="tc-content" style="margin-top:6px">${item.deskripsi}</div>` : ''}`;
+        else if (item._type === 'catatan') content = `<div class="tc-content">${item.isi_catatan}</div>`;
+
+        return `<div class="timeline-item">
+      <div class="timeline-dot ${cfg.dot}"></div>
+      <div class="timeline-card">
+        <div class="tc-header">
+          <span class="tc-type" style="color:${cfg.color}">${cfg.label}</span>
+          <span class="tc-date">${(item._date + '').substring(0, 10)}</span>
+        </div>
+        ${content}
+      </div>
+    </div>`;
+      }).join('') + '</div>';
+    }
+
+    // GANTI SANDI
+    async function gantiSandi() {
+      const baru = document.getElementById('sandi-baru').value;
+      const konfirm = document.getElementById('sandi-konfirm').value;
+      if (baru.length < 6) { showToast('Password minimal 6 karakter', 'error'); return; }
+      if (baru !== konfirm) { showToast('Konfirmasi password tidak cocok', 'error'); return; }
+      const res = await api({ action: 'gantiPassword', password_baru: baru });
+      if (res.ok) { showToast('Password berhasil diubah', 'success'); document.getElementById('sandi-baru').value = ''; document.getElementById('sandi-konfirm').value = ''; }
+      else showToast(res.error, 'error');
+    }
+
+    // TOAST
+    function showToast(msg, type = 'success') {
+      const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
+      const colors = { success: '#55efc4', error: '#ff7675', info: '#74b9ff' };
+      const t = document.createElement('div');
+      t.className = `toast ${type}`;
+      t.innerHTML = `<i class="fas ${icons[type] || 'fa-bell'}" style="color:${colors[type]}"></i> ${msg}`;
+      document.getElementById('toast-container').appendChild(t);
+      setTimeout(() => t.remove(), 3500);
+    }
+  </script>
+</body>
+
+</html>
