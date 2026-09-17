@@ -62,68 +62,41 @@ function setLocalStore(key, val) {
 
 export const authService = {
   async login(email, password) {
-    if (isConfigured) {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) throw error
-      return data
+    if (!isConfigured) {
+      throw new Error('Supabase belum dikonfigurasi. Hubungi administrator.')
     }
-
-    // Demo Mode Auth
-    const found = DEMO_PROFILES.find(p => p.email.toLowerCase() === email.toLowerCase().trim())
-    if (found) {
-      localStorage.setItem('qia_demo_session', JSON.stringify({ user: { id: found.id, email: found.email }, profile: found }))
-      return { user: { id: found.id, email: found.email }, profile: found }
-    }
-    // Jika tidak cocok, izinkan demo admin default
-    if (email.includes('admin')) {
-      const admin = DEMO_PROFILES[0]
-      localStorage.setItem('qia_demo_session', JSON.stringify({ user: { id: admin.id, email: admin.email }, profile: admin }))
-      return { user: { id: admin.id, email: admin.email }, profile: admin }
-    } else {
-      const mentor = DEMO_PROFILES[1]
-      localStorage.setItem('qia_demo_session', JSON.stringify({ user: { id: mentor.id, email: mentor.email }, profile: mentor }))
-      return { user: { id: mentor.id, email: mentor.email }, profile: mentor }
-    }
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) throw error
+    return data
   },
 
   async logout() {
     localStorage.removeItem('qia_demo_session')
-    if (isConfigured) {
-      try { await supabase.auth.signOut() } catch(e) {}
-    }
+    try { await supabase.auth.signOut() } catch(e) {}
   },
 
   async getSession() {
-    if (isConfigured) {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session) return session
-      } catch (e) {}
+    if (!isConfigured) return null
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      return session || null
+    } catch (e) {
+      return null
     }
-    const raw = localStorage.getItem('qia_demo_session')
-    if (raw) {
-      try { return JSON.parse(raw) } catch(e) {}
-    }
-    return null
   },
 
   async getProfile() {
     const session = await this.getSession()
-    if (!session) return null
-
-    if (isConfigured && session.user?.id) {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-        if (!error && data) return data
-      } catch(e) {}
-    }
-
-    if (session.profile) return session.profile
-    return DEMO_PROFILES.find(p => p.id === session.user?.id) || DEMO_PROFILES[0]
+    if (!session?.user?.id) return null
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single()
+      if (!error && data) return data
+    } catch(e) {}
+    return null
   },
 
   onAuthStateChange(callback) {
