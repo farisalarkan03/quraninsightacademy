@@ -678,141 +678,120 @@ function openPesertaDetail(pesertaId, main, showToast) {
     </div>
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 340px;gap:20px;" id="detail-layout">
-    <!-- Left: Forms -->
-    <div style="display:flex;flex-direction:column;gap:16px;">
-
-      <!-- Form Laporan Sesi TERPADU (Kemajuan + Penilaian + Catatan dalam 1 card) -->
-      <div class="card" id="card-laporan-sesi">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
-          <h4 style="color:var(--cream-100);margin:0;">
-            <i class="fa-solid fa-clipboard-list" style="color:#F0AF43;margin-right:8px;"></i>
-            Laporan Sesi Peserta Didik
-          </h4>
-          <span style="font-size:12px;color:var(--text-card-muted);">Isi sesuai kebutuhan, lalu simpan sekaligus</span>
+  <div style="display:flex;flex-direction:column;gap:24px;max-width:960px;" id="detail-layout">
+    <!-- Card Form Terpadu Berurutan Ke Bawah -->
+    <div class="card" id="card-laporan-sesi" style="padding:24px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,0.08);">
+        <div>
+          <h3 style="color:var(--cream-100);margin:0 0 4px;font-size:1.15rem;display:flex;align-items:center;gap:8px;">
+            <i class="fa-solid fa-clipboard-list" style="color:#F0AF43;"></i>
+            Input Laporan Sesi Peserta Didik
+          </h3>
+          <p style="margin:0;font-size:12.5px;color:var(--text-card-muted);">
+            Isi bagian yang dibutuhkan (Hafalan / Penilaian / Catatan), lalu klik Simpan di bagian bawah.
+          </p>
         </div>
+      </div>
 
-        <!-- Tab navigation -->
-        <div style="display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:18px;" id="laporan-tabs">
-          <button class="laporan-tab-btn active" data-tab="kemajuan" onclick="switchLaporanTab('kemajuan')"
-            style="padding:8px 18px;background:none;border:none;border-bottom:2px solid #F0AF43;color:#F0AF43;font-weight:700;font-size:13px;cursor:pointer;">
-            <i class="fa-solid fa-book-quran"></i> Hafalan
-          </button>
-          <button class="laporan-tab-btn" data-tab="penilaian" onclick="switchLaporanTab('penilaian')"
-            style="padding:8px 18px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-card-muted);font-weight:600;font-size:13px;cursor:pointer;">
-            <i class="fa-solid fa-star"></i> Penilaian
-          </button>
-          <button class="laporan-tab-btn" data-tab="catatan" onclick="switchLaporanTab('catatan')"
-            style="padding:8px 18px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-card-muted);font-weight:600;font-size:13px;cursor:pointer;">
-            <i class="fa-solid fa-comment-dots"></i> Catatan
-          </button>
-        </div>
-
-        <!-- Tab: Kemajuan Hafalan -->
-        <div id="tab-kemajuan" class="laporan-tab-content">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-            <div class="form-group">
-              <label class="form-label">Kitab / Surah</label>
-              <input type="text" class="form-control" id="inp-kitab" placeholder="cth: Al-Baqarah, Jilid 2" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Halaman / Ayat</label>
-              <input type="text" class="form-control" id="inp-halaman" placeholder="cth: Ayat 1-10, Hal. 12" />
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-            <div class="form-group">
-              <label class="form-label">Status Kelancaran</label>
-              <select class="form-control" id="inp-kelancaran">
-                <option value="lancar">✅ Lancar</option>
-                <option value="cukup">⚠️ Cukup</option>
-                <option value="perlu_ulang">🔄 Perlu Diulang</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Tanggal</label>
-              <input type="date" class="form-control" id="inp-tgl-kemajuan" value="${new Date().toISOString().slice(0,10)}" />
-            </div>
+      <!-- SEKSI 1: KEMAJUAN HAFALAN -->
+      <div style="margin-bottom:24px;padding:16px;background:rgba(255,255,255,0.02);border-radius:10px;border:1px solid rgba(255,255,255,0.06);">
+        <h4 style="color:#F0AF43;margin:0 0 14px;font-size:0.95rem;display:flex;align-items:center;gap:8px;">
+          <i class="fa-solid fa-book-quran"></i> 1. Kemajuan Hafalan
+        </h4>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:14px;margin-bottom:14px;">
+          <div class="form-group">
+            <label class="form-label">Kitab / Surah</label>
+            <input type="text" class="form-control" id="inp-kitab" placeholder="cth: Al-Baqarah, Jilid 2" />
           </div>
           <div class="form-group">
-            <label class="form-label">Catatan Hafalan</label>
-            <textarea class="form-control" id="inp-catatan-hafalan" rows="2" placeholder="Catatan perkembangan hafalan…"></textarea>
-          </div>
-        </div>
-
-        <!-- Tab: Penilaian -->
-        <div id="tab-penilaian" class="laporan-tab-content" style="display:none;">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-            <div class="form-group">
-              <label class="form-label">Nilai Angka (0–100)</label>
-              <input type="number" class="form-control" id="inp-nilai" min="0" max="100" placeholder="85" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Tanggal</label>
-              <input type="date" class="form-control" id="inp-tgl-nilai" value="${new Date().toISOString().slice(0,10)}" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Adab (1–5)</label>
-              <input type="number" class="form-control" id="inp-adab" min="1" max="5" placeholder="5" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Tajwid (1–5)</label>
-              <input type="number" class="form-control" id="inp-tajwid" min="1" max="5" placeholder="4" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Kelancaran (1–5)</label>
-              <input type="number" class="form-control" id="inp-kelancaran-nilai" min="1" max="5" placeholder="4" />
-            </div>
+            <label class="form-label">Halaman / Ayat</label>
+            <input type="text" class="form-control" id="inp-halaman" placeholder="cth: Ayat 1-10, Hal. 12" />
           </div>
           <div class="form-group">
-            <label class="form-label">Catatan Penilaian</label>
-            <textarea class="form-control" id="inp-catatan-nilai" rows="2" placeholder="Catatan nilai…"></textarea>
+            <label class="form-label">Status Kelancaran</label>
+            <select class="form-control" id="inp-kelancaran">
+              <option value="lancar">✅ Lancar</option>
+              <option value="cukup">⚠️ Cukup</option>
+              <option value="perlu_ulang">🔄 Perlu Diulang</option>
+            </select>
           </div>
-        </div>
-
-        <!-- Tab: Catatan Mentor -->
-        <div id="tab-catatan" class="laporan-tab-content" style="display:none;">
           <div class="form-group">
-            <label class="form-label">Catatan untuk Wali / Orang Tua</label>
-            <textarea class="form-control" id="inp-catatan" rows="4" placeholder="Catatan perkembangan, observasi, atau pesan untuk orang tua / wali…"></textarea>
+            <label class="form-label">Tanggal</label>
+            <input type="date" class="form-control" id="inp-tgl-kemajuan" value="${new Date().toISOString().slice(0,10)}" />
           </div>
         </div>
-
-        <!-- Divider + Single Save Button -->
-        <div style="border-top:1px solid rgba(255,255,255,0.08);margin-top:18px;padding-top:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-          <button class="btn btn-primary" id="btn-save-laporan" style="flex:1;min-width:200px;padding:12px;">
-            <i class="fa-solid fa-floppy-disk"></i> Simpan Laporan Sesi
-          </button>
-          <span id="laporan-save-hint" style="font-size:12px;color:var(--text-card-muted);">
-            Data yang diisi akan tersimpan sekaligus
-          </span>
+        <div class="form-group">
+          <label class="form-label">Catatan Hafalan (Opsional)</label>
+          <textarea class="form-control" id="inp-catatan-hafalan" rows="2" placeholder="Catatan khusus perkembangan hafalan atau tajwid yang perlu diperbaiki…"></textarea>
         </div>
+      </div>
+
+      <!-- SEKSI 2: PENILAIAN -->
+      <div style="margin-bottom:24px;padding:16px;background:rgba(255,255,255,0.02);border-radius:10px;border:1px solid rgba(255,255,255,0.06);">
+        <h4 style="color:#F0AF43;margin:0 0 14px;font-size:0.95rem;display:flex;align-items:center;gap:8px;">
+          <i class="fa-solid fa-star"></i> 2. Penilaian Sesi
+        </h4>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:14px;margin-bottom:14px;">
+          <div class="form-group">
+            <label class="form-label">Nilai Angka (0–100)</label>
+            <input type="number" class="form-control" id="inp-nilai" min="0" max="100" placeholder="85" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tanggal Nilai</label>
+            <input type="date" class="form-control" id="inp-tgl-nilai" value="${new Date().toISOString().slice(0,10)}" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Adab (1–5)</label>
+            <input type="number" class="form-control" id="inp-adab" min="1" max="5" placeholder="5" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tajwid (1–5)</label>
+            <input type="number" class="form-control" id="inp-tajwid" min="1" max="5" placeholder="4" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Kelancaran (1–5)</label>
+            <input type="number" class="form-control" id="inp-kelancaran-nilai" min="1" max="5" placeholder="4" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Catatan Penilaian (Opsional)</label>
+          <textarea class="form-control" id="inp-catatan-nilai" rows="2" placeholder="Catatan terkait penilaian ini…"></textarea>
+        </div>
+      </div>
+
+      <!-- SEKSI 3: CATATAN MENTOR UNTUK WALI -->
+      <div style="margin-bottom:24px;padding:16px;background:rgba(255,255,255,0.02);border-radius:10px;border:1px solid rgba(255,255,255,0.06);">
+        <h4 style="color:#F0AF43;margin:0 0 14px;font-size:0.95rem;display:flex;align-items:center;gap:8px;">
+          <i class="fa-solid fa-comment-dots"></i> 3. Catatan untuk Wali / Orang Tua
+        </h4>
+        <div class="form-group">
+          <textarea class="form-control" id="inp-catatan" rows="3" placeholder="Tuliskan pesan perkembangan, keaktifan santri, atau saran untuk orang tua di rumah…"></textarea>
+        </div>
+      </div>
+
+      <!-- Tombol Simpan Terpadu di Bawah -->
+      <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:18px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-lg" id="btn-save-laporan" style="min-width:240px;padding:12px 24px;font-size:14px;">
+          <i class="fa-solid fa-floppy-disk"></i> Simpan Laporan Sesi
+        </button>
+        <span id="laporan-save-hint" style="font-size:12.5px;color:var(--text-card-muted);">
+          <i class="fa-solid fa-circle-info" style="margin-right:4px;"></i> Semua bagian yang terisi akan otomatis tersimpan bersamaan
+        </span>
       </div>
     </div>
 
-    <!-- Right: History -->
-    <div style="display:flex;flex-direction:column;gap:16px;">
-      <div class="card" id="history-panel">
-        <h4 style="color:var(--cream-100);margin-bottom:14px;"><i class="fa-solid fa-clock-rotate-left" style="color:#F0AF43;"></i> Riwayat Peserta Didik</h4>
-        <div style="font-size:13px;color:var(--text-card-muted);text-align:center;padding:20px 0;">
-          Memuat riwayat…
-        </div>
+    <!-- Riwayat Peserta Didik di Bawahnya -->
+    <div class="card" id="history-panel" style="padding:24px;">
+      <h4 style="color:var(--cream-100);margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+        <i class="fa-solid fa-clock-rotate-left" style="color:#F0AF43;"></i> Riwayat Peserta Didik
+      </h4>
+      <div style="font-size:13px;color:var(--text-card-muted);text-align:center;padding:20px 0;">
+        Memuat riwayat…
       </div>
     </div>
   </div>`
 
   window.renderMentorView = (v) => renderView(v, showToast)
-
-  // Tab switcher
-  window.switchLaporanTab = (tab) => {
-    document.querySelectorAll('.laporan-tab-content').forEach(el => el.style.display = 'none')
-    document.getElementById('tab-' + tab).style.display = ''
-    document.querySelectorAll('.laporan-tab-btn').forEach(btn => {
-      const isActive = btn.dataset.tab === tab
-      btn.style.borderBottom = isActive ? '2px solid #F0AF43' : '2px solid transparent'
-      btn.style.color = isActive ? '#F0AF43' : 'var(--text-card-muted)'
-    })
-  }
 
   // Load history
   loadPesertaHistory(pesertaId, showToast)
@@ -820,10 +799,9 @@ function openPesertaDetail(pesertaId, main, showToast) {
   // SINGLE SAVE: simpan semua data sekaligus
   document.getElementById('btn-save-laporan').addEventListener('click', async () => {
     const btn  = document.getElementById('btn-save-laporan')
-    const hint = document.getElementById('laporan-save-hint')
     const today = new Date().toISOString().slice(0,10)
 
-    // Kumpulkan data dari semua tab
+    // Kumpulkan data dari form
     const kitab   = document.getElementById('inp-kitab').value.trim()
     const halaman  = document.getElementById('inp-halaman').value.trim()
     const nilaiStr = document.getElementById('inp-nilai').value
@@ -882,6 +860,9 @@ function openPesertaDetail(pesertaId, main, showToast) {
           })
           saved.push('Penilaian')
           document.getElementById('inp-nilai').value = ''
+          document.getElementById('inp-adab').value = ''
+          document.getElementById('inp-tajwid').value = ''
+          document.getElementById('inp-kelancaran-nilai').value = ''
           document.getElementById('inp-catatan-nilai').value = ''
         } catch(e) { errors.push('Penilaian: ' + e.message) }
       }
@@ -924,40 +905,59 @@ async function loadPesertaHistory(pesertaId, showToast) {
       mentorService.getRiwayatKehadiran(pesertaId, 10),
     ])
     panel.innerHTML = `
-    <h4 style="color:var(--cream-100);margin-bottom:14px;"><i class="fa-solid fa-clock-rotate-left" style="color:#F0AF43;"></i> Riwayat Peserta Didik</h4>
+    <h4 style="color:var(--cream-100);margin-bottom:18px;display:flex;align-items:center;gap:8px;">
+      <i class="fa-solid fa-clock-rotate-left" style="color:#F0AF43;"></i> Riwayat Peserta Didik
+    </h4>
 
-    <div style="font-size:12px;font-weight:700;color:var(--brown-300);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Hafalan Terakhir</div>
-    ${kemajuan.length===0?'<p style="font-size:12px;color:var(--text-card-muted);margin-bottom:12px;">Belum ada catatan</p>':
-      kemajuan.slice(0,4).map(k=>`
-      <div style="padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:8px;margin-bottom:6px;">
-        <div style="font-size:12.5px;color:var(--cream-100);font-weight:600;">${k.kitab_surat} — ${k.halaman_ayat||''}</div>
-        <div style="font-size:11px;color:var(--text-card-muted);margin-top:2px;">${formatDate(k.tanggal)} • ${kelancaran(k.status_kelancaran)}</div>
-      </div>`).join('')}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:20px;">
+      <!-- Kolom Hafalan -->
+      <div style="background:rgba(255,255,255,0.02);padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.05);">
+        <div style="font-size:12px;font-weight:700;color:var(--brown-300);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">
+          <i class="fa-solid fa-book-quran" style="margin-right:6px;"></i> Hafalan Terakhir
+        </div>
+        ${kemajuan.length===0?'<p style="font-size:12px;color:var(--text-card-muted);margin:0;">Belum ada catatan</p>':
+          kemajuan.slice(0,4).map(k=>`
+          <div style="padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:8px;margin-bottom:6px;">
+            <div style="font-size:12.5px;color:var(--cream-100);font-weight:600;">${k.kitab_surat} — ${k.halaman_ayat||''}</div>
+            <div style="font-size:11px;color:var(--text-card-muted);margin-top:2px;">${formatDate(k.tanggal)} • ${kelancaran(k.status_kelancaran)}</div>
+          </div>`).join('')}
+      </div>
 
-    <div style="font-size:12px;font-weight:700;color:var(--brown-300);text-transform:uppercase;letter-spacing:0.5px;margin:12px 0 8px;">Penilaian Terakhir</div>
-    ${penilaian.length===0?'<p style="font-size:12px;color:var(--text-card-muted);margin-bottom:12px;">Belum ada penilaian</p>':
-      penilaian.slice(0,4).map(n=>`
-      <div style="padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:8px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;">
-        <div>
-          <div style="font-size:13px;color:var(--cream-100);font-weight:700;">${n.nilai_angka}</div>
-          <div style="font-size:11px;color:var(--text-card-muted);">${formatDate(n.tanggal)}</div>
+      <!-- Kolom Penilaian -->
+      <div style="background:rgba(255,255,255,0.02);padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.05);">
+        <div style="font-size:12px;font-weight:700;color:var(--brown-300);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">
+          <i class="fa-solid fa-star" style="margin-right:6px;"></i> Penilaian Terakhir
         </div>
-        <div style="font-size:11px;color:var(--text-card-muted);text-align:right;">
-          Adab ${n.nilai_adab||'-'} • Tajwid ${n.nilai_tajwid||'-'} • Lancar ${n.nilai_kelancaran||'-'}
-        </div>
-      </div>`).join('')}
+        ${penilaian.length===0?'<p style="font-size:12px;color:var(--text-card-muted);margin:0;">Belum ada penilaian</p>':
+          penilaian.slice(0,4).map(n=>`
+          <div style="padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:8px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;">
+            <div>
+              <div style="font-size:13px;color:var(--cream-100);font-weight:700;">${n.nilai_angka}</div>
+              <div style="font-size:11px;color:var(--text-card-muted);">${formatDate(n.tanggal)}</div>
+            </div>
+            <div style="font-size:11px;color:var(--text-card-muted);text-align:right;">
+              Adab ${n.nilai_adab||'-'} • Tajwid ${n.nilai_tajwid||'-'} • Lancar ${n.nilai_kelancaran||'-'}
+            </div>
+          </div>`).join('')}
+      </div>
 
-    <div style="font-size:12px;font-weight:700;color:var(--brown-300);text-transform:uppercase;letter-spacing:0.5px;margin:12px 0 8px;">Riwayat Absensi</div>
-    ${kehadiran.length===0?'<p style="font-size:12px;color:var(--text-card-muted);">Belum ada absensi</p>':
-      kehadiran.slice(0,6).map(k=>`
-      <div style="padding:7px 12px;background:rgba(255,255,255,0.04);border-radius:8px;margin-bottom:5px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
-          <span style="font-size:12px;font-weight:700;color:${khColor(k.status_hadir)};">${khIcon(k.status_hadir)} ${k.status_hadir}</span>
-          <span style="font-size:11px;color:var(--text-card-muted);">${formatDate(k.tanggal)}</span>
+      <!-- Kolom Absensi -->
+      <div style="background:rgba(255,255,255,0.02);padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.05);">
+        <div style="font-size:12px;font-weight:700;color:var(--brown-300);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">
+          <i class="fa-solid fa-calendar-check" style="margin-right:6px;"></i> Riwayat Absensi
         </div>
-        ${k.materi_pembahasan?`<div style="font-size:11px;color:var(--text-card-muted);">📚 ${k.materi_pembahasan}</div>`:''}
-        ${k.perkembangan_materi?`<div style="font-size:11px;color:var(--text-card-muted);font-style:italic;">${k.perkembangan_materi}</div>`:''}
-      </div>`).join('')}`
+        ${kehadiran.length===0?'<p style="font-size:12px;color:var(--text-card-muted);margin:0;">Belum ada absensi</p>':
+          kehadiran.slice(0,4).map(k=>`
+          <div style="padding:7px 12px;background:rgba(255,255,255,0.04);border-radius:8px;margin-bottom:5px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
+              <span style="font-size:12px;font-weight:700;color:${khColor(k.status_hadir)};">${khIcon(k.status_hadir)} ${k.status_hadir}</span>
+              <span style="font-size:11px;color:var(--text-card-muted);">${formatDate(k.tanggal)}</span>
+            </div>
+            ${k.materi_pembahasan?`<div style="font-size:11px;color:var(--text-card-muted);">📚 ${k.materi_pembahasan}</div>`:''}
+            ${k.perkembangan_materi?`<div style="font-size:11px;color:var(--text-card-muted);font-style:italic;">${k.perkembangan_materi}</div>`:''}
+          </div>`).join('')}
+      </div>
+    </div>`
   } catch(e) {
     if (panel) panel.innerHTML = `<p style="color:#e05c4b;font-size:13px;">Gagal memuat riwayat.</p>`
   }
