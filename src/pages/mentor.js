@@ -693,10 +693,41 @@ function openPesertaDetail(pesertaId, main, showToast) {
         </div>
       </div>
 
-      <!-- SEKSI 1: KEMAJUAN HAFALAN -->
+      <!-- SEKSI 1: KEHADIRAN & MATERI SESI -->
       <div style="margin-bottom:24px;padding:16px;background:rgba(255,255,255,0.02);border-radius:10px;border:1px solid rgba(255,255,255,0.06);">
         <h4 style="color:#F0AF43;margin:0 0 14px;font-size:0.95rem;display:flex;align-items:center;gap:8px;">
-          <i class="fa-solid fa-book-quran"></i> 1. Kemajuan Hafalan
+          <i class="fa-solid fa-calendar-check"></i> 1. Kehadiran & Materi Sesi
+        </h4>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:14px;margin-bottom:14px;">
+          <div class="form-group">
+            <label class="form-label">Status Kehadiran</label>
+            <select class="form-control" id="inp-status-hadir">
+              <option value="hadir">✅ Hadir</option>
+              <option value="izin">⚠️ Izin</option>
+              <option value="sakit">🩺 Sakit</option>
+              <option value="alpa">❌ Alpa</option>
+              <option value="none">— Lewati Kehadiran —</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tanggal Sesi</label>
+            <input type="date" class="form-control" id="inp-tgl-kehadiran" value="${new Date().toISOString().slice(0,10)}" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Materi Pembahasan</label>
+            <input type="text" class="form-control" id="inp-materi" placeholder="cth: Tajwid Mad Thobi'i, Makhorijul Huruf" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Perkembangan Materi / Catatan Sesi (Opsional)</label>
+          <input type="text" class="form-control" id="inp-perkembangan-materi" placeholder="cth: Santri sudah memahami panjang 2 harakat dengan baik" />
+        </div>
+      </div>
+
+      <!-- SEKSI 2: KEMAJUAN HAFALAN -->
+      <div style="margin-bottom:24px;padding:16px;background:rgba(255,255,255,0.02);border-radius:10px;border:1px solid rgba(255,255,255,0.06);">
+        <h4 style="color:#F0AF43;margin:0 0 14px;font-size:0.95rem;display:flex;align-items:center;gap:8px;">
+          <i class="fa-solid fa-book-quran"></i> 2. Kemajuan Hafalan
         </h4>
         <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:14px;margin-bottom:14px;">
           <div class="form-group">
@@ -716,7 +747,7 @@ function openPesertaDetail(pesertaId, main, showToast) {
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">Tanggal</label>
+            <label class="form-label">Tanggal Hafalan</label>
             <input type="date" class="form-control" id="inp-tgl-kemajuan" value="${new Date().toISOString().slice(0,10)}" />
           </div>
         </div>
@@ -726,10 +757,10 @@ function openPesertaDetail(pesertaId, main, showToast) {
         </div>
       </div>
 
-      <!-- SEKSI 2: PENILAIAN -->
+      <!-- SEKSI 3: PENILAIAN -->
       <div style="margin-bottom:24px;padding:16px;background:rgba(255,255,255,0.02);border-radius:10px;border:1px solid rgba(255,255,255,0.06);">
         <h4 style="color:#F0AF43;margin:0 0 14px;font-size:0.95rem;display:flex;align-items:center;gap:8px;">
-          <i class="fa-solid fa-star"></i> 2. Penilaian Sesi
+          <i class="fa-solid fa-star"></i> 3. Penilaian Sesi
         </h4>
         <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:14px;margin-bottom:14px;">
           <div class="form-group">
@@ -759,10 +790,10 @@ function openPesertaDetail(pesertaId, main, showToast) {
         </div>
       </div>
 
-      <!-- SEKSI 3: CATATAN MENTOR UNTUK WALI -->
+      <!-- SEKSI 4: CATATAN MENTOR UNTUK WALI -->
       <div style="margin-bottom:24px;padding:16px;background:rgba(255,255,255,0.02);border-radius:10px;border:1px solid rgba(255,255,255,0.06);">
         <h4 style="color:#F0AF43;margin:0 0 14px;font-size:0.95rem;display:flex;align-items:center;gap:8px;">
-          <i class="fa-solid fa-comment-dots"></i> 3. Catatan untuk Wali / Orang Tua
+          <i class="fa-solid fa-comment-dots"></i> 4. Catatan untuk Wali / Orang Tua
         </h4>
         <div class="form-group">
           <textarea class="form-control" id="inp-catatan" rows="3" placeholder="Tuliskan pesan perkembangan, keaktifan santri, atau saran untuk orang tua di rumah…"></textarea>
@@ -802,17 +833,21 @@ function openPesertaDetail(pesertaId, main, showToast) {
     const today = new Date().toISOString().slice(0,10)
 
     // Kumpulkan data dari form
-    const kitab   = document.getElementById('inp-kitab').value.trim()
-    const halaman  = document.getElementById('inp-halaman').value.trim()
-    const nilaiStr = document.getElementById('inp-nilai').value
-    const catatan  = document.getElementById('inp-catatan').value.trim()
+    const statusHadir  = document.getElementById('inp-status-hadir').value
+    const materi       = document.getElementById('inp-materi').value.trim()
+    const perkembangan = document.getElementById('inp-perkembangan-materi').value.trim()
+    const kitab        = document.getElementById('inp-kitab').value.trim()
+    const halaman      = document.getElementById('inp-halaman').value.trim()
+    const nilaiStr     = document.getElementById('inp-nilai').value
+    const catatan      = document.getElementById('inp-catatan').value.trim()
 
+    const hasKehadiran = statusHadir !== 'none'
     const hasKemajuan  = !!kitab
     const hasPenilaian = !!nilaiStr
     const hasCatatan   = !!catatan
 
-    if (!hasKemajuan && !hasPenilaian && !hasCatatan) {
-      showToast('Isi minimal satu bagian (Hafalan, Penilaian, atau Catatan).', 'info')
+    if (!hasKehadiran && !hasKemajuan && !hasPenilaian && !hasCatatan) {
+      showToast('Isi minimal satu bagian (Kehadiran, Hafalan, Penilaian, atau Catatan).', 'info')
       return
     }
 
@@ -821,6 +856,25 @@ function openPesertaDetail(pesertaId, main, showToast) {
 
     const errors = []
     const saved  = []
+
+    // Simpan Kehadiran & Materi Sesi (terutama untuk peserta privat maupun kelas)
+    if (hasKehadiran) {
+      try {
+        await mentorService.addKehadiran({
+          id_peserta: pesertaId,
+          id_mentor:  state.profile.id,
+          id_kelas:   p.id_kelas || null,
+          tanggal:    document.getElementById('inp-tgl-kehadiran').value || today,
+          status_hadir: statusHadir,
+          materi_pembahasan:   materi || null,
+          perkembangan_materi: perkembangan || null,
+          catatan_sesi: null,
+        })
+        saved.push(`Kehadiran (${statusHadir})`)
+        document.getElementById('inp-materi').value = ''
+        document.getElementById('inp-perkembangan-materi').value = ''
+      } catch(e) { errors.push('Kehadiran: ' + e.message) }
+    }
 
     // Simpan Kemajuan Hafalan
     if (hasKemajuan) {

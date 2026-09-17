@@ -363,6 +363,10 @@ export const mentorService = {
     return { success: true, count: records.length }
   },
 
+  async addKehadiran(record) {
+    return this.bulkSimpanAbsensi([record])
+  },
+
   async getRiwayatKehadiran(pesertaId, limit = 30) {
     if (isConfigured) {
       try {
