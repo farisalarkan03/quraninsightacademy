@@ -156,35 +156,26 @@ export const adminService = {
   },
 
   async createMentor(email, password, profile) {
-    if (isConfigured) {
-      try {
-        const { data: authData, error: authErr } = await supabase.auth.admin.createUser({
-          email, password, email_confirm: true, user_metadata: { nama: profile.nama, role: 'mentor' }
-        })
-        if (!authErr) {
-          const { data, error } = await supabase.from('profiles').update({ ...profile, role: 'mentor' }).eq('id', authData.user.id).select().single()
-          if (!error && data) return data
-        }
-      } catch(e) {}
-    }
-    const list = getLocalStore('profiles', DEMO_PROFILES)
-    const newM = { id: 'mentor-' + Date.now(), email, ...profile, role: 'mentor', status: 'aktif' }
-    list.push(newM)
-    setLocalStore('profiles', list)
-    return newM
+    // Gunakan signUp standar (bukan admin API yang butuh service_role)
+    const { data: authData, error: authErr } = await supabase.auth.signUp({
+      email, password,
+      options: { data: { nama: profile.nama, role: 'mentor' } }
+    })
+    if (authErr) throw new Error('Gagal membuat akun: ' + authErr.message)
+    if (!authData?.user) throw new Error('Gagal membuat akun mentor.')
+    const userId = authData.user.id
+    // Upsert profile agar langsung tercatat meski trigger belum jalan
+    const { data, error } = await supabase.from('profiles').upsert({
+      id: userId, email, ...profile, role: 'mentor', status: 'aktif'
+    }).select().single()
+    if (error) throw new Error('Gagal menyimpan profil mentor: ' + error.message)
+    return data
   },
 
   async updateMentor(id, updates) {
-    if (isConfigured) {
-      try {
-        const { data, error } = await supabase.from('profiles').update(updates).eq('id', id).select().single()
-        if (!error && data) return data
-      } catch(e) {}
-    }
-    const list = getLocalStore('profiles', DEMO_PROFILES)
-    const idx = list.findIndex(p => p.id === id)
-    if (idx !== -1) { list[idx] = { ...list[idx], ...updates }; setLocalStore('profiles', list); return list[idx] }
-    return null
+    const { data, error } = await supabase.from('profiles').update(updates).eq('id', id).select().single()
+    if (error) throw new Error('Gagal update mentor: ' + error.message)
+    return data
   },
 
   async getKelas(filter = {}) {
@@ -206,40 +197,20 @@ export const adminService = {
   },
 
   async createKelas(kelasData) {
-    if (isConfigured) {
-      try {
-        const { data, error } = await supabase.from('kelas').insert(kelasData).select().single()
-        if (!error && data) return data
-      } catch(e) {}
-    }
-    const list = getLocalStore('kelas', DEMO_KELAS)
-    const newK = { id: Date.now(), status: 'aktif', ...kelasData }
-    list.push(newK)
-    setLocalStore('kelas', list)
-    return newK
+    const { data, error } = await supabase.from('kelas').insert(kelasData).select().single()
+    if (error) throw new Error('Gagal membuat kelas: ' + error.message)
+    return data
   },
 
   async updateKelas(id, updates) {
-    if (isConfigured) {
-      try {
-        const { data, error } = await supabase.from('kelas').update(updates).eq('id', id).select().single()
-        if (!error && data) return data
-      } catch(e) {}
-    }
-    const list = getLocalStore('kelas', DEMO_KELAS)
-    const idx = list.findIndex(k => k.id === id)
-    if (idx !== -1) { list[idx] = { ...list[idx], ...updates }; setLocalStore('kelas', list); return list[idx] }
-    return null
+    const { data, error } = await supabase.from('kelas').update(updates).eq('id', id).select().single()
+    if (error) throw new Error('Gagal update kelas: ' + error.message)
+    return data
   },
 
   async deleteKelas(id) {
-    if (isConfigured) {
-      try {
-        await supabase.from('kelas').delete().eq('id', id)
-      } catch(e) {}
-    }
-    const list = getLocalStore('kelas', DEMO_KELAS).filter(k => k.id !== id)
-    setLocalStore('kelas', list)
+    const { error } = await supabase.from('kelas').delete().eq('id', id)
+    if (error) throw new Error('Gagal hapus kelas: ' + error.message)
   },
 
   async getPesertaDidik(filter = {}) {
@@ -265,46 +236,20 @@ export const adminService = {
   },
 
   async createPeserta(pesertaData) {
-    if (isConfigured) {
-      try {
-        const { data, error } = await supabase.from('peserta_didik').insert(pesertaData).select().single()
-        if (!error && data) return data
-      } catch(e) {}
-    }
-    const list = getLocalStore('peserta', DEMO_PESERTA)
-    const newP = { id: Date.now(), tanggal_daftar: new Date().toISOString().split('T')[0], status: 'aktif', ...pesertaData }
-    list.push(newP)
-    setLocalStore('peserta', list)
-    return newP
+    const { data, error } = await supabase.from('peserta_didik').insert(pesertaData).select().single()
+    if (error) throw new Error('Gagal mendaftarkan peserta: ' + error.message)
+    return data
   },
 
   async updatePeserta(id, updates) {
-    if (isConfigured) {
-      try {
-        const { data, error } = await supabase.from('peserta_didik').update(updates).eq('id', id).select().single()
-        if (!error && data) return data
-      } catch(e) {}
-    }
-    const list = getLocalStore('peserta', DEMO_PESERTA)
-    const idx = list.findIndex(p => p.id === id)
-    if (idx !== -1) { list[idx] = { ...list[idx], ...updates }; setLocalStore('peserta', list); return list[idx] }
-    return null
+    const { data, error } = await supabase.from('peserta_didik').update(updates).eq('id', id).select().single()
+    if (error) throw new Error('Gagal update peserta: ' + error.message)
+    return data
   },
 
   async bulkUpdatePeserta(records) {
-    if (isConfigured) {
-      try {
-        await supabase.from('peserta_didik').upsert(records)
-        return
-      } catch(e) {}
-    }
-    const list = getLocalStore('peserta', DEMO_PESERTA)
-    records.forEach(rec => {
-      const idx = list.findIndex(p => p.id === rec.id)
-      if (idx !== -1) list[idx] = { ...list[idx], ...rec }
-      else list.push(rec)
-    })
-    setLocalStore('peserta', list)
+    const { error } = await supabase.from('peserta_didik').upsert(records)
+    if (error) throw new Error('Gagal simpan massal: ' + error.message)
   },
 
   async exportAllData(table, columns = '*') {
@@ -396,11 +341,20 @@ export const mentorService = {
 
   async bulkSimpanAbsensi(records) {
     if (isConfigured) {
+      // Coba via RPC khusus dulu
       try {
         const { data, error } = await supabase.rpc('bulk_upsert_kehadiran', { p_records: records })
         if (!error) return data
       } catch(e) {}
+      // Fallback: upsert langsung ke tabel kehadiran
+      const { error } = await supabase.from('kehadiran').upsert(
+        records.map(r => ({ ...r })),
+        { onConflict: 'id_peserta,id_kelas,tanggal' }
+      )
+      if (error) throw new Error('Gagal simpan absensi: ' + error.message)
+      return { success: true, count: records.length }
     }
+    // Demo fallback (tidak seharusnya tercapai jika Supabase dikonfigurasi)
     const all = getLocalStore('kehadiran', DEMO_KEHADIRAN)
     records.forEach(r => {
       all.unshift({ id: Date.now() + Math.random(), ...r })
@@ -432,17 +386,9 @@ export const mentorService = {
   },
 
   async addKemajuan(kemajuanData) {
-    if (isConfigured) {
-      try {
-        const { data, error } = await supabase.from('kemajuan').insert(kemajuanData).select().single()
-        if (!error && data) return data
-      } catch(e) {}
-    }
-    const all = getLocalStore('kemajuan', DEMO_KEMAJUAN)
-    const newK = { id: Date.now(), ...kemajuanData }
-    all.unshift(newK)
-    setLocalStore('kemajuan', all)
-    return newK
+    const { data, error } = await supabase.from('kemajuan').insert(kemajuanData).select().single()
+    if (error) throw new Error('Gagal simpan kemajuan: ' + error.message)
+    return data
   },
 
   async getPenilaian(pesertaId, limit = 20) {
@@ -457,17 +403,9 @@ export const mentorService = {
   },
 
   async addPenilaian(penilaianData) {
-    if (isConfigured) {
-      try {
-        const { data, error } = await supabase.from('penilaian').insert(penilaianData).select().single()
-        if (!error && data) return data
-      } catch(e) {}
-    }
-    const all = getLocalStore('penilaian', DEMO_PENILAIAN)
-    const newP = { id: Date.now(), ...penilaianData }
-    all.unshift(newP)
-    setLocalStore('penilaian', all)
-    return newP
+    const { data, error } = await supabase.from('penilaian').insert(penilaianData).select().single()
+    if (error) throw new Error('Gagal simpan penilaian: ' + error.message)
+    return data
   },
 
   async getCatatan(pesertaId) {
