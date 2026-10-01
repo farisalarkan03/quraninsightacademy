@@ -1,4 +1,4 @@
-import{c as ja}from"./vendor-Dx0atVpp.js";import{u as z,w as pa}from"./xlsx-DrgRuPKf.js";(function(){const t=document.createElement("link").relList;if(t&&t.supports&&t.supports("modulepreload"))return;for(const n of document.querySelectorAll('link[rel="modulepreload"]'))i(n);new MutationObserver(n=>{for(const s of n)if(s.type==="childList")for(const l of s.addedNodes)l.tagName==="LINK"&&l.rel==="modulepreload"&&i(l)}).observe(document,{childList:!0,subtree:!0});function e(n){const s={};return n.integrity&&(s.integrity=n.integrity),n.referrerPolicy&&(s.referrerPolicy=n.referrerPolicy),n.crossOrigin==="use-credentials"?s.credentials="include":n.crossOrigin==="anonymous"?s.credentials="omit":s.credentials="same-origin",s}function i(n){if(n.ep)return;n.ep=!0;const s=e(n);fetch(n.href,s)}})();const Ia="https://wawamhpdthlttfttwjyc.supabase.co",Ba="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indhd2FtaHBkdGhsdHRmdHR3anljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk2MjE4MzYsImV4cCI6MjEwNTE5NzgzNn0.zx35_sMK7z4CSw6b9OXzkFwpp3AsnVO1hOjQa42lAtg",Pa=!0,g=ja(Ia,Ba,{auth:{persistSession:!0,autoRefreshToken:!0}}),j=[{id:"admin-prod",nama:"Administrator QIA",email:"portalqia@gmail.com",role:"admin",jenis_mentor:null,no_hp:"",status:"aktif"}],E=[],I=[],D=[],M=[],q=[];function u(a,t){try{const e=localStorage.getItem("qia_mock_"+a);if(e)return JSON.parse(e)}catch{}return t}function A(a,t){try{localStorage.setItem("qia_mock_"+a,JSON.stringify(t))}catch{}}const L={async login(a,t){const{data:e,error:i}=await g.auth.signInWithPassword({email:a,password:t});if(i)throw i;return e},async logout(){localStorage.removeItem("qia_demo_session");try{await g.auth.signOut()}catch{}},async getSession(){try{const{data:{session:a}}=await g.auth.getSession();return a||null}catch{return null}},async getProfile(){var t;const a=await this.getSession();if(!((t=a==null?void 0:a.user)!=null&&t.id))return null;try{const{data:e,error:i}=await g.from("profiles").select("*").eq("id",a.user.id).single();if(!i&&e)return e}catch{}return null},onAuthStateChange(a){return g.auth.onAuthStateChange(a)}},h={async getDashboardStats(){try{const{data:o,error:d}=await g.rpc("get_admin_dashboard_stats");if(!d&&o)return{...o,total_santri_aktif:o.total_peserta,total_santri_bimbel:o.total_bimbel,total_santri_privat:o.total_privat,total_mentor_aktif:o.total_mentor,total_kelas_aktif:o.total_kelas}}catch{}const a=await this.getPesertaDidik(),t=await this.getMentors(),e=await this.getKelas(),i=a.filter(o=>o.status==="aktif").length,n=a.filter(o=>o.jenis==="bimbel"&&o.status==="aktif").length,s=a.filter(o=>o.jenis==="privat"&&o.status==="aktif").length,l=t.filter(o=>o.status==="aktif").length,r=e.filter(o=>o.status==="aktif").length;return{total_peserta:i,total_bimbel:n,total_privat:s,total_mentor:l,total_kelas:r,hadir_hari_ini:0,absensi_hari_ini:0,rata_nilai_bulan_ini:0,aktivitas_terbaru:[],total_santri_aktif:i,total_santri_bimbel:n,total_santri_privat:s,total_mentor_aktif:l,total_kelas_aktif:r,persentase_kehadiran_bulan_ini:100}},async getMentors(a={}){try{let e=g.from("profiles").select("*").eq("role","mentor").order("nama");a.status&&(e=e.eq("status",a.status)),a.jenis&&(e=e.eq("jenis_mentor",a.jenis));const{data:i,error:n}=await e;if(!n&&i)return i}catch{}const t=u("profiles",j).filter(e=>e.role==="mentor");return a.jenis?t.filter(e=>e.jenis_mentor===a.jenis||e.jenis_mentor==="keduanya"):t},async createMentor(a,t,e){try{const{data:s,error:l}=await g.auth.admin.createUser({email:a,password:t,email_confirm:!0,user_metadata:{nama:e.nama,role:"mentor"}});if(!l){const{data:r,error:o}=await g.from("profiles").update({...e,role:"mentor"}).eq("id",s.user.id).select().single();if(!o&&r)return r}}catch{}const i=u("profiles",j),n={id:"mentor-"+Date.now(),email:a,...e,role:"mentor",status:"aktif"};return i.push(n),A("profiles",i),n},async updateMentor(a,t){try{const{data:n,error:s}=await g.from("profiles").update(t).eq("id",a).select().single();if(!s&&n)return n}catch{}const e=u("profiles",j),i=e.findIndex(n=>n.id===a);return i!==-1?(e[i]={...e[i],...t},A("profiles",e),e[i]):null},async getKelas(a={}){try{let i=g.from("kelas").select("*, mentor:profiles(id, nama, email, jenis_mentor)").order("nama_kelas");a.status&&(i=i.eq("status",a.status)),a.id_mentor&&(i=i.eq("id_mentor",a.id_mentor));const{data:n,error:s}=await i;if(!s&&n)return n}catch{}const t=u("kelas",E),e=u("profiles",j);return t.map(i=>({...i,mentor:e.find(n=>n.id===i.id_mentor)||{nama:"Asatidz"}}))},async createKelas(a){try{const{data:i,error:n}=await g.from("kelas").insert(a).select().single();if(!n&&i)return i}catch{}const t=u("kelas",E),e={id:Date.now(),status:"aktif",...a};return t.push(e),A("kelas",t),e},async updateKelas(a,t){try{const{data:n,error:s}=await g.from("kelas").update(t).eq("id",a).select().single();if(!s&&n)return n}catch{}const e=u("kelas",E),i=e.findIndex(n=>n.id===a);return i!==-1?(e[i]={...e[i],...t},A("kelas",e),e[i]):null},async deleteKelas(a){try{await g.from("kelas").delete().eq("id",a)}catch{}const t=u("kelas",E).filter(e=>e.id!==a);A("kelas",t)},async getPesertaDidik(a={}){try{let n=g.from("peserta_didik").select("*, mentor:profiles(id, nama), kelas(id, nama_kelas)").order("nama_lengkap");a.jenis&&(n=n.eq("jenis",a.jenis)),a.id_kelas&&(n=n.eq("id_kelas",a.id_kelas)),a.id_mentor&&(n=n.eq("id_mentor",a.id_mentor)),a.status&&(n=n.eq("status",a.status));const{data:s,error:l}=await n;if(!l&&s)return s}catch{}const t=u("peserta",I),e=u("kelas",E),i=u("profiles",j);return t.map(n=>({...n,kelas:e.find(s=>s.id===n.id_kelas)||null,mentor:i.find(s=>s.id===n.id_mentor)||null}))},async createPeserta(a){try{const{data:i,error:n}=await g.from("peserta_didik").insert(a).select().single();if(!n&&i)return i}catch{}const t=u("peserta",I),e={id:Date.now(),tanggal_daftar:new Date().toISOString().split("T")[0],status:"aktif",...a};return t.push(e),A("peserta",t),e},async updatePeserta(a,t){try{const{data:n,error:s}=await g.from("peserta_didik").update(t).eq("id",a).select().single();if(!s&&n)return n}catch{}const e=u("peserta",I),i=e.findIndex(n=>n.id===a);return i!==-1?(e[i]={...e[i],...t},A("peserta",e),e[i]):null},async bulkUpdatePeserta(a){try{await g.from("peserta_didik").upsert(a);return}catch{}const t=u("peserta",I);a.forEach(e=>{const i=t.findIndex(n=>n.id===e.id);i!==-1?t[i]={...t[i],...e}:t.push(e)}),A("peserta",t)},async exportAllData(a,t="*"){try{const{data:e,error:i}=await g.from(a).select(t).order("id");if(!i&&e)return e}catch{}return a==="peserta_didik"?u("peserta",I):a==="profiles"?u("profiles",j):a==="kelas"?u("kelas",E):a==="kehadiran"?u("kehadiran",q):a==="kemajuan"?u("kemajuan",D):a==="penilaian"?u("penilaian",M):[]},async exportAllTables(){try{const[a,t,e,i,n,s]=await Promise.all([g.from("peserta_didik").select("*, kelas(nama_kelas), mentor:profiles(nama)"),g.from("profiles").select("*").eq("role","mentor"),g.from("kelas").select("*, mentor:profiles(nama)"),g.from("kehadiran").select("*, peserta:peserta_didik(nama_lengkap), kelas(nama_kelas)"),g.from("kemajuan").select("*, peserta:peserta_didik(nama_lengkap)"),g.from("penilaian").select("*, peserta:peserta_didik(nama_lengkap)")]);if(a.data)return{peserta:a.data,mentor:t.data,kelas:e.data,kehadiran:i.data,kemajuan:n.data,penilaian:s.data}}catch{}return{peserta:u("peserta",I),mentor:u("profiles",j).filter(a=>a.role==="mentor"),kelas:u("kelas",E),kehadiran:u("kehadiran",q),kemajuan:u("kemajuan",D),penilaian:u("penilaian",M)}},async logActivity(a,t,e,i={}){try{const{data:{user:n}}=await g.auth.getUser();await g.from("activity_logs").insert({id_user:n==null?void 0:n.id,action:a,entity_type:t,entity_id:String(e),detail:i})}catch{}}},_={async getMyKelas(a){try{const{data:e,error:i}=await g.from("kelas").select("*").eq("id_mentor",a).eq("status","aktif").order("nama_kelas");if(!i&&e)return e}catch{}return u("kelas",E).filter(e=>e.id_mentor===a||!a)},async getMyPeserta(a,t=null){try{let n=g.from("peserta_didik").select("*, kelas(id, nama_kelas)").eq("id_mentor",a).eq("status","aktif").order("nama_lengkap");t&&(n=n.eq("id_kelas",t));const{data:s,error:l}=await n;if(!l&&s)return s}catch{}const e=u("peserta",I),i=u("kelas",E);return e.filter(n=>(!a||n.id_mentor===a)&&(!t||n.id_kelas===t)).map(n=>({...n,kelas:i.find(s=>s.id===n.id_kelas)}))},async bulkSimpanAbsensi(a){try{const{data:e,error:i}=await g.rpc("bulk_upsert_kehadiran",{p_records:a});if(!i)return e}catch{}const t=u("kehadiran",q);return a.forEach(e=>{t.unshift({id:Date.now()+Math.random(),...e})}),A("kehadiran",t),{success:!0,count:a.length}},async getRiwayatKehadiran(a,t=30){try{const{data:i,error:n}=await g.from("kehadiran").select("*").eq("id_peserta",a).order("tanggal",{ascending:!1}).limit(t);if(!n&&i)return i}catch{}return u("kehadiran",q).filter(i=>i.id_peserta===Number(a)).slice(0,t)},async getKemajuan(a,t=20){try{const{data:i,error:n}=await g.from("kemajuan").select("*").eq("id_peserta",a).order("tanggal",{ascending:!1}).limit(t);if(!n&&i)return i}catch{}return u("kemajuan",D).filter(i=>i.id_peserta===Number(a)).slice(0,t)},async addKemajuan(a){try{const{data:i,error:n}=await g.from("kemajuan").insert(a).select().single();if(!n&&i)return i}catch{}const t=u("kemajuan",D),e={id:Date.now(),...a};return t.unshift(e),A("kemajuan",t),e},async getPenilaian(a,t=20){try{const{data:i,error:n}=await g.from("penilaian").select("*").eq("id_peserta",a).order("tanggal",{ascending:!1}).limit(t);if(!n&&i)return i}catch{}return u("penilaian",M).filter(i=>i.id_peserta===Number(a)).slice(0,t)},async addPenilaian(a){try{const{data:i,error:n}=await g.from("penilaian").insert(a).select().single();if(!n&&i)return i}catch{}const t=u("penilaian",M),e={id:Date.now(),...a};return t.unshift(e),A("penilaian",t),e},async getCatatan(a){return[]},async addCatatan(a){return{id:Date.now(),...a}},async getPelajaranTambahan(a){return[]},async addPelajaranTambahan(a){return{id:Date.now(),...a}},async updatePassword(a){{const{error:t}=await g.auth.updateUser({password:a});if(t)throw t}},async getChartData(a){const t=await this.getKemajuan(a,30),e=await this.getPenilaian(a,30),i=await this.getRiwayatKehadiran(a,60);return{kemajuan:t,penilaian:e,kehadiran:i}}},C={async searchPeserta(a){const t=(a||"").trim().toLowerCase();if(!t)return[];try{const{data:s,error:l}=await g.rpc("search_peserta_wali_by_name",{p_nama:t});if(!l&&s)return s}catch{}const e=u("peserta",I),i=u("kelas",E),n=u("profiles",j);return e.filter(s=>s.nama_lengkap.toLowerCase().includes(t)).map(s=>{const l=i.find(o=>o.id===s.id_kelas),r=n.find(o=>o.id===s.id_mentor);return{id:s.id,nama_lengkap:s.nama_lengkap,jenis:s.jenis,nama_kelas:(l==null?void 0:l.nama_kelas)||(s.jenis==="privat"?"Program Privat":"-"),nama_mentor:(r==null?void 0:r.nama)||"Asatidz QIA"}})},async getPesertaDetail(a){const t=Number(a);try{const{data:p,error:w}=await g.rpc("get_peserta_detail_wali",{p_peserta_id:t});if(!w&&p&&p.peserta)return p}catch{}const i=u("peserta",I).find(p=>p.id===t);if(!i)return null;const n=u("kelas",E),s=u("profiles",j),l=n.find(p=>p.id===(i==null?void 0:i.id_kelas)),r=s.find(p=>p.id===(i==null?void 0:i.id_mentor)),o=u("kemajuan",D).filter(p=>p.id_peserta===t),d=u("kehadiran",q).filter(p=>p.id_peserta===t),c=u("penilaian",M).filter(p=>p.id_peserta===t),f=d.filter(p=>p.status_hadir==="hadir").length,y=d.filter(p=>p.status_hadir==="izin").length,b=d.filter(p=>p.status_hadir==="sakit").length,k=d.filter(p=>p.status_hadir==="alpa").length;return{peserta:i,mentor:r||{nama:"Belum ditentukan"},kelas:l||{nama_kelas:i.jenis==="privat"?"Program Privat":"-"},kemajuan:o,penilaian:c,kehadiran_summary:{hadir:f,izin:y,sakit:b,alpa:k,total:d.length},riwayat_kehadiran:d,catatan_mentor:[]}},async getChartDataPeserta(a){const t=Number(a);{try{const{data:s,error:l}=await g.rpc("get_peserta_charts_wali",{p_peserta_id:t});if(!l&&s)return s}catch{}try{const[s,l,r]=await Promise.all([g.from("penilaian").select("tanggal, nilai_angka").eq("id_peserta",t).order("tanggal").limit(20),g.from("kehadiran").select("tanggal, status_hadir, materi_pembahasan").eq("id_peserta",t).order("tanggal").limit(60),g.from("kemajuan").select("tanggal, kitab_surat, halaman_ayat").eq("id_peserta",t).order("tanggal").limit(20)]);if(s.data)return{penilaian:s.data,kehadiran:l.data,kemajuan:r.data}}catch{}}const e=u("penilaian",M).filter(s=>s.id_peserta===t),i=u("kehadiran",q).filter(s=>s.id_peserta===t),n=u("kemajuan",D).filter(s=>s.id_peserta===t);return{penilaian:e,kehadiran:i,kemajuan:n}}},La=Object.freeze(Object.defineProperty({__proto__:null,adminService:h,authService:L,isConfigured:Pa,mentorService:_,supabase:g,waliService:C},Symbol.toStringTag,{value:"Module"}));function ma(a,t,e){document.title="Quran Insight Academy — Bimbingan Al-Quran Terpercaya",a.innerHTML=`
+import{c as ja}from"./vendor-Dx0atVpp.js";import{u as D,w as ma}from"./xlsx-DrgRuPKf.js";(function(){const t=document.createElement("link").relList;if(t&&t.supports&&t.supports("modulepreload"))return;for(const n of document.querySelectorAll('link[rel="modulepreload"]'))i(n);new MutationObserver(n=>{for(const s of n)if(s.type==="childList")for(const l of s.addedNodes)l.tagName==="LINK"&&l.rel==="modulepreload"&&i(l)}).observe(document,{childList:!0,subtree:!0});function e(n){const s={};return n.integrity&&(s.integrity=n.integrity),n.referrerPolicy&&(s.referrerPolicy=n.referrerPolicy),n.crossOrigin==="use-credentials"?s.credentials="include":n.crossOrigin==="anonymous"?s.credentials="omit":s.credentials="same-origin",s}function i(n){if(n.ep)return;n.ep=!0;const s=e(n);fetch(n.href,s)}})();const Ba="https://wawamhpdthlttfttwjyc.supabase.co",Sa="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indhd2FtaHBkdGhsdHRmdHR3anljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk2MjE4MzYsImV4cCI6MjEwNTE5NzgzNn0.zx35_sMK7z4CSw6b9OXzkFwpp3AsnVO1hOjQa42lAtg",Pa=!0,u=ja(Ba,Sa,{auth:{persistSession:!0,autoRefreshToken:!0}}),L=[{id:"admin-prod",nama:"Administrator QIA",email:"portalqia@gmail.com",role:"admin",jenis_mentor:null,no_hp:"",status:"aktif"}],I=[],M=[],C=[],K=[],H=[];function b(a,t){try{const e=localStorage.getItem("qia_mock_"+a);if(e)return JSON.parse(e)}catch{}return t}const S={async login(a,t){const{data:e,error:i}=await u.auth.signInWithPassword({email:a,password:t});if(i)throw i;return e},async logout(){localStorage.removeItem("qia_demo_session");try{await u.auth.signOut()}catch{}},async getSession(){try{const{data:{session:a}}=await u.auth.getSession();return a||null}catch{return null}},async getProfile(){var t;const a=await this.getSession();if(!((t=a==null?void 0:a.user)!=null&&t.id))return null;try{const{data:e,error:i}=await u.from("profiles").select("*").eq("id",a.user.id).single();if(!i&&e)return e}catch{}return null},onAuthStateChange(a){return u.auth.onAuthStateChange(a)}},h={async getDashboardStats(){try{const{data:o,error:d}=await u.rpc("get_admin_dashboard_stats");if(!d&&o)return{...o,total_santri_aktif:o.total_peserta,total_santri_bimbel:o.total_bimbel,total_santri_privat:o.total_privat,total_mentor_aktif:o.total_mentor,total_kelas_aktif:o.total_kelas}}catch{}const a=await this.getPesertaDidik(),t=await this.getMentors(),e=await this.getKelas(),i=a.filter(o=>o.status==="aktif").length,n=a.filter(o=>o.jenis==="bimbel"&&o.status==="aktif").length,s=a.filter(o=>o.jenis==="privat"&&o.status==="aktif").length,l=t.filter(o=>o.status==="aktif").length,r=e.filter(o=>o.status==="aktif").length;return{total_peserta:i,total_bimbel:n,total_privat:s,total_mentor:l,total_kelas:r,hadir_hari_ini:0,absensi_hari_ini:0,rata_nilai_bulan_ini:0,aktivitas_terbaru:[],total_santri_aktif:i,total_santri_bimbel:n,total_santri_privat:s,total_mentor_aktif:l,total_kelas_aktif:r,persentase_kehadiran_bulan_ini:100}},async getMentors(a={}){try{let e=u.from("profiles").select("*").eq("role","mentor").order("nama");a.status&&(e=e.eq("status",a.status)),a.jenis&&(e=e.eq("jenis_mentor",a.jenis));const{data:i,error:n}=await e;if(!n&&i)return i}catch{}const t=b("profiles",L).filter(e=>e.role==="mentor");return a.jenis?t.filter(e=>e.jenis_mentor===a.jenis||e.jenis_mentor==="keduanya"):t},async createMentor(a,t,e){const{data:i,error:n}=await u.auth.signUp({email:a,password:t,options:{data:{nama:e.nama,role:"mentor"}}});if(n)throw new Error("Gagal membuat akun: "+n.message);if(!(i!=null&&i.user))throw new Error("Gagal membuat akun mentor.");const s=i.user.id,{data:l,error:r}=await u.from("profiles").upsert({id:s,email:a,...e,role:"mentor",status:"aktif"}).select().single();if(r)throw new Error("Gagal menyimpan profil mentor: "+r.message);return l},async updateMentor(a,t){const{data:e,error:i}=await u.from("profiles").update(t).eq("id",a).select().single();if(i)throw new Error("Gagal update mentor: "+i.message);return e},async getKelas(a={}){try{let i=u.from("kelas").select("*, mentor:profiles(id, nama, email, jenis_mentor)").order("nama_kelas");a.status&&(i=i.eq("status",a.status)),a.id_mentor&&(i=i.eq("id_mentor",a.id_mentor));const{data:n,error:s}=await i;if(!s&&n)return n}catch{}const t=b("kelas",I),e=b("profiles",L);return t.map(i=>({...i,mentor:e.find(n=>n.id===i.id_mentor)||{nama:"Asatidz"}}))},async createKelas(a){const{data:t,error:e}=await u.from("kelas").insert(a).select().single();if(e)throw new Error("Gagal membuat kelas: "+e.message);return t},async updateKelas(a,t){const{data:e,error:i}=await u.from("kelas").update(t).eq("id",a).select().single();if(i)throw new Error("Gagal update kelas: "+i.message);return e},async deleteKelas(a){const{error:t}=await u.from("kelas").delete().eq("id",a);if(t)throw new Error("Gagal hapus kelas: "+t.message)},async getPesertaDidik(a={}){try{let n=u.from("peserta_didik").select("*, mentor:profiles(id, nama), kelas(id, nama_kelas)").order("nama_lengkap");a.jenis&&(n=n.eq("jenis",a.jenis)),a.id_kelas&&(n=n.eq("id_kelas",a.id_kelas)),a.id_mentor&&(n=n.eq("id_mentor",a.id_mentor)),a.status&&(n=n.eq("status",a.status));const{data:s,error:l}=await n;if(!l&&s)return s}catch{}const t=b("peserta",M),e=b("kelas",I),i=b("profiles",L);return t.map(n=>({...n,kelas:e.find(s=>s.id===n.id_kelas)||null,mentor:i.find(s=>s.id===n.id_mentor)||null}))},async createPeserta(a){const{data:t,error:e}=await u.from("peserta_didik").insert(a).select().single();if(e)throw new Error("Gagal mendaftarkan peserta: "+e.message);return t},async updatePeserta(a,t){const{data:e,error:i}=await u.from("peserta_didik").update(t).eq("id",a).select().single();if(i)throw new Error("Gagal update peserta: "+i.message);return e},async bulkUpdatePeserta(a){const{error:t}=await u.from("peserta_didik").upsert(a);if(t)throw new Error("Gagal simpan massal: "+t.message)},async exportAllData(a,t="*"){try{const{data:e,error:i}=await u.from(a).select(t).order("id");if(!i&&e)return e}catch{}return a==="peserta_didik"?b("peserta",M):a==="profiles"?b("profiles",L):a==="kelas"?b("kelas",I):a==="kehadiran"?b("kehadiran",H):a==="kemajuan"?b("kemajuan",C):a==="penilaian"?b("penilaian",K):[]},async exportAllTables(){try{const[a,t,e,i,n,s]=await Promise.all([u.from("peserta_didik").select("*, kelas(nama_kelas), mentor:profiles(nama)"),u.from("profiles").select("*").eq("role","mentor"),u.from("kelas").select("*, mentor:profiles(nama)"),u.from("kehadiran").select("*, peserta:peserta_didik(nama_lengkap), kelas(nama_kelas)"),u.from("kemajuan").select("*, peserta:peserta_didik(nama_lengkap)"),u.from("penilaian").select("*, peserta:peserta_didik(nama_lengkap)")]);if(a.data)return{peserta:a.data,mentor:t.data,kelas:e.data,kehadiran:i.data,kemajuan:n.data,penilaian:s.data}}catch{}return{peserta:b("peserta",M),mentor:b("profiles",L).filter(a=>a.role==="mentor"),kelas:b("kelas",I),kehadiran:b("kehadiran",H),kemajuan:b("kemajuan",C),penilaian:b("penilaian",K)}},async logActivity(a,t,e,i={}){try{const{data:{user:n}}=await u.auth.getUser();await u.from("activity_logs").insert({id_user:n==null?void 0:n.id,action:a,entity_type:t,entity_id:String(e),detail:i})}catch{}}},_={async getMyKelas(a){try{const{data:e,error:i}=await u.from("kelas").select("*").eq("id_mentor",a).eq("status","aktif").order("nama_kelas");if(!i&&e)return e}catch{}return b("kelas",I).filter(e=>e.id_mentor===a||!a)},async getMyPeserta(a,t=null){try{let n=u.from("peserta_didik").select("*, kelas(id, nama_kelas)").eq("id_mentor",a).eq("status","aktif").order("nama_lengkap");t&&(n=n.eq("id_kelas",t));const{data:s,error:l}=await n;if(!l&&s)return s}catch{}const e=b("peserta",M),i=b("kelas",I);return e.filter(n=>(!a||n.id_mentor===a)&&(!t||n.id_kelas===t)).map(n=>({...n,kelas:i.find(s=>s.id===n.id_kelas)}))},async bulkSimpanAbsensi(a){{try{const{data:e,error:i}=await u.rpc("bulk_upsert_kehadiran",{p_records:a});if(!i)return e}catch{}const{error:t}=await u.from("kehadiran").upsert(a.map(e=>({...e})),{onConflict:"id_peserta,id_kelas,tanggal"});if(t)throw new Error("Gagal simpan absensi: "+t.message);return{success:!0,count:a.length}}},async addKehadiran(a){return this.bulkSimpanAbsensi([a])},async getRiwayatKehadiran(a,t=30){try{const{data:i,error:n}=await u.from("kehadiran").select("*").eq("id_peserta",a).order("tanggal",{ascending:!1}).limit(t);if(!n&&i)return i}catch{}return b("kehadiran",H).filter(i=>i.id_peserta===Number(a)).slice(0,t)},async getKemajuan(a,t=20){try{const{data:i,error:n}=await u.from("kemajuan").select("*").eq("id_peserta",a).order("tanggal",{ascending:!1}).limit(t);if(!n&&i)return i}catch{}return b("kemajuan",C).filter(i=>i.id_peserta===Number(a)).slice(0,t)},async addKemajuan(a){const{data:t,error:e}=await u.from("kemajuan").insert(a).select().single();if(e)throw new Error("Gagal simpan kemajuan: "+e.message);return t},async getPenilaian(a,t=20){try{const{data:i,error:n}=await u.from("penilaian").select("*").eq("id_peserta",a).order("tanggal",{ascending:!1}).limit(t);if(!n&&i)return i}catch{}return b("penilaian",K).filter(i=>i.id_peserta===Number(a)).slice(0,t)},async addPenilaian(a){const{data:t,error:e}=await u.from("penilaian").insert(a).select().single();if(e)throw new Error("Gagal simpan penilaian: "+e.message);return t},async getCatatan(a){return[]},async addCatatan(a){return{id:Date.now(),...a}},async getPelajaranTambahan(a){return[]},async addPelajaranTambahan(a){return{id:Date.now(),...a}},async updatePassword(a){{const{error:t}=await u.auth.updateUser({password:a});if(t)throw t}},async getChartData(a){const t=await this.getKemajuan(a,30),e=await this.getPenilaian(a,30),i=await this.getRiwayatKehadiran(a,60);return{kemajuan:t,penilaian:e,kehadiran:i}}},F={async searchPeserta(a){const t=(a||"").trim().toLowerCase();if(!t)return[];try{const{data:s,error:l}=await u.rpc("search_peserta_wali_by_name",{p_nama:t});if(!l&&s)return s}catch{}const e=b("peserta",M),i=b("kelas",I),n=b("profiles",L);return e.filter(s=>s.nama_lengkap.toLowerCase().includes(t)).map(s=>{const l=i.find(o=>o.id===s.id_kelas),r=n.find(o=>o.id===s.id_mentor);return{id:s.id,nama_lengkap:s.nama_lengkap,jenis:s.jenis,nama_kelas:(l==null?void 0:l.nama_kelas)||(s.jenis==="privat"?"Program Privat":"-"),nama_mentor:(r==null?void 0:r.nama)||"Asatidz QIA"}})},async getPesertaDetail(a){const t=Number(a);try{const{data:p,error:w}=await u.rpc("get_peserta_detail_wali",{p_peserta_id:t});if(!w&&p&&p.peserta)return p}catch{}const i=b("peserta",M).find(p=>p.id===t);if(!i)return null;const n=b("kelas",I),s=b("profiles",L),l=n.find(p=>p.id===(i==null?void 0:i.id_kelas)),r=s.find(p=>p.id===(i==null?void 0:i.id_mentor)),o=b("kemajuan",C).filter(p=>p.id_peserta===t),d=b("kehadiran",H).filter(p=>p.id_peserta===t),c=b("penilaian",K).filter(p=>p.id_peserta===t),g=d.filter(p=>p.status_hadir==="hadir").length,v=d.filter(p=>p.status_hadir==="izin").length,f=d.filter(p=>p.status_hadir==="sakit").length,x=d.filter(p=>p.status_hadir==="alpa").length;return{peserta:i,mentor:r||{nama:"Belum ditentukan"},kelas:l||{nama_kelas:i.jenis==="privat"?"Program Privat":"-"},kemajuan:o,penilaian:c,kehadiran_summary:{hadir:g,izin:v,sakit:f,alpa:x,total:d.length},riwayat_kehadiran:d,catatan_mentor:[]}},async getChartDataPeserta(a){const t=Number(a);{try{const{data:s,error:l}=await u.rpc("get_peserta_charts_wali",{p_peserta_id:t});if(!l&&s)return s}catch{}try{const[s,l,r]=await Promise.all([u.from("penilaian").select("tanggal, nilai_angka").eq("id_peserta",t).order("tanggal").limit(20),u.from("kehadiran").select("tanggal, status_hadir, materi_pembahasan").eq("id_peserta",t).order("tanggal").limit(60),u.from("kemajuan").select("tanggal, kitab_surat, halaman_ayat").eq("id_peserta",t).order("tanggal").limit(20)]);if(s.data)return{penilaian:s.data,kehadiran:l.data,kemajuan:r.data}}catch{}}const e=b("penilaian",K).filter(s=>s.id_peserta===t),i=b("kehadiran",H).filter(s=>s.id_peserta===t),n=b("kemajuan",C).filter(s=>s.id_peserta===t);return{penilaian:e,kehadiran:i,kemajuan:n}}},La=Object.freeze(Object.defineProperty({__proto__:null,adminService:h,authService:S,isConfigured:Pa,mentorService:_,supabase:u,waliService:F},Symbol.toStringTag,{value:"Module"}));function ua(a,t,e){document.title="Quran Insight Academy — Bimbingan Al-Quran Terpercaya",a.innerHTML=`
 <div class="qia-landing" id="landing-root">
 
   <!-- ── NAVBAR ── -->
@@ -307,9 +307,9 @@ import{c as ja}from"./vendor-Dx0atVpp.js";import{u as z,w as pa}from"./xlsx-DrgR
   </footer>
 
 </div>
-`,window.navigateTo=l=>t(l),window.navigate=l=>t(l);const i=document.getElementById("qiaMobileToggle"),n=document.getElementById("qiaNavLinks");i&&n&&i.addEventListener("click",()=>{n.classList.toggle("is-open")}),document.querySelectorAll(".qia-faq-btn").forEach(l=>{l.addEventListener("click",function(){const r=this.parentElement,o=r.classList.contains("is-active");document.querySelectorAll(".qia-faq-item").forEach(d=>d.classList.remove("is-active")),o||r.classList.add("is-active")})}),document.querySelectorAll('a[href^="#"]').forEach(l=>{l.addEventListener("click",r=>{r.preventDefault(),n&&n.classList.remove("is-open");const o=l.getAttribute("href"),d=document.querySelector(o);d&&d.scrollIntoView({behavior:"smooth"})})})}const Sa="modulepreload",za=function(a){return"/"+a},ea={},Da=function(t,e,i){let n=Promise.resolve();if(e&&e.length>0){document.getElementsByTagName("link");const l=document.querySelector("meta[property=csp-nonce]"),r=(l==null?void 0:l.nonce)||(l==null?void 0:l.getAttribute("nonce"));n=Promise.allSettled(e.map(o=>{if(o=za(o),o in ea)return;ea[o]=!0;const d=o.endsWith(".css"),c=d?'[rel="stylesheet"]':"";if(document.querySelector(`link[href="${o}"]${c}`))return;const f=document.createElement("link");if(f.rel=d?"stylesheet":Sa,d||(f.as="script"),f.crossOrigin="",f.href=o,r&&f.setAttribute("nonce",r),document.head.appendChild(f),d)return new Promise((y,b)=>{f.addEventListener("load",y),f.addEventListener("error",()=>b(new Error(`Unable to preload CSS for ${o}`)))})}))}function s(l){const r=new Event("vite:preloadError",{cancelable:!0});if(r.payload=l,window.dispatchEvent(r),!r.defaultPrevented)throw l}return n.then(l=>{for(const r of l||[])r.status==="rejected"&&s(r.reason);return t().catch(s)})};function W(a,t=""){const e={};for(const[i,n]of Object.entries(a)){const s=t?`${t}_${i}`:i;n&&typeof n=="object"&&!Array.isArray(n)&&!(n instanceof Date)?Object.assign(e,W(n,s)):Array.isArray(n)||(e[s]=n)}return e}function ua(a,t="export"){if(!a||!a.length){alert("Tidak ada data untuk diekspor.");return}const e=a.map(l=>W(l)),i=[...new Set(e.flatMap(Object.keys))],n=[i.join(","),...e.map(l=>i.map(r=>{const o=l[r]??"",d=String(o).replace(/"/g,'""');return d.includes(",")||d.includes('"')||d.includes(`
+`,window.navigateTo=l=>t(l),window.navigate=l=>t(l);const i=document.getElementById("qiaMobileToggle"),n=document.getElementById("qiaNavLinks");i&&n&&i.addEventListener("click",()=>{n.classList.toggle("is-open")}),document.querySelectorAll(".qia-faq-btn").forEach(l=>{l.addEventListener("click",function(){const r=this.parentElement,o=r.classList.contains("is-active");document.querySelectorAll(".qia-faq-item").forEach(d=>d.classList.remove("is-active")),o||r.classList.add("is-active")})}),document.querySelectorAll('a[href^="#"]').forEach(l=>{l.addEventListener("click",r=>{r.preventDefault(),n&&n.classList.remove("is-open");const o=l.getAttribute("href"),d=document.querySelector(o);d&&d.scrollIntoView({behavior:"smooth"})})})}const za="modulepreload",Da=function(a){return"/"+a},ea={},Ma=function(t,e,i){let n=Promise.resolve();if(e&&e.length>0){document.getElementsByTagName("link");const l=document.querySelector("meta[property=csp-nonce]"),r=(l==null?void 0:l.nonce)||(l==null?void 0:l.getAttribute("nonce"));n=Promise.allSettled(e.map(o=>{if(o=Da(o),o in ea)return;ea[o]=!0;const d=o.endsWith(".css"),c=d?'[rel="stylesheet"]':"";if(document.querySelector(`link[href="${o}"]${c}`))return;const g=document.createElement("link");if(g.rel=d?"stylesheet":za,d||(g.as="script"),g.crossOrigin="",g.href=o,r&&g.setAttribute("nonce",r),document.head.appendChild(g),d)return new Promise((v,f)=>{g.addEventListener("load",v),g.addEventListener("error",()=>f(new Error(`Unable to preload CSS for ${o}`)))})}))}function s(l){const r=new Event("vite:preloadError",{cancelable:!0});if(r.payload=l,window.dispatchEvent(r),!r.defaultPrevented)throw l}return n.then(l=>{for(const r of l||[])r.status==="rejected"&&s(r.reason);return t().catch(s)})};function G(a,t=""){const e={};for(const[i,n]of Object.entries(a)){const s=t?`${t}_${i}`:i;n&&typeof n=="object"&&!Array.isArray(n)&&!(n instanceof Date)?Object.assign(e,G(n,s)):Array.isArray(n)||(e[s]=n)}return e}function ga(a,t="export"){if(!a||!a.length){alert("Tidak ada data untuk diekspor.");return}const e=a.map(l=>G(l)),i=[...new Set(e.flatMap(Object.keys))],n=[i.join(","),...e.map(l=>i.map(r=>{const o=l[r]??"",d=String(o).replace(/"/g,'""');return d.includes(",")||d.includes('"')||d.includes(`
 `)?`"${d}"`:d}).join(","))],s=new Blob(["\uFEFF"+n.join(`
-`)],{type:"text/csv;charset=utf-8;"});ba(s,`${t}.csv`)}function ga(a,t="export",e="Data"){if(!a||!a.length){alert("Tidak ada data untuk diekspor.");return}const i=a.map(r=>W(r)),n=z.json_to_sheet(i),s=z.book_new();z.book_append_sheet(s,n,e);const l=Object.keys(i[0]||{}).map(r=>({wch:Math.max(r.length,...i.map(o=>String(o[r]??"").length))}));n["!cols"]=l,pa(s,`${t}.xlsx`)}function fa(a,t="QIA_DataLengkap"){const e=z.book_new();for(const[i,n]of Object.entries(a)){if(!n||!n.length)continue;const s=n.map(o=>W(o)),l=z.json_to_sheet(s),r=Object.keys(s[0]||{}).map(o=>({wch:Math.max(o.length,...s.map(d=>String(d[o]??"").length))}));l["!cols"]=r,z.book_append_sheet(e,l,i.substring(0,31))}pa(e,`${t}.xlsx`)}function Ma(a,t="export"){if(!a||!a.length){alert("Tidak ada data untuk diekspor.");return}const e=new Blob([JSON.stringify(a,null,2)],{type:"application/json"});ba(e,`${t}.json`)}function qa(a){var K;const{peserta:t,mentor:e,kelas:i,kemajuan:n,penilaian:s,kehadiran_summary:l,riwayat_kehadiran:r,catatan_mentor:o}=a,d=l||{},c=(s||[]).slice(0,10),f=(n||[]).slice(0,10),y=(d.hadir||0)+(d.izin||0)+(d.sakit||0)+(d.alpa||0),b=y>0?Math.round(d.hadir/y*100):0,k=c.length>0?(c.reduce((x,$a)=>x+($a.nilai_angka||0),0)/c.length).toFixed(1):"-",p=`<!DOCTYPE html>
+`)],{type:"text/csv;charset=utf-8;"});va(s,`${t}.csv`)}function fa(a,t="export",e="Data"){if(!a||!a.length){alert("Tidak ada data untuk diekspor.");return}const i=a.map(r=>G(r)),n=D.json_to_sheet(i),s=D.book_new();D.book_append_sheet(s,n,e);const l=Object.keys(i[0]||{}).map(r=>({wch:Math.max(r.length,...i.map(o=>String(o[r]??"").length))}));n["!cols"]=l,ma(s,`${t}.xlsx`)}function ba(a,t="QIA_DataLengkap"){const e=D.book_new();for(const[i,n]of Object.entries(a)){if(!n||!n.length)continue;const s=n.map(o=>G(o)),l=D.json_to_sheet(s),r=Object.keys(s[0]||{}).map(o=>({wch:Math.max(o.length,...s.map(d=>String(d[o]??"").length))}));l["!cols"]=r,D.book_append_sheet(e,l,i.substring(0,31))}ma(e,`${t}.xlsx`)}function qa(a,t="export"){if(!a||!a.length){alert("Tidak ada data untuk diekspor.");return}const e=new Blob([JSON.stringify(a,null,2)],{type:"application/json"});va(e,`${t}.json`)}function Fa(a){var P;const{peserta:t,mentor:e,kelas:i,kemajuan:n,penilaian:s,kehadiran_summary:l,riwayat_kehadiran:r,catatan_mentor:o}=a,d=l||{},c=(s||[]).slice(0,10),g=(n||[]).slice(0,10),v=(d.hadir||0)+(d.izin||0)+(d.sakit||0)+(d.alpa||0),f=v>0?Math.round(d.hadir/v*100):0,x=c.length>0?(c.reduce((k,$)=>k+($.nilai_angka||0),0)/c.length).toFixed(1):"-",p=`<!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8">
@@ -342,7 +342,7 @@ import{c as ja}from"./vendor-Dx0atVpp.js";import{u as z,w as pa}from"./xlsx-DrgR
 <div class="header">
   <h1>📖 Quran Insight Academy</h1>
   <p>Laporan Perkembangan Peserta Didik</p>
-  <span class="badge">${((K=t==null?void 0:t.jenis)==null?void 0:K.toUpperCase())||"BIMBEL"}</span>
+  <span class="badge">${((P=t==null?void 0:t.jenis)==null?void 0:P.toUpperCase())||"BIMBEL"}</span>
 </div>
 
 <div class="info-grid">
@@ -360,7 +360,7 @@ import{c as ja}from"./vendor-Dx0atVpp.js";import{u as z,w as pa}from"./xlsx-DrgR
   </div>
   <div class="info-card">
     <h3>Rata-rata Nilai</h3>
-    <div class="val" style="color:#059669; font-size:20px;">${k}</div>
+    <div class="val" style="color:#059669; font-size:20px;">${x}</div>
   </div>
 </div>
 
@@ -370,33 +370,33 @@ import{c as ja}from"./vendor-Dx0atVpp.js";import{u as z,w as pa}from"./xlsx-DrgR
   <div class="stat-box"><div class="n">${d.izin||0}</div><div class="l">Izin</div></div>
   <div class="stat-box"><div class="n">${d.sakit||0}</div><div class="l">Sakit</div></div>
   <div class="stat-box"><div class="n">${d.alpa||0}</div><div class="l">Alpa</div></div>
-  <div class="stat-box" style="background:#059669;"><div class="n" style="color:#fff;">${b}%</div><div class="l">Kehadiran</div></div>
+  <div class="stat-box" style="background:#059669;"><div class="n" style="color:#fff;">${f}%</div><div class="l">Kehadiran</div></div>
 </div>
 
 <h2 class="section">Riwayat Kemajuan Hafalan</h2>
 <table>
   <tr><th>Tanggal</th><th>Kitab / Surah</th><th>Halaman / Ayat</th><th>Status</th></tr>
-  ${f.map(x=>`<tr><td>${x.tanggal||""}</td><td>${x.kitab_surat||""}</td><td>${x.halaman_ayat||""}</td><td>${x.status_kelancaran||""}</td></tr>`).join("")}
+  ${g.map(k=>`<tr><td>${k.tanggal||""}</td><td>${k.kitab_surat||""}</td><td>${k.halaman_ayat||""}</td><td>${k.status_kelancaran||""}</td></tr>`).join("")}
 </table>
 
 <h2 class="section">Riwayat Penilaian</h2>
 <table>
   <tr><th>Tanggal</th><th>Nilai</th><th>Adab</th><th>Tajwid</th><th>Kelancaran</th><th>Catatan</th></tr>
-  ${c.map(x=>`<tr><td>${x.tanggal||""}</td><td><b>${x.nilai_angka||"-"}</b></td><td>${x.nilai_adab||"-"}</td><td>${x.nilai_tajwid||"-"}</td><td>${x.nilai_kelancaran||"-"}</td><td>${x.catatan||""}</td></tr>`).join("")}
+  ${c.map(k=>`<tr><td>${k.tanggal||""}</td><td><b>${k.nilai_angka||"-"}</b></td><td>${k.nilai_adab||"-"}</td><td>${k.nilai_tajwid||"-"}</td><td>${k.nilai_kelancaran||"-"}</td><td>${k.catatan||""}</td></tr>`).join("")}
 </table>
 
 ${o!=null&&o.length?`
 <h2 class="section">Catatan Mentor</h2>
 <table>
   <tr><th>Tanggal</th><th>Catatan</th></tr>
-  ${(o||[]).slice(0,5).map(x=>`<tr><td>${x.tanggal||""}</td><td>${x.isi_catatan||""}</td></tr>`).join("")}
+  ${(o||[]).slice(0,5).map(k=>`<tr><td>${k.tanggal||""}</td><td>${k.isi_catatan||""}</td></tr>`).join("")}
 </table>`:""}
 
 <div class="footer">
   Dicetak: ${new Date().toLocaleDateString("id-ID",{weekday:"long",year:"numeric",month:"long",day:"numeric"})} — Quran Insight Academy
 </div>
 <script>window.onload = () => { window.print(); window.onafterprint = () => window.close(); }<\/script>
-</body></html>`,w=window.open("","_blank","width=800,height=900");w.document.write(p),w.document.close()}function ba(a,t){const e=URL.createObjectURL(a),i=document.createElement("a");i.href=e,i.download=t,document.body.appendChild(i),i.click(),document.body.removeChild(i),URL.revokeObjectURL(e)}let v={profile:null,stats:null,activeView:"dashboard",ssActiveTab:"peserta",ssData:{peserta:[],mentor:[],kelas:[],kehadiran:[],kemajuan:[],penilaian:[]},ssDirtyRows:new Set,ssNewRows:[],ssSortCol:null,ssSortDir:"asc",ssFilter:""};async function Fa(a,t,e){document.title="Portal Admin — Quran Insight Academy";try{if(v.profile=await L.getProfile(),!v.profile||v.profile.role!=="admin"){ta(a,t,e);return}}catch{ta(a,t,e);return}a.innerHTML=va(),ya(t,e),await X(e),G("dashboard",e)}function ta(a,t,e){a.innerHTML=`
+</body></html>`,w=window.open("","_blank","width=800,height=900");w.document.write(p),w.document.close()}function va(a,t){const e=URL.createObjectURL(a),i=document.createElement("a");i.href=e,i.download=t,document.body.appendChild(i),i.click(),document.body.removeChild(i),URL.revokeObjectURL(e)}let y={profile:null,stats:null,activeView:"dashboard",ssActiveTab:"peserta",ssData:{peserta:[],mentor:[],kelas:[],kehadiran:[],kemajuan:[],penilaian:[]},ssDirtyRows:new Set,ssNewRows:[],ssSortCol:null,ssSortDir:"asc",ssFilter:""};async function Ca(a,t,e){document.title="Portal Admin — Quran Insight Academy";try{if(y.profile=await S.getProfile(),!y.profile||y.profile.role!=="admin"){ta(a,t,e);return}}catch{ta(a,t,e);return}a.innerHTML=ya(),ha(t,e),await X(e),W("dashboard",e)}function ta(a,t,e){a.innerHTML=`
   <div class="login-page">
     <div class="login-card">
       <div class="login-logo">
@@ -425,7 +425,7 @@ ${o!=null&&o.length?`
         </button>
       </div>
     </div>
-  </div>`,document.getElementById("admin-login-form").addEventListener("submit",async n=>{n.preventDefault();const s=document.getElementById("admin-login-email").value,l=document.getElementById("admin-login-pwd").value,r=document.getElementById("btn-submit-login");r.disabled=!0,r.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Masuk…';try{const o=await L.login(s,l),d=o==null?void 0:o.user;if(!d)throw new Error("Login gagal, coba lagi.");v.profile={id:d.id,email:d.email,nama:"Administrator QIA",role:"admin",status:"aktif"};try{const{supabase:c}=await Da(async()=>{const{supabase:y}=await Promise.resolve().then(()=>La);return{supabase:y}},void 0),{data:f}=await c.from("profiles").select("*").eq("id",d.id).single();f&&(v.profile=f)}catch{}e("Berhasil masuk sebagai Admin!","success"),a.innerHTML=va(),ya(t,e),await X(e),G("dashboard",e)}catch(o){e("Gagal masuk: "+o.message,"error"),r.disabled=!1,r.innerHTML='<i class="fa-solid fa-right-to-bracket mr-1"></i> Masuk Admin'}})}function va(){return`
+  </div>`,document.getElementById("admin-login-form").addEventListener("submit",async n=>{n.preventDefault();const s=document.getElementById("admin-login-email").value,l=document.getElementById("admin-login-pwd").value,r=document.getElementById("btn-submit-login");r.disabled=!0,r.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Masuk…';try{const o=await S.login(s,l),d=o==null?void 0:o.user;if(!d)throw new Error("Login gagal, coba lagi.");y.profile={id:d.id,email:d.email,nama:"Administrator QIA",role:"admin",status:"aktif"};try{const{supabase:c}=await Ma(async()=>{const{supabase:v}=await Promise.resolve().then(()=>La);return{supabase:v}},void 0),{data:g}=await c.from("profiles").select("*").eq("id",d.id).single();g&&(y.profile=g)}catch{}e("Berhasil masuk sebagai Admin!","success"),a.innerHTML=ya(),ha(t,e),await X(e),W("dashboard",e)}catch(o){e("Gagal masuk: "+o.message,"error"),r.disabled=!1,r.innerHTML='<i class="fa-solid fa-right-to-bracket mr-1"></i> Masuk Admin'}})}function ya(){return`
 <div class="portal-layout">
   <button class="sidebar-toggle" id="sidebar-toggle"><i class="fa-solid fa-bars"></i></button>
   <div class="sidebar-overlay" id="sidebar-overlay"></div>
@@ -486,7 +486,7 @@ ${o!=null&&o.length?`
     <div id="admin-modal-body"></div>
     <div class="modal-footer" id="admin-modal-footer"></div>
   </div>
-</div>`}function ya(a,t){document.getElementById("sidebar-toggle").addEventListener("click",()=>{document.getElementById("sidebar").classList.toggle("open"),document.getElementById("sidebar-overlay").classList.toggle("show")}),document.getElementById("sidebar-overlay").addEventListener("click",()=>{document.getElementById("sidebar").classList.remove("open"),document.getElementById("sidebar-overlay").classList.remove("show")}),document.querySelectorAll(".nav-item[data-view]").forEach(e=>{e.addEventListener("click",()=>G(e.dataset.view,t))}),document.getElementById("btn-logout").addEventListener("click",async()=>{await L.logout(),a("/")}),document.getElementById("admin-modal-close").addEventListener("click",$),document.getElementById("admin-modal").addEventListener("click",function(e){e.target===this&&$()})}function Ca(a){var t;document.querySelectorAll(".nav-item[data-view]").forEach(e=>e.classList.remove("active")),(t=document.getElementById("nav-"+a))==null||t.classList.add("active")}function G(a,t){v.activeView=a,Ca(a);const e=document.getElementById("main-content");switch(document.getElementById("sidebar").classList.remove("open"),document.getElementById("sidebar-overlay").classList.remove("show"),a){case"dashboard":U(e),X(t).then(()=>{v.activeView==="dashboard"&&U(e)});break;case"mentor":T(e,t);break;case"kelas":R(e,t);break;case"peserta":N(e,t);break;case"spreadsheet":Ha(e,t);break;case"export":Qa(e,t);break;case"activity":Oa(e,t);break;default:U(e)}window.renderAdminView=i=>G(i,t)}async function X(a){var t,e;try{v.stats=await h.getDashboardStats();const i=document.getElementById("user-name");i&&(i.textContent=((t=v.profile)==null?void 0:t.nama)||"Admin");const n=document.getElementById("user-avatar");n&&(n.textContent=(((e=v.profile)==null?void 0:e.nama)||"A").charAt(0))}catch(i){a&&a("Gagal load stats: "+i.message,"error")}}function U(a,t){const e=v.stats||{};a.innerHTML=`
+</div>`}function ha(a,t){document.getElementById("sidebar-toggle").addEventListener("click",()=>{document.getElementById("sidebar").classList.toggle("open"),document.getElementById("sidebar-overlay").classList.toggle("show")}),document.getElementById("sidebar-overlay").addEventListener("click",()=>{document.getElementById("sidebar").classList.remove("open"),document.getElementById("sidebar-overlay").classList.remove("show")}),document.querySelectorAll(".nav-item[data-view]").forEach(e=>{e.addEventListener("click",()=>W(e.dataset.view,t))}),document.getElementById("btn-logout").addEventListener("click",async()=>{await S.logout(),a("/")}),document.getElementById("admin-modal-close").addEventListener("click",A),document.getElementById("admin-modal").addEventListener("click",function(e){e.target===this&&A()})}function Ka(a){var t;document.querySelectorAll(".nav-item[data-view]").forEach(e=>e.classList.remove("active")),(t=document.getElementById("nav-"+a))==null||t.classList.add("active")}function W(a,t){y.activeView=a,Ka(a);const e=document.getElementById("main-content");switch(document.getElementById("sidebar").classList.remove("open"),document.getElementById("sidebar-overlay").classList.remove("show"),a){case"dashboard":V(e),X(t).then(()=>{y.activeView==="dashboard"&&V(e)});break;case"mentor":T(e,t);break;case"kelas":R(e,t);break;case"peserta":N(e,t);break;case"spreadsheet":Ta(e,t);break;case"export":Qa(e,t);break;case"activity":Ga(e,t);break;default:V(e)}window.renderAdminView=i=>W(i,t)}async function X(a){var t,e;try{y.stats=await h.getDashboardStats();const i=document.getElementById("user-name");i&&(i.textContent=((t=y.profile)==null?void 0:t.nama)||"Admin");const n=document.getElementById("user-avatar");n&&(n.textContent=(((e=y.profile)==null?void 0:e.nama)||"A").charAt(0))}catch(i){a&&a("Gagal load stats: "+i.message,"error")}}function V(a,t){const e=y.stats||{};a.innerHTML=`
   <div class="page-header">
     <div>
       <div class="page-title">Dashboard <span>Admin</span></div>
@@ -552,10 +552,10 @@ ${o!=null&&o.length?`
             <div style="font-size:13px;font-weight:600;color:var(--cream-100);">${i.action}</div>
             <div style="font-size:11px;color:var(--text-card-muted);">${i.entity_type||""} ${i.entity_id?"#"+i.entity_id:""}</div>
           </div>
-          <div style="font-size:11px;color:var(--text-card-muted);white-space:nowrap;">${wa(i.created_at)}</div>
+          <div style="font-size:11px;color:var(--text-card-muted);white-space:nowrap;">${_a(i.created_at)}</div>
         </div>`).join("")}
       </div>`}
-  </div>`,Ka(e)}function Ka(a){setTimeout(()=>{const t=document.getElementById("admin-chart-distribusi");if(t&&typeof Chart<"u"){const i=a.total_bimbel||0,n=a.total_privat||0;i+n===0?t.parentElement.innerHTML=`
+  </div>`,Ha(e)}function Ha(a){setTimeout(()=>{const t=document.getElementById("admin-chart-distribusi");if(t&&typeof Chart<"u"){const i=a.total_bimbel||0,n=a.total_privat||0;i+n===0?t.parentElement.innerHTML=`
           <div style="text-align:center;color:var(--text-card-muted);font-size:12.5px;">
             <i class="fa-solid fa-chart-pie" style="font-size:28px;opacity:0.35;margin-bottom:8px;color:#F0AF43;display:block;"></i>
             Belum ada data peserta didik
@@ -575,7 +575,7 @@ ${o!=null&&o.length?`
           ${e.length===0?'<tr><td colspan="6" style="text-align:center;padding:28px;color:#81511D;">Belum ada mentor.</td></tr>':e.map(i=>`<tr>
               <td><div style="font-weight:600;">${i.nama}</div></td>
               <td><span style="font-size:12px;">${i.email}</span></td>
-              <td>${xa(i.jenis_mentor)}</td>
+              <td>${wa(i.jenis_mentor)}</td>
               <td><span style="font-size:13px;">${i.no_hp||"-"}</span></td>
               <td>${aa(i.status)}</td>
               <td>
@@ -587,7 +587,7 @@ ${o!=null&&o.length?`
             </tr>`).join("")}
         </tbody>
       </table>
-    </div>`,window.editMentor=i=>{const n=e.find(s=>s.id===i);n&&S("Edit Mentor",`
+    </div>`,window.editMentor=i=>{const n=e.find(s=>s.id===i);n&&z("Edit Mentor",`
       <div style="display:flex;flex-direction:column;gap:14px;">
         <div class="form-group"><label class="form-label">Nama</label><input type="text" class="form-control" id="em-nama" value="${n.nama}" /></div>
         <div class="form-group"><label class="form-label">No HP</label><input type="text" class="form-control" id="em-nohp" value="${n.no_hp||""}" /></div>
@@ -598,7 +598,7 @@ ${o!=null&&o.length?`
             <option value="keduanya" ${n.jenis_mentor==="keduanya"?"selected":""}>Keduanya</option>
           </select>
         </div>
-      </div>`,async()=>{await h.updateMentor(i,{nama:document.getElementById("em-nama").value,no_hp:document.getElementById("em-nohp").value,jenis_mentor:document.getElementById("em-jenis").value}),t("Mentor diperbarui!","success"),$(),T(a,t)})},window.toggleMentorStatus=async(i,n)=>{await h.updateMentor(i,{status:n}),t(`Mentor ${n==="aktif"?"diaktifkan":"dinonaktifkan"}!`,"success"),T(a,t)}}catch(e){t("Gagal memuat mentor: "+e.message,"error")}document.getElementById("btn-tambah-mentor").addEventListener("click",()=>{S("Tambah Mentor Baru",`
+      </div>`,async()=>{await h.updateMentor(i,{nama:document.getElementById("em-nama").value,no_hp:document.getElementById("em-nohp").value,jenis_mentor:document.getElementById("em-jenis").value}),t("Mentor diperbarui!","success"),A(),T(a,t)})},window.toggleMentorStatus=async(i,n)=>{await h.updateMentor(i,{status:n}),t(`Mentor ${n==="aktif"?"diaktifkan":"dinonaktifkan"}!`,"success"),T(a,t)}}catch(e){t("Gagal memuat mentor: "+e.message,"error")}document.getElementById("btn-tambah-mentor").addEventListener("click",()=>{z("Tambah Mentor Baru",`
     <div style="display:flex;flex-direction:column;gap:14px;">
       <div class="form-group"><label class="form-label">Nama Lengkap</label><input type="text" class="form-control" id="nm-nama" placeholder="Ust. Ahmad..." /></div>
       <div class="form-group"><label class="form-label">Email (Login)</label><input type="email" class="form-control" id="nm-email" placeholder="mentor@qia.id" /></div>
@@ -611,7 +611,7 @@ ${o!=null&&o.length?`
           <option value="keduanya">Keduanya</option>
         </select>
       </div>
-    </div>`,async()=>{const e=document.getElementById("nm-email").value,i=document.getElementById("nm-pw").value;if(!e||!i){t("Isi email dan password.","info");return}try{await h.createMentor(e,i,{nama:document.getElementById("nm-nama").value,no_hp:document.getElementById("nm-nohp").value,jenis_mentor:document.getElementById("nm-jenis").value}),t("Mentor berhasil ditambahkan!","success"),$(),T(a,t)}catch(n){t("Gagal: "+n.message,"error")}})})}async function R(a,t){a.innerHTML=`<div class="page-header">
+    </div>`,async()=>{const e=document.getElementById("nm-email").value,i=document.getElementById("nm-pw").value;if(!e||!i){t("Isi email dan password.","info");return}try{await h.createMentor(e,i,{nama:document.getElementById("nm-nama").value,no_hp:document.getElementById("nm-nohp").value,jenis_mentor:document.getElementById("nm-jenis").value}),t("Mentor berhasil ditambahkan!","success"),A(),T(a,t)}catch(n){t("Gagal: "+n.message,"error")}})})}async function R(a,t){a.innerHTML=`<div class="page-header">
     <div><div class="page-title">Kelas <span>Bimbel</span></div></div>
     <button class="btn btn-primary" id="btn-tambah-kelas"><i class="fa-solid fa-plus"></i> Buat Kelas Baru</button>
   </div>
@@ -645,7 +645,7 @@ ${o!=null&&o.length?`
             </button>
           </div>
         </div>`}).join("")}
-  </div>`,document.getElementById("btn-tambah-kelas").addEventListener("click",()=>{S("Buat Kelas Baru",`
+  </div>`,document.getElementById("btn-tambah-kelas").addEventListener("click",()=>{z("Buat Kelas Baru",`
     <div style="display:flex;flex-direction:column;gap:14px;">
       <div class="form-group"><label class="form-label">Nama Kelas</label><input type="text" class="form-control" id="nk-nama" placeholder="cth: Tahsin Al-Jazari A" /></div>
       <div class="form-group"><label class="form-label">Deskripsi</label><textarea class="form-control" id="nk-desc" rows="2" placeholder="Deskripsi kelas…"></textarea></div>
@@ -660,7 +660,7 @@ ${o!=null&&o.length?`
         <div class="form-group"><label class="form-label">Jam</label><input type="text" class="form-control" id="nk-jam" placeholder="cth: 15:30 – 17:00" /></div>
       </div>
       <div class="form-group"><label class="form-label">Kapasitas Maksimal</label><input type="number" class="form-control" id="nk-kap" value="15" /></div>
-    </div>`,async()=>{const s=document.getElementById("nk-nama").value.trim();if(!s){t("Isi nama kelas.","info");return}try{await h.createKelas({nama_kelas:s,deskripsi:document.getElementById("nk-desc").value,id_mentor:document.getElementById("nk-mentor").value||null,hari_jadwal:document.getElementById("nk-hari").value,jam_jadwal:document.getElementById("nk-jam").value,kapasitas:parseInt(document.getElementById("nk-kap").value)||15}),t("Kelas berhasil dibuat!","success"),$(),R(a,t)}catch(l){t("Gagal: "+l.message,"error")}})}),window.editKelas=s=>{const l=e.find(r=>r.id===s);l&&S("Edit Kelas",`
+    </div>`,async()=>{const s=document.getElementById("nk-nama").value.trim();if(!s){t("Isi nama kelas.","info");return}try{await h.createKelas({nama_kelas:s,deskripsi:document.getElementById("nk-desc").value,id_mentor:document.getElementById("nk-mentor").value||null,hari_jadwal:document.getElementById("nk-hari").value,jam_jadwal:document.getElementById("nk-jam").value,kapasitas:parseInt(document.getElementById("nk-kap").value)||15}),t("Kelas berhasil dibuat!","success"),A(),R(a,t)}catch(l){t("Gagal: "+l.message,"error")}})}),window.editKelas=s=>{const l=e.find(r=>r.id===s);l&&z("Edit Kelas",`
     <div style="display:flex;flex-direction:column;gap:14px;">
       <div class="form-group"><label class="form-label">Nama Kelas</label><input type="text" class="form-control" id="ek-nama" value="${l.nama_kelas}" /></div>
       <div class="form-group"><label class="form-label">Deskripsi</label><textarea class="form-control" id="ek-desc" rows="2">${l.deskripsi||""}</textarea></div>
@@ -680,7 +680,7 @@ ${o!=null&&o.length?`
           <option value="nonaktif" ${l.status==="nonaktif"?"selected":""}>Nonaktif</option>
         </select>
       </div>
-    </div>`,async()=>{await h.updateKelas(s,{nama_kelas:document.getElementById("ek-nama").value,deskripsi:document.getElementById("ek-desc").value,id_mentor:document.getElementById("ek-mentor").value||null,hari_jadwal:document.getElementById("ek-hari").value,jam_jadwal:document.getElementById("ek-jam").value,status:document.getElementById("ek-status").value}),t("Kelas diperbarui!","success"),$(),R(a,t)})},window.kelolaSantriKelas=(s,l)=>{const r=n.filter(d=>d.id_kelas===s),o=n.filter(d=>!d.id_kelas||d.id_kelas!==s);S(`Kelola Peserta Didik — ${l}`,`
+    </div>`,async()=>{await h.updateKelas(s,{nama_kelas:document.getElementById("ek-nama").value,deskripsi:document.getElementById("ek-desc").value,id_mentor:document.getElementById("ek-mentor").value||null,hari_jadwal:document.getElementById("ek-hari").value,jam_jadwal:document.getElementById("ek-jam").value,status:document.getElementById("ek-status").value}),t("Kelas diperbarui!","success"),A(),R(a,t)})},window.kelolaSantriKelas=(s,l)=>{const r=n.filter(d=>d.id_kelas===s),o=n.filter(d=>!d.id_kelas||d.id_kelas!==s);z(`Kelola Peserta Didik — ${l}`,`
     <div>
       <div style="margin-bottom:16px;">
         <div style="font-size:12px;font-weight:700;color:var(--gold-400);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">
@@ -707,7 +707,7 @@ ${o!=null&&o.length?`
           <i class="fa-solid fa-plus"></i> Tambahkan
         </button>
       </div>
-    </div>`,null)},window.pindahSantriKelas=async(s,l)=>{try{await h.updatePeserta(s,{id_kelas:l}),t("Peserta didik berhasil dipindahkan!","success"),$(),R(a,t)}catch(r){t("Gagal: "+r.message,"error")}},window.tambahSantriKeKelas=async s=>{var r;const l=parseInt((r=document.getElementById("ss-add-santri"))==null?void 0:r.value);if(!l){t("Pilih peserta didik.","info");return}await window.pindahSantriKelas(l,s)}}async function N(a,t){a.innerHTML=`<div class="page-header">
+    </div>`,null)},window.pindahSantriKelas=async(s,l)=>{try{await h.updatePeserta(s,{id_kelas:l}),t("Peserta didik berhasil dipindahkan!","success"),A(),R(a,t)}catch(r){t("Gagal: "+r.message,"error")}},window.tambahSantriKeKelas=async s=>{var r;const l=parseInt((r=document.getElementById("ss-add-santri"))==null?void 0:r.value);if(!l){t("Pilih peserta didik.","info");return}await window.pindahSantriKelas(l,s)}}async function N(a,t){a.innerHTML=`<div class="page-header">
     <div><div class="page-title">Peserta <span>Didik</span></div></div>
     <div style="display:flex;gap:10px;">
       <div class="search-wrapper">
@@ -728,7 +728,7 @@ ${o!=null&&o.length?`
           ${l.length===0?'<tr><td colspan="7" style="text-align:center;padding:28px;color:#81511D;">Tidak ada peserta didik ditemukan.</td></tr>':l.map(r=>{var o,d;return`<tr>
               <td><div style="font-weight:600;">${r.nama_lengkap}</div><div style="font-size:11px;color:#81511D;">${r.nama_wali||""}</div></td>
               <td>${r.usia||"-"}</td>
-              <td>${xa(r.jenis)}</td>
+              <td>${wa(r.jenis)}</td>
               <td><span style="font-size:13px;">${((o=r.kelas)==null?void 0:o.nama_kelas)||"-"}</span></td>
               <td><span style="font-size:13px;">${((d=r.mentor)==null?void 0:d.nama)||"-"}</span></td>
               <td>${aa(r.status)}</td>
@@ -741,7 +741,7 @@ ${o!=null&&o.length?`
             </tr>`}).join("")}
         </tbody>
       </table>
-    </div>`}s(e),document.getElementById("peserta-search").addEventListener("input",l=>{const r=l.target.value.toLowerCase();s(e.filter(o=>o.nama_lengkap.toLowerCase().includes(r)))}),window.editPeserta=l=>{const r=e.find(o=>o.id===l);r&&(S("Edit Peserta Didik",ia(r,i,n),async()=>{await h.updatePeserta(l,na()),t("Peserta didik diperbarui!","success"),$(),N(a,t)}),handleJenisChange())},window.nonaktifPeserta=async l=>{confirm("Nonaktifkan peserta didik ini?")&&(await h.updatePeserta(l,{status:"nonaktif"}),t("Peserta didik dinonaktifkan.","info"),N(a,t))},document.getElementById("btn-tambah-peserta").addEventListener("click",()=>{S("Tambah Peserta Didik Baru",ia(null,i,n),async()=>{const l=na();if(!l.nama_lengkap){t("Isi nama peserta didik.","info");return}try{await h.createPeserta(l),t("Peserta didik berhasil didaftarkan!","success"),$(),N(a,t)}catch(r){t("Gagal: "+r.message,"error")}}),handleJenisChange()})}function ia(a,t,e){return`
+    </div>`}s(e),document.getElementById("peserta-search").addEventListener("input",l=>{const r=l.target.value.toLowerCase();s(e.filter(o=>o.nama_lengkap.toLowerCase().includes(r)))}),window.editPeserta=l=>{const r=e.find(o=>o.id===l);r&&(z("Edit Peserta Didik",ia(r,i,n),async()=>{await h.updatePeserta(l,na()),t("Peserta didik diperbarui!","success"),A(),N(a,t)}),handleJenisChange())},window.nonaktifPeserta=async l=>{confirm("Nonaktifkan peserta didik ini?")&&(await h.updatePeserta(l,{status:"nonaktif"}),t("Peserta didik dinonaktifkan.","info"),N(a,t))},document.getElementById("btn-tambah-peserta").addEventListener("click",()=>{z("Tambah Peserta Didik Baru",ia(null,i,n),async()=>{const l=na();if(!l.nama_lengkap){t("Isi nama peserta didik.","info");return}try{await h.createPeserta(l),t("Peserta didik berhasil didaftarkan!","success"),A(),N(a,t)}catch(r){t("Gagal: "+r.message,"error")}}),handleJenisChange()})}function ia(a,t,e){return`
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
     <div class="form-group" style="grid-column:1/-1"><label class="form-label">Nama Lengkap</label>
       <input type="text" class="form-control" id="pf-nama" value="${(a==null?void 0:a.nama_lengkap)||""}" placeholder="Nama lengkap peserta didik" /></div>
@@ -775,7 +775,7 @@ ${o!=null&&o.length?`
       <input type="text" class="form-control" id="pf-wa-wali" value="${(a==null?void 0:a.no_wa_wali)||""}" /></div>
     <div class="form-group" style="grid-column:1/-1"><label class="form-label">Catatan Umum</label>
       <textarea class="form-control" id="pf-catatan" rows="2">${(a==null?void 0:a.catatan_umum)||""}</textarea></div>
-  </div>`}function na(){var a,t,e,i,n,s,l,r,o,d,c;return{nama_lengkap:(t=(a=document.getElementById("pf-nama"))==null?void 0:a.value)==null?void 0:t.trim(),usia:parseInt((e=document.getElementById("pf-usia"))==null?void 0:e.value)||null,jenis_kelamin:(i=document.getElementById("pf-jk"))==null?void 0:i.value,jenis:(n=document.getElementById("pf-jenis"))==null?void 0:n.value,id_kelas:parseInt((s=document.getElementById("pf-kelas"))==null?void 0:s.value)||null,id_mentor:((l=document.getElementById("pf-mentor"))==null?void 0:l.value)||null,nama_wali:(r=document.getElementById("pf-wali"))==null?void 0:r.value,email_wali:(o=document.getElementById("pf-email-wali"))==null?void 0:o.value,no_wa_wali:(d=document.getElementById("pf-wa-wali"))==null?void 0:d.value,catatan_umum:(c=document.getElementById("pf-catatan"))==null?void 0:c.value}}window.handleJenisChange=()=>{var e;const a=(e=document.getElementById("pf-jenis"))==null?void 0:e.value,t=document.getElementById("pf-kelas-group");t&&(t.style.display=a==="bimbel"?"":"none")};async function Ha(a,t){a.innerHTML=`
+  </div>`}function na(){var a,t,e,i,n,s,l,r,o,d,c;return{nama_lengkap:(t=(a=document.getElementById("pf-nama"))==null?void 0:a.value)==null?void 0:t.trim(),usia:parseInt((e=document.getElementById("pf-usia"))==null?void 0:e.value)||null,jenis_kelamin:(i=document.getElementById("pf-jk"))==null?void 0:i.value,jenis:(n=document.getElementById("pf-jenis"))==null?void 0:n.value,id_kelas:parseInt((s=document.getElementById("pf-kelas"))==null?void 0:s.value)||null,id_mentor:((l=document.getElementById("pf-mentor"))==null?void 0:l.value)||null,nama_wali:(r=document.getElementById("pf-wali"))==null?void 0:r.value,email_wali:(o=document.getElementById("pf-email-wali"))==null?void 0:o.value,no_wa_wali:(d=document.getElementById("pf-wa-wali"))==null?void 0:d.value,catatan_umum:(c=document.getElementById("pf-catatan"))==null?void 0:c.value}}window.handleJenisChange=()=>{var e;const a=(e=document.getElementById("pf-jenis"))==null?void 0:e.value,t=document.getElementById("pf-kelas-group");t&&(t.style.display=a==="bimbel"?"":"none")};async function Ta(a,t){a.innerHTML=`
   <div class="page-header">
     <div><div class="page-title">Spreadsheet <span>Editor</span></div>
     <div class="page-breadcrumb">Edit database secara massal langsung dari browser</div></div>
@@ -841,27 +841,27 @@ ${o!=null&&o.length?`
       <span style="border-left:1px solid var(--cream-300);margin:0 4px;height:20px;"></span>
       <button class="btn btn-secondary btn-sm" onclick="exportAllSS()"><i class="fa-solid fa-boxes-stacked"></i> Export Semua Tabel (.xlsx)</button>
     </div>
-  </div>`,v.ssActiveTab="peserta",await Q("peserta",t),document.getElementById("btn-batch-save").addEventListener("click",()=>Na(t)),window.switchSSTab=async(e,i)=>{document.querySelectorAll(".sheet-tab").forEach(n=>n.classList.remove("active")),i.classList.add("active"),v.ssActiveTab=e,v.ssDirtyRows.clear(),v.ssNewRows=[],await Q(e,t)},window.filterSS=e=>{v.ssFilter=e,ha(v.ssData[v.ssActiveTab])},window.reloadSS=async()=>{await Q(v.ssActiveTab,t)},window.addSSRow=()=>Ra(),window.exportSSTab=e=>{const i=v.ssData[v.ssActiveTab]||[];e==="csv"?ua(i,`QIA_${v.ssActiveTab}`):ga(i,`QIA_${v.ssActiveTab}`,v.ssActiveTab)},window.exportAllSS=async()=>{t("Mengumpulkan semua data…","info");try{const e=await h.exportAllTables();fa(e,"QIA_DataLengkap"),t("Export berhasil!","success")}catch(e){t("Gagal export: "+e.message,"error")}}}const O={peserta:{table:"peserta_didik",fetch:()=>h.getPesertaDidik()},mentor:{table:"profiles",fetch:()=>h.getMentors()},kelas:{table:"kelas",fetch:()=>h.getKelas()},kehadiran:{table:"kehadiran",fetch:()=>h.exportAllData("kehadiran","*, peserta:peserta_didik(nama_lengkap), kelas(nama_kelas)")},kemajuan:{table:"kemajuan",fetch:()=>h.exportAllData("kemajuan","*, peserta:peserta_didik(nama_lengkap)")},penilaian:{table:"penilaian",fetch:()=>h.exportAllData("penilaian","*, peserta:peserta_didik(nama_lengkap)")}};async function Q(a,t){var n,s;const e=document.getElementById("ss-scroll");e.innerHTML='<div style="text-align:center;padding:48px;"><div class="spinner" style="margin:0 auto;width:36px;height:36px;"></div></div>';const i=document.getElementById("ss-table-name");i&&(i.textContent=((n=O[a])==null?void 0:n.table)||a);try{const l=await((s=O[a])==null?void 0:s.fetch())||[];v.ssData[a]=l,ha(l,t)}catch(l){e.innerHTML=`<div style="padding:40px;text-align:center;color:#e05c4b;"><i class="fa-solid fa-triangle-exclamation" style="font-size:32px;margin-bottom:12px;display:block;"></i>${l.message}</div>`,t("Gagal memuat data: "+l.message,"error")}}function ha(a,t){const e=a||[],i=(v.ssFilter||"").toLowerCase(),n=i?e.filter(f=>Object.values(f).some(y=>String(y||"").toLowerCase().includes(i))):e,s=document.getElementById("ss-row-count"),l=document.getElementById("ss-row-total");if(s&&(s.textContent=`${n.length} dari ${e.length} baris`),l&&(l.textContent=n.length),n.length===0){document.getElementById("ss-scroll").innerHTML=`<div style="text-align:center;padding:60px 24px;color:#81511D;">
+  </div>`,y.ssActiveTab="peserta",await O("peserta",t),document.getElementById("btn-batch-save").addEventListener("click",()=>Oa(t)),window.switchSSTab=async(e,i)=>{document.querySelectorAll(".sheet-tab").forEach(n=>n.classList.remove("active")),i.classList.add("active"),y.ssActiveTab=e,y.ssDirtyRows.clear(),y.ssNewRows=[],await O(e,t)},window.filterSS=e=>{y.ssFilter=e,xa(y.ssData[y.ssActiveTab])},window.reloadSS=async()=>{await O(y.ssActiveTab,t)},window.addSSRow=()=>Na(),window.exportSSTab=e=>{const i=y.ssData[y.ssActiveTab]||[];e==="csv"?ga(i,`QIA_${y.ssActiveTab}`):fa(i,`QIA_${y.ssActiveTab}`,y.ssActiveTab)},window.exportAllSS=async()=>{t("Mengumpulkan semua data…","info");try{const e=await h.exportAllTables();ba(e,"QIA_DataLengkap"),t("Export berhasil!","success")}catch(e){t("Gagal export: "+e.message,"error")}}}const Q={peserta:{table:"peserta_didik",fetch:()=>h.getPesertaDidik()},mentor:{table:"profiles",fetch:()=>h.getMentors()},kelas:{table:"kelas",fetch:()=>h.getKelas()},kehadiran:{table:"kehadiran",fetch:()=>h.exportAllData("kehadiran","*, peserta:peserta_didik(nama_lengkap), kelas(nama_kelas)")},kemajuan:{table:"kemajuan",fetch:()=>h.exportAllData("kemajuan","*, peserta:peserta_didik(nama_lengkap)")},penilaian:{table:"penilaian",fetch:()=>h.exportAllData("penilaian","*, peserta:peserta_didik(nama_lengkap)")}};async function O(a,t){var n,s;const e=document.getElementById("ss-scroll");e.innerHTML='<div style="text-align:center;padding:48px;"><div class="spinner" style="margin:0 auto;width:36px;height:36px;"></div></div>';const i=document.getElementById("ss-table-name");i&&(i.textContent=((n=Q[a])==null?void 0:n.table)||a);try{const l=await((s=Q[a])==null?void 0:s.fetch())||[];y.ssData[a]=l,xa(l,t)}catch(l){e.innerHTML=`<div style="padding:40px;text-align:center;color:#e05c4b;"><i class="fa-solid fa-triangle-exclamation" style="font-size:32px;margin-bottom:12px;display:block;"></i>${l.message}</div>`,t("Gagal memuat data: "+l.message,"error")}}function xa(a,t){const e=a||[],i=(y.ssFilter||"").toLowerCase(),n=i?e.filter(g=>Object.values(g).some(v=>String(v||"").toLowerCase().includes(i))):e,s=document.getElementById("ss-row-count"),l=document.getElementById("ss-row-total");if(s&&(s.textContent=`${n.length} dari ${e.length} baris`),l&&(l.textContent=n.length),n.length===0){document.getElementById("ss-scroll").innerHTML=`<div style="text-align:center;padding:60px 24px;color:#81511D;">
       <div style="font-size:42px;margin-bottom:12px;opacity:0.4;">🔍</div>
       <p>Tidak ada data yang cocok dengan filter.</p>
-    </div>`;return}const r=n[0],o=Object.entries(r).filter(([f,y])=>typeof y!="object"||y===null).map(([f])=>f),d=new Set(["nama_lengkap","nama","usia","jenis","status","email_wali","no_wa_wali","no_hp","jenis_mentor","nama_kelas","hari_jadwal","jam_jadwal","kapasitas","status_hadir","materi_pembahasan","catatan_sesi","perkembangan_materi","kitab_surat","halaman_ayat","status_kelancaran","catatan_hafalan","nilai_angka","nilai_adab","nilai_tajwid","nilai_kelancaran","catatan","nama_wali","catatan_umum","deskripsi"]),c=document.getElementById("ss-scroll");c.innerHTML=`
+    </div>`;return}const r=n[0],o=Object.entries(r).filter(([g,v])=>typeof v!="object"||v===null).map(([g])=>g),d=new Set(["nama_lengkap","nama","usia","jenis","status","email_wali","no_wa_wali","no_hp","jenis_mentor","nama_kelas","hari_jadwal","jam_jadwal","kapasitas","status_hadir","materi_pembahasan","catatan_sesi","perkembangan_materi","kitab_surat","halaman_ayat","status_kelancaran","catatan_hafalan","nilai_angka","nilai_adab","nilai_tajwid","nilai_kelancaran","catatan","nama_wali","catatan_umum","deskripsi"]),c=document.getElementById("ss-scroll");c.innerHTML=`
   <table class="ss-table" id="ss-table-el">
     <thead>
       <tr>
         <th class="ss-th row-num header-row-num">No</th>
-        ${o.map(f=>`<th class="ss-th">${f}</th>`).join("")}
+        ${o.map(g=>`<th class="ss-th">${g}</th>`).join("")}
       </tr>
     </thead>
     <tbody>
-      ${n.map((f,y)=>`
-      <tr id="ss-tr-${y}" class="${v.ssDirtyRows.has(f.id)?"row-dirty":""}">
-        <td class="row-num">${y+1}</td>
-        ${o.map(b=>{const k=f[b];return d.has(b),`<td class="ss-cell" data-row="${y}" data-col="${b}" data-id="${f.id||""}">
-            <div class="ss-cell-inner ${ka(b,k)}" title="${k||""}">${k==null?"":String(k)}</div>
+      ${n.map((g,v)=>`
+      <tr id="ss-tr-${v}" class="${y.ssDirtyRows.has(g.id)?"row-dirty":""}">
+        <td class="row-num">${v+1}</td>
+        ${o.map(f=>{const x=g[f];return d.has(f),`<td class="ss-cell" data-row="${v}" data-col="${f}" data-id="${g.id||""}">
+            <div class="ss-cell-inner ${ka(f,x)}" title="${x||""}">${x==null?"":String(x)}</div>
           </td>`}).join("")}
       </tr>`).join("")}
     </tbody>
-  </table>`,c.querySelectorAll(".ss-cell").forEach(f=>{f.addEventListener("click",function(){if(this.classList.contains("cell-editing"))return;const y=this.dataset.col,b=parseInt(this.dataset.row),k=this.dataset.id;d.has(y)&&Ta(this,n[b],y,b,k)})})}function Ta(a,t,e,i,n,s,l){document.querySelectorAll(".ss-cell.cell-editing").forEach(b=>b.classList.remove("cell-editing")),a.classList.add("cell-editing");const r=t[e],o=a.querySelector(".ss-cell-inner");o.style.display="none";const d={status:["aktif","nonaktif","lulus"],status_hadir:["hadir","izin","sakit","alpa"],jenis:["bimbel","privat"],jenis_mentor:["bimbel","privat","keduanya"],status_kelancaran:["lancar","cukup","perlu_ulang"],jenis_kelamin:["L","P"]};let c;d[e]?(c=document.createElement("select"),c.className="ss-cell-editor-select",d[e].forEach(b=>{const k=document.createElement("option");k.value=b,k.textContent=b,b===String(r)&&(k.selected=!0),c.appendChild(k)})):(c=document.createElement("input"),c.type="text",c.className="ss-cell-editor",c.value=r==null?"":String(r)),a.appendChild(c),c.focus(),c.select&&c.select();const f=()=>{const b=c.tagName==="SELECT"?c.value:c.value.trim();if(a.removeChild(c),o.style.display="",o.textContent=b,o.className=`ss-cell-inner ${ka(e,b)}`,a.classList.remove("cell-editing"),String(b)!==String(r||"")){t[e]=b,v.ssDirtyRows.add(n||i);const k=document.getElementById("ss-tr-"+i);k&&k.classList.add("row-dirty"),document.getElementById("ss-dirty-count").style.display="";const p=document.getElementById("btn-batch-save");p&&(p.disabled=!1)}},y=()=>{a.removeChild(c),o.style.display="",a.classList.remove("cell-editing")};c.addEventListener("blur",f),c.addEventListener("keydown",b=>{b.key==="Enter"&&(b.preventDefault(),f()),b.key==="Escape"&&y()})}function Ra(){const t=document.getElementById("ss-scroll").querySelector("tbody");if(!t)return;const e=t.rows.length,i=document.createElement("tr");i.id=`ss-tr-${e}`,i.classList.add("row-new"),i.innerHTML=`<td class="row-num">NEW</td><td colspan="20" style="padding:12px 16px;"><input type="text" placeholder="Gunakan form 'Tambah Peserta Didik' untuk baris baru yang valid…" style="width:100%;background:transparent;border:none;outline:none;font-size:13px;color:#81511D;" readonly /></td>`,t.appendChild(i),i.scrollIntoView({behavior:"smooth"})}async function Na(a){var l;const t=v.ssActiveTab,i=(v.ssData[t]||[]).filter(r=>v.ssDirtyRows.has(r.id)||v.ssDirtyRows.has(String(r.id)));if(i.length===0){a("Tidak ada perubahan.","info");return}const n=document.getElementById("btn-batch-save");if(n.disabled=!0,n.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan…',!((l=O[t])==null?void 0:l.table)){a("Tabel tidak dikenali.","error");return}try{const r=i.map(o=>{const{peserta:d,mentor:c,kelas:f,...y}=o;return y});await h.bulkUpdatePeserta(r),v.ssDirtyRows.clear(),document.getElementById("ss-dirty-count").style.display="none",a(`${i.length} baris berhasil disimpan! ✅`,"success"),n.disabled=!0,n.innerHTML='<i class="fa-solid fa-floppy-disk"></i> Simpan Semua Perubahan',await Q(t,a)}catch(r){a("Gagal menyimpan: "+r.message,"error"),n.disabled=!1,n.innerHTML='<i class="fa-solid fa-floppy-disk"></i> Simpan Semua Perubahan'}}function ka(a,t){return t?a==="status"?t==="aktif"?"text-green":t==="nonaktif"?"text-red":"":a==="status_hadir"?t==="hadir"?"text-green":t==="alpa"?"text-red":t==="izin"?"text-yellow":"text-blue":a==="status_kelancaran"?t==="lancar"?"text-green":t==="perlu_ulang"?"text-red":"text-yellow":"":""}function Qa(a,t){a.innerHTML=`
+  </table>`,c.querySelectorAll(".ss-cell").forEach(g=>{g.addEventListener("click",function(){if(this.classList.contains("cell-editing"))return;const v=this.dataset.col,f=parseInt(this.dataset.row),x=this.dataset.id;d.has(v)&&Ra(this,n[f],v,f,x)})})}function Ra(a,t,e,i,n,s,l){document.querySelectorAll(".ss-cell.cell-editing").forEach(f=>f.classList.remove("cell-editing")),a.classList.add("cell-editing");const r=t[e],o=a.querySelector(".ss-cell-inner");o.style.display="none";const d={status:["aktif","nonaktif","lulus"],status_hadir:["hadir","izin","sakit","alpa"],jenis:["bimbel","privat"],jenis_mentor:["bimbel","privat","keduanya"],status_kelancaran:["lancar","cukup","perlu_ulang"],jenis_kelamin:["L","P"]};let c;d[e]?(c=document.createElement("select"),c.className="ss-cell-editor-select",d[e].forEach(f=>{const x=document.createElement("option");x.value=f,x.textContent=f,f===String(r)&&(x.selected=!0),c.appendChild(x)})):(c=document.createElement("input"),c.type="text",c.className="ss-cell-editor",c.value=r==null?"":String(r)),a.appendChild(c),c.focus(),c.select&&c.select();const g=()=>{const f=c.tagName==="SELECT"?c.value:c.value.trim();if(a.removeChild(c),o.style.display="",o.textContent=f,o.className=`ss-cell-inner ${ka(e,f)}`,a.classList.remove("cell-editing"),String(f)!==String(r||"")){t[e]=f,y.ssDirtyRows.add(n||i);const x=document.getElementById("ss-tr-"+i);x&&x.classList.add("row-dirty"),document.getElementById("ss-dirty-count").style.display="";const p=document.getElementById("btn-batch-save");p&&(p.disabled=!1)}},v=()=>{a.removeChild(c),o.style.display="",a.classList.remove("cell-editing")};c.addEventListener("blur",g),c.addEventListener("keydown",f=>{f.key==="Enter"&&(f.preventDefault(),g()),f.key==="Escape"&&v()})}function Na(){const t=document.getElementById("ss-scroll").querySelector("tbody");if(!t)return;const e=t.rows.length,i=document.createElement("tr");i.id=`ss-tr-${e}`,i.classList.add("row-new"),i.innerHTML=`<td class="row-num">NEW</td><td colspan="20" style="padding:12px 16px;"><input type="text" placeholder="Gunakan form 'Tambah Peserta Didik' untuk baris baru yang valid…" style="width:100%;background:transparent;border:none;outline:none;font-size:13px;color:#81511D;" readonly /></td>`,t.appendChild(i),i.scrollIntoView({behavior:"smooth"})}async function Oa(a){var l;const t=y.ssActiveTab,i=(y.ssData[t]||[]).filter(r=>y.ssDirtyRows.has(r.id)||y.ssDirtyRows.has(String(r.id)));if(i.length===0){a("Tidak ada perubahan.","info");return}const n=document.getElementById("btn-batch-save");if(n.disabled=!0,n.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan…',!((l=Q[t])==null?void 0:l.table)){a("Tabel tidak dikenali.","error");return}try{const r=i.map(o=>{const{peserta:d,mentor:c,kelas:g,...v}=o;return v});await h.bulkUpdatePeserta(r),y.ssDirtyRows.clear(),document.getElementById("ss-dirty-count").style.display="none",a(`${i.length} baris berhasil disimpan! ✅`,"success"),n.disabled=!0,n.innerHTML='<i class="fa-solid fa-floppy-disk"></i> Simpan Semua Perubahan',await O(t,a)}catch(r){a("Gagal menyimpan: "+r.message,"error"),n.disabled=!1,n.innerHTML='<i class="fa-solid fa-floppy-disk"></i> Simpan Semua Perubahan'}}function ka(a,t){return t?a==="status"?t==="aktif"?"text-green":t==="nonaktif"?"text-red":"":a==="status_hadir"?t==="hadir"?"text-green":t==="alpa"?"text-red":t==="izin"?"text-yellow":"text-blue":a==="status_kelancaran"?t==="lancar"?"text-green":t==="perlu_ulang"?"text-red":"text-yellow":"":""}function Qa(a,t){a.innerHTML=`
   <div class="page-header">
     <div><div class="page-title">Export <span>Data</span></div>
     <div class="page-breadcrumb">Unduh data ke file Excel, CSV, atau JSON</div></div>
@@ -908,7 +908,7 @@ ${o!=null&&o.length?`
     <button class="btn btn-success" id="btn-export-all">
       <i class="fa-solid fa-file-excel"></i> Download Semua Data (Multi-Sheet Excel)
     </button>
-  </div>`,window.doExport=async(e,i)=>{var n;t("Mengambil data…","info");try{const s=await((n=O[e])==null?void 0:n.fetch())||[];i==="csv"&&ua(s,`QIA_${e}`),i==="excel"&&ga(s,`QIA_${e}`,e),i==="json"&&Ma(s,`QIA_${e}`),t("Export berhasil!","success")}catch(s){t("Gagal export: "+s.message,"error")}},document.getElementById("btn-export-all").addEventListener("click",async()=>{t("Mengumpulkan semua data…","info");try{const e=await h.exportAllTables();fa(e,"QIA_DataLengkap"),t("Export berhasil!","success")}catch(e){t("Gagal: "+e.message,"error")}})}async function Oa(a,t){a.innerHTML=`<div class="page-header">
+  </div>`,window.doExport=async(e,i)=>{var n;t("Mengambil data…","info");try{const s=await((n=Q[e])==null?void 0:n.fetch())||[];i==="csv"&&ga(s,`QIA_${e}`),i==="excel"&&fa(s,`QIA_${e}`,e),i==="json"&&qa(s,`QIA_${e}`),t("Export berhasil!","success")}catch(s){t("Gagal export: "+s.message,"error")}},document.getElementById("btn-export-all").addEventListener("click",async()=>{t("Mengumpulkan semua data…","info");try{const e=await h.exportAllTables();ba(e,"QIA_DataLengkap"),t("Export berhasil!","success")}catch(e){t("Gagal: "+e.message,"error")}})}async function Ga(a,t){a.innerHTML=`<div class="page-header">
     <div class="page-title">Log <span>Aktivitas</span></div>
   </div>
   <div class="table-wrapper">
@@ -917,14 +917,14 @@ ${o!=null&&o.length?`
       <tbody id="activity-tbody"><tr><td colspan="5" style="text-align:center;padding:28px;"><div class="spinner" style="margin:0 auto;width:28px;height:28px;"></div></td></tr></tbody>
     </table>
   </div>`;try{const e=await h.getDashboardStats(),i=(e==null?void 0:e.aktivitas_terbaru)||[];document.getElementById("activity-tbody").innerHTML=i.length===0?'<tr><td colspan="5" style="text-align:center;padding:28px;color:#81511D;">Belum ada log aktivitas.</td></tr>':i.map(n=>{var s;return`<tr>
-        <td style="font-size:12px;">${wa(n.created_at)}</td>
+        <td style="font-size:12px;">${_a(n.created_at)}</td>
         <td style="font-size:12px;">${((s=n.id_user)==null?void 0:s.slice(0,8))||"system"}…</td>
         <td><span style="font-weight:600;">${n.action}</span></td>
         <td>${n.entity_type||"-"}</td>
         <td style="font-size:12px;">${n.entity_id||"-"}</td>
-      </tr>`}).join("")}catch{t("Gagal memuat log.","error")}}function S(a,t,e){document.getElementById("admin-modal-title").textContent=a,document.getElementById("admin-modal-body").innerHTML=t;const i=document.getElementById("admin-modal-footer");e?(i.innerHTML=`
+      </tr>`}).join("")}catch{t("Gagal memuat log.","error")}}function z(a,t,e){document.getElementById("admin-modal-title").textContent=a,document.getElementById("admin-modal-body").innerHTML=t;const i=document.getElementById("admin-modal-footer");e?(i.innerHTML=`
     <button class="btn btn-ghost" onclick="closeModal()">Batal</button>
-    <button class="btn btn-primary" id="modal-save-btn"><i class="fa-solid fa-floppy-disk"></i> Simpan</button>`,document.getElementById("modal-save-btn").addEventListener("click",e)):i.innerHTML='<button class="btn btn-ghost" onclick="closeModal()">Tutup</button>';const n=document.getElementById("admin-modal-inner");n.className=t.length>1500?"modal modal-lg":"modal",document.getElementById("admin-modal").classList.add("show")}function $(){document.getElementById("admin-modal").classList.remove("show")}window.closeModal=$;function xa(a){return`<span class="badge ${{bimbel:"badge-gold",privat:"badge-emerald",keduanya:"badge-blue"}[a]||"badge-gray"}">${a||"-"}</span>`}function aa(a){return a==="aktif"?'<span class="badge badge-emerald">● Aktif</span>':`<span class="badge badge-red">● ${a}</span>`}function wa(a){return a?new Date(a).toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"-"}let m={profile:null,kelasList:[],pesertaList:[],activeView:"dashboard",selectedKelas:null,selectedPeserta:null,absensiRows:[]};async function _a(a,t,e){document.title="Portal Asatidz — Quran Insight Academy";try{if(m.profile=await L.getProfile(),!m.profile||m.profile.role!=="mentor"){sa(a,t,e);return}}catch{sa(a,t,e);return}a.innerHTML=Wa(),Ga(t,e),await Va(e),P("dashboard",e)}function sa(a,t,e){a.innerHTML=`
+    <button class="btn btn-primary" id="modal-save-btn"><i class="fa-solid fa-floppy-disk"></i> Simpan</button>`,document.getElementById("modal-save-btn").addEventListener("click",e)):i.innerHTML='<button class="btn btn-ghost" onclick="closeModal()">Tutup</button>';const n=document.getElementById("admin-modal-inner");n.className=t.length>1500?"modal modal-lg":"modal",document.getElementById("admin-modal").classList.add("show")}function A(){document.getElementById("admin-modal").classList.remove("show")}window.closeModal=A;function wa(a){return`<span class="badge ${{bimbel:"badge-gold",privat:"badge-emerald",keduanya:"badge-blue"}[a]||"badge-gray"}">${a||"-"}</span>`}function aa(a){return a==="aktif"?'<span class="badge badge-emerald">● Aktif</span>':`<span class="badge badge-red">● ${a}</span>`}function _a(a){return a?new Date(a).toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"-"}let m={profile:null,kelasList:[],pesertaList:[],activeView:"dashboard",selectedKelas:null,selectedPeserta:null,absensiRows:[]};async function Ea(a,t,e){document.title="Portal Asatidz — Quran Insight Academy";try{if(m.profile=await S.getProfile(),!m.profile||m.profile.role!=="mentor"){sa(a,t,e);return}}catch{sa(a,t,e);return}a.innerHTML=Wa(),Ua(t,e),await Va(e),B("dashboard",e)}function sa(a,t,e){a.innerHTML=`
   <div class="login-page">
     <div class="login-card">
       <div class="login-logo">
@@ -953,7 +953,7 @@ ${o!=null&&o.length?`
         </button>
       </div>
     </div>
-  </div>`,document.getElementById("mentor-login-form").addEventListener("submit",async n=>{n.preventDefault();const s=document.getElementById("mentor-login-email").value,l=document.getElementById("mentor-login-pwd").value,r=document.getElementById("btn-submit-mentor-login");r.disabled=!0,r.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Masuk…';try{await L.login(s,l),e("Berhasil masuk sebagai Asatidz!","success"),_a(a,t,e)}catch(o){e("Gagal masuk: "+o.message,"error"),r.disabled=!1,r.innerHTML='<i class="fa-solid fa-right-to-bracket mr-1"></i> Masuk Portal Asatidz'}})}function Wa(){return`
+  </div>`,document.getElementById("mentor-login-form").addEventListener("submit",async n=>{n.preventDefault();const s=document.getElementById("mentor-login-email").value,l=document.getElementById("mentor-login-pwd").value,r=document.getElementById("btn-submit-mentor-login");r.disabled=!0,r.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Masuk…';try{await S.login(s,l),e("Berhasil masuk sebagai Asatidz!","success"),Ea(a,t,e)}catch(o){e("Gagal masuk: "+o.message,"error"),r.disabled=!1,r.innerHTML='<i class="fa-solid fa-right-to-bracket mr-1"></i> Masuk Portal Asatidz'}})}function Wa(){return`
 <div class="portal-layout">
   <!-- Sidebar -->
   <button class="sidebar-toggle" id="sidebar-toggle">
@@ -975,10 +975,10 @@ ${o!=null&&o.length?`
       <div class="nav-item active" data-view="dashboard" id="nav-dashboard">
         <i class="fa-solid fa-house-chimney"></i> Dashboard
       </div>
-      <div class="nav-item" data-view="kelas" id="nav-kelas" style="${F()?"":"display:none"}">
+      <div class="nav-item" data-view="kelas" id="nav-kelas" style="${q()?"":"display:none"}">
         <i class="fa-solid fa-chalkboard-user"></i> Kelas Saya
       </div>
-      <div class="nav-item" data-view="absensi-massal" id="nav-absensi" style="${F()?"":"display:none"}">
+      <div class="nav-item" data-view="absensi-massal" id="nav-absensi" style="${q()?"":"display:none"}">
         <i class="fa-solid fa-clipboard-list"></i> Absensi Massal
         <span class="nav-badge" id="badge-absensi">Bimbel</span>
       </div>
@@ -1006,7 +1006,7 @@ ${o!=null&&o.length?`
   <main class="main-content" id="main-content">
     <!-- Content rendered here -->
   </main>
-</div>`}function F(){var a,t;return((a=m.profile)==null?void 0:a.jenis_mentor)==="bimbel"||((t=m.profile)==null?void 0:t.jenis_mentor)==="keduanya"}function Ga(a,t){document.getElementById("sidebar-toggle").addEventListener("click",()=>{document.getElementById("sidebar").classList.toggle("open"),document.getElementById("sidebar-overlay").classList.toggle("show")}),document.getElementById("sidebar-overlay").addEventListener("click",()=>{document.getElementById("sidebar").classList.remove("open"),document.getElementById("sidebar-overlay").classList.remove("show")}),document.querySelectorAll(".nav-item[data-view]").forEach(e=>{e.addEventListener("click",()=>{const i=e.dataset.view;P(i,t)})}),document.getElementById("btn-logout").addEventListener("click",async()=>{await L.logout(),a("/")})}async function Va(a){var t,e;try{const i=m.profile.id;m.kelasList=await _.getMyKelas(i),m.pesertaList=await _.getMyPeserta(i),document.getElementById("user-name").textContent=m.profile.nama||m.profile.email,document.getElementById("user-role-label").textContent=V(m.profile.jenis_mentor),document.getElementById("user-avatar").textContent=(m.profile.nama||"M").charAt(0),F()&&((t=document.getElementById("nav-kelas"))==null||t.removeAttribute("style"),(e=document.getElementById("nav-absensi"))==null||e.removeAttribute("style"))}catch(i){a("Gagal memuat data: "+i.message,"error")}}function Ua(a){document.querySelectorAll(".nav-item[data-view]").forEach(e=>e.classList.remove("active"));const t=document.getElementById("nav-"+a.replace("-list","santri").replace("-massal","absensi").replace("-detail","santri"));t&&t.classList.add("active")}function P(a,t){m.activeView=a,Ua(a);const e=document.getElementById("main-content");switch(a){case"dashboard":la(e,t);break;case"kelas":Ja(e,t);break;case"absensi-massal":Ya(e,t);break;case"santri-list":ae(e,t);break;case"ganti-password":ee(e,t);break;default:la(e,t)}document.getElementById("sidebar").classList.remove("open"),document.getElementById("sidebar-overlay").classList.remove("show")}function la(a,t){var n;const e=m.pesertaList.filter(s=>s.jenis==="bimbel").length,i=m.pesertaList.filter(s=>s.jenis==="privat").length;a.innerHTML=`
+</div>`}function q(){var a,t;return((a=m.profile)==null?void 0:a.jenis_mentor)==="bimbel"||((t=m.profile)==null?void 0:t.jenis_mentor)==="keduanya"}function Ua(a,t){document.getElementById("sidebar-toggle").addEventListener("click",()=>{document.getElementById("sidebar").classList.toggle("open"),document.getElementById("sidebar-overlay").classList.toggle("show")}),document.getElementById("sidebar-overlay").addEventListener("click",()=>{document.getElementById("sidebar").classList.remove("open"),document.getElementById("sidebar-overlay").classList.remove("show")}),document.querySelectorAll(".nav-item[data-view]").forEach(e=>{e.addEventListener("click",()=>{const i=e.dataset.view;B(i,t)})}),document.getElementById("btn-logout").addEventListener("click",async()=>{await S.logout(),a("/")})}async function Va(a){var t,e;try{const i=m.profile.id;m.kelasList=await _.getMyKelas(i),m.pesertaList=await _.getMyPeserta(i),document.getElementById("user-name").textContent=m.profile.nama||m.profile.email,document.getElementById("user-role-label").textContent=U(m.profile.jenis_mentor),document.getElementById("user-avatar").textContent=(m.profile.nama||"M").charAt(0),q()&&((t=document.getElementById("nav-kelas"))==null||t.removeAttribute("style"),(e=document.getElementById("nav-absensi"))==null||e.removeAttribute("style"))}catch(i){a("Gagal memuat data: "+i.message,"error")}}function Ja(a){document.querySelectorAll(".nav-item[data-view]").forEach(e=>e.classList.remove("active"));const t=document.getElementById("nav-"+a.replace("-list","santri").replace("-massal","absensi").replace("-detail","santri"));t&&t.classList.add("active")}function B(a,t){m.activeView=a,Ja(a);const e=document.getElementById("main-content");switch(a){case"dashboard":la(e,t);break;case"kelas":Ya(e,t);break;case"absensi-massal":Za(e,t);break;case"santri-list":ee(e,t);break;case"ganti-password":te(e,t);break;default:la(e,t)}document.getElementById("sidebar").classList.remove("open"),document.getElementById("sidebar-overlay").classList.remove("show")}function la(a,t){var n;const e=m.pesertaList.filter(s=>s.jenis==="bimbel").length,i=m.pesertaList.filter(s=>s.jenis==="privat").length;a.innerHTML=`
   <div class="page-header">
     <div>
       <div class="page-title">Dashboard <span>Mentor</span></div>
@@ -1028,7 +1028,7 @@ ${o!=null&&o.length?`
 
   <!-- Shortcut actions -->
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px;">
-    ${F()?`
+    ${q()?`
     <button onclick="renderMentorView('absensi-massal')"
       style="background:linear-gradient(135deg,#d97706,#F0AF43);color:#1a0a02;
       padding:20px;border-radius:16px;border:none;cursor:pointer;text-align:left;
@@ -1047,7 +1047,7 @@ ${o!=null&&o.length?`
       <div style="font-weight:700;font-size:15px;">Daftar Peserta Didik</div>
       <div style="font-size:12px;color:var(--text-card-muted);margin-top:4px;">Lihat & kelola peserta didik bimbingan</div>
     </button>
-    ${F()?`
+    ${q()?`
     <button onclick="renderMentorView('kelas')"
       style="background:var(--bg-card);color:var(--cream-100);
       padding:20px;border-radius:16px;border:1px solid var(--border-dark);cursor:pointer;text-align:left;
@@ -1079,12 +1079,12 @@ ${o!=null&&o.length?`
             font-weight:700;font-size:14px;color:#fdf0e2;flex-shrink:0;">${s.nama_lengkap.charAt(0)}</div>
           <div style="flex:1;min-width:0;">
             <div style="font-weight:600;color:var(--cream-100);font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.nama_lengkap}</div>
-            <div style="font-size:11px;color:var(--text-card-muted);">${((l=s.kelas)==null?void 0:l.nama_kelas)||V(s.jenis)}</div>
+            <div style="font-size:11px;color:var(--text-card-muted);">${((l=s.kelas)==null?void 0:l.nama_kelas)||U(s.jenis)}</div>
           </div>
           <span class="${s.jenis==="bimbel"?"badge badge-gold":"badge badge-emerald"}">${s.jenis}</span>
         </div>`}).join("")}
       </div>`}
-  </div>`,window.renderMentorView=s=>P(s,t),window.openSantriDetail=s=>Aa(s,a,t)}function Ja(a,t){a.innerHTML=`
+  </div>`,window.renderMentorView=s=>B(s,t),window.openSantriDetail=s=>Aa(s,a,t)}function Ya(a,t){a.innerHTML=`
   <div class="page-header">
     <div>
       <div class="page-title">Kelas <span>Saya</span></div>
@@ -1125,7 +1125,7 @@ ${o!=null&&o.length?`
             <i class="fa-solid fa-clipboard-list"></i> Absensi Kelas Ini
           </button>
         </div>`}).join("")}
-  </div>`,window.renderMentorView=e=>P(e,t),window.openAbsensiMassal=e=>{m.selectedKelas=m.kelasList.find(i=>i.id===e)||null,P("absensi-massal",t)}}function Ya(a,t){var i;const e=new Date().toISOString().slice(0,10);a.innerHTML=`
+  </div>`,window.renderMentorView=e=>B(e,t),window.openAbsensiMassal=e=>{m.selectedKelas=m.kelasList.find(i=>i.id===e)||null,B("absensi-massal",t)}}function Za(a,t){var i;const e=new Date().toISOString().slice(0,10);a.innerHTML=`
   <div class="page-header">
     <div>
       <div class="page-title">Absensi <span>Massal</span></div>
@@ -1203,7 +1203,7 @@ ${o!=null&&o.length?`
         <i class="fa-solid fa-floppy-disk"></i> Simpan Absensi & Materi
       </button>
     </div>
-  </div>`,document.getElementById("btn-load-absensi").addEventListener("click",()=>{const n=parseInt(document.getElementById("absensi-kelas-select").value);if(!n){t("Pilih kelas terlebih dahulu.","info");return}m.selectedKelas=m.kelasList.find(l=>l.id===n);const s=m.pesertaList.filter(l=>l.id_kelas===n);if(s.length===0){t("Tidak ada peserta didik di kelas ini.","info");return}m.absensiRows=s.map(l=>({id_peserta:l.id,nama:l.nama_lengkap,status_hadir:"hadir",perkembangan_materi:"",catatan:""})),Za(s)}),(i=document.getElementById("btn-simpan-absensi"))==null||i.addEventListener("click",()=>Xa(t)),window.setAllStatus=n=>{m.absensiRows.forEach(s=>s.status_hadir=n),document.querySelectorAll(".status-select").forEach(s=>{s.value=n,updateRowStyle(s)})},window.renderMentorView=n=>P(n,t)}function Za(a){const t=document.getElementById("absensi-table-wrapper"),e=document.getElementById("absensi-tbody");t.style.display="block",document.getElementById("absensi-count-label").textContent=`${a.length} peserta didik dalam kelas`,e.innerHTML=m.absensiRows.map((i,n)=>`
+  </div>`,document.getElementById("btn-load-absensi").addEventListener("click",()=>{const n=parseInt(document.getElementById("absensi-kelas-select").value);if(!n){t("Pilih kelas terlebih dahulu.","info");return}m.selectedKelas=m.kelasList.find(l=>l.id===n);const s=m.pesertaList.filter(l=>l.id_kelas===n);if(s.length===0){t("Tidak ada peserta didik di kelas ini.","info");return}m.absensiRows=s.map(l=>({id_peserta:l.id,nama:l.nama_lengkap,status_hadir:"hadir",perkembangan_materi:"",catatan:""})),Xa(s)}),(i=document.getElementById("btn-simpan-absensi"))==null||i.addEventListener("click",()=>ae(t)),window.setAllStatus=n=>{m.absensiRows.forEach(s=>s.status_hadir=n),document.querySelectorAll(".status-select").forEach(s=>{s.value=n,updateRowStyle(s)})},window.renderMentorView=n=>B(n,t)}function Xa(a){const t=document.getElementById("absensi-table-wrapper"),e=document.getElementById("absensi-tbody");t.style.display="block",document.getElementById("absensi-count-label").textContent=`${a.length} peserta didik dalam kelas`,e.innerHTML=m.absensiRows.map((i,n)=>`
   <tr id="absensi-row-${n}" style="border-bottom:1px solid rgba(240,175,67,0.15);${n%2===1?"background:rgba(255,255,255,0.03);":""}">
     <td style="padding:10px 16px;color:#F0AF43;font-weight:700;">${n+1}</td>
     <td style="padding:10px 16px;">
@@ -1239,7 +1239,7 @@ ${o!=null&&o.length?`
         style="font-size:12.5px;"
         onchange="updateAbsensiField(this,'catatan')" />
     </td>
-  </tr>`).join(""),window.updateAbsensiStatus=i=>{const n=parseInt(i.dataset.idx);m.absensiRows[n].status_hadir=i.value,updateRowStyle(i)},window.updateAbsensiField=(i,n)=>{const s=parseInt(i.dataset.idx);m.absensiRows[s][n]=i.value},window.updateRowStyle=i=>{const n={hadir:"rgba(16,185,129,0.08)",izin:"rgba(240,175,67,0.08)",sakit:"rgba(59,130,246,0.08)",alpa:"rgba(239,68,68,0.08)"},s=parseInt(i.dataset.idx),l=document.getElementById("absensi-row-"+s);l&&(l.style.background=n[i.value]||"")}}async function Xa(a){var r,o,d,c,f,y;const t=(r=m.selectedKelas)==null?void 0:r.id,e=(o=document.getElementById("absensi-tanggal"))==null?void 0:o.value,i=(c=(d=document.getElementById("absensi-materi"))==null?void 0:d.value)==null?void 0:c.trim(),n=(y=(f=document.getElementById("absensi-catatan"))==null?void 0:f.value)==null?void 0:y.trim();if(!t||!e){a("Pilih kelas dan tanggal.","info");return}if(m.absensiRows.length===0){a("Muat daftar peserta didik terlebih dahulu.","info");return}const s=document.getElementById("btn-simpan-absensi");s.disabled=!0,s.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan…';const l=m.absensiRows.map(b=>({id_peserta:b.id_peserta,id_mentor:m.profile.id,id_kelas:t,tanggal:e,status_hadir:b.status_hadir,materi_pembahasan:i||null,perkembangan_materi:b.perkembangan_materi||null,catatan_sesi:n||null||b.catatan||null}));try{await _.bulkSimpanAbsensi(l),a(`Absensi ${l.length} peserta didik berhasil disimpan! ✅`,"success"),s.disabled=!1,s.innerHTML='<i class="fa-solid fa-floppy-disk"></i> Simpan Absensi & Materi'}catch(b){a("Gagal menyimpan: "+b.message,"error"),s.disabled=!1,s.innerHTML='<i class="fa-solid fa-floppy-disk"></i> Simpan Absensi & Materi'}}function ae(a,t){a.innerHTML=`
+  </tr>`).join(""),window.updateAbsensiStatus=i=>{const n=parseInt(i.dataset.idx);m.absensiRows[n].status_hadir=i.value,updateRowStyle(i)},window.updateAbsensiField=(i,n)=>{const s=parseInt(i.dataset.idx);m.absensiRows[s][n]=i.value},window.updateRowStyle=i=>{const n={hadir:"rgba(16,185,129,0.08)",izin:"rgba(240,175,67,0.08)",sakit:"rgba(59,130,246,0.08)",alpa:"rgba(239,68,68,0.08)"},s=parseInt(i.dataset.idx),l=document.getElementById("absensi-row-"+s);l&&(l.style.background=n[i.value]||"")}}async function ae(a){var r,o,d,c,g,v;const t=(r=m.selectedKelas)==null?void 0:r.id,e=(o=document.getElementById("absensi-tanggal"))==null?void 0:o.value,i=(c=(d=document.getElementById("absensi-materi"))==null?void 0:d.value)==null?void 0:c.trim(),n=(v=(g=document.getElementById("absensi-catatan"))==null?void 0:g.value)==null?void 0:v.trim();if(!t||!e){a("Pilih kelas dan tanggal.","info");return}if(m.absensiRows.length===0){a("Muat daftar peserta didik terlebih dahulu.","info");return}const s=document.getElementById("btn-simpan-absensi");s.disabled=!0,s.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan…';const l=m.absensiRows.map(f=>({id_peserta:f.id_peserta,id_mentor:m.profile.id,id_kelas:t,tanggal:e,status_hadir:f.status_hadir,materi_pembahasan:i||null,perkembangan_materi:f.perkembangan_materi||null,catatan_sesi:n||null||f.catatan||null}));try{await _.bulkSimpanAbsensi(l),a(`Absensi ${l.length} peserta didik berhasil disimpan! ✅`,"success"),s.disabled=!1,s.innerHTML='<i class="fa-solid fa-floppy-disk"></i> Simpan Absensi & Materi'}catch(f){a("Gagal menyimpan: "+f.message,"error"),s.disabled=!1,s.innerHTML='<i class="fa-solid fa-floppy-disk"></i> Simpan Absensi & Materi'}}function ee(a,t){a.innerHTML=`
   <div class="page-header">
     <div>
       <div class="page-title">Daftar <span>Peserta Didik</span></div>
@@ -1253,14 +1253,14 @@ ${o!=null&&o.length?`
   </div>
 
   <!-- Kelas filter tabs (bimbel only) -->
-  ${F()&&m.kelasList.length>0?`
+  ${q()&&m.kelasList.length>0?`
   <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
     <button class="btn btn-primary btn-sm active-kelas-tab" data-kelas-filter="all" onclick="filterByKelas('all',this)">Semua</button>
     ${m.kelasList.map(e=>`<button class="btn btn-ghost btn-sm" data-kelas-filter="${e.id}" onclick="filterByKelas('${e.id}',this)">${e.nama_kelas}</button>`).join("")}
     <button class="btn btn-ghost btn-sm" data-kelas-filter="privat" onclick="filterByKelas('privat',this)">Privat</button>
   </div>`:""}
 
-  <div id="santri-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;"></div>`,window.currentKelasFilter="all",window.filterByKelas=(e,i)=>{var n;document.querySelectorAll("[data-kelas-filter]").forEach(s=>{s.classList.remove("btn-primary"),s.classList.add("btn-ghost")}),i.classList.remove("btn-ghost"),i.classList.add("btn-primary"),window.currentKelasFilter=e,J(ra(((n=document.getElementById("santri-search"))==null?void 0:n.value)||"",e))},window.openSantriDetail=e=>Aa(e,a,t),window.renderMentorView=e=>P(e,t),document.getElementById("santri-search").addEventListener("input",e=>{J(ra(e.target.value,window.currentKelasFilter||"all"))}),J(m.pesertaList)}function ra(a,t){return m.pesertaList.filter(e=>{const i=!a||e.nama_lengkap.toLowerCase().includes(a.toLowerCase());return t==="all"?i:t==="privat"?i&&e.jenis==="privat":i&&String(e.id_kelas)===String(t)})}function J(a,t){const e=document.getElementById("santri-grid");if(e){if(a.length===0){e.innerHTML=`<div style="grid-column:1/-1"><div class="empty-state">
+  <div id="santri-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;"></div>`,window.currentKelasFilter="all",window.filterByKelas=(e,i)=>{var n;document.querySelectorAll("[data-kelas-filter]").forEach(s=>{s.classList.remove("btn-primary"),s.classList.add("btn-ghost")}),i.classList.remove("btn-ghost"),i.classList.add("btn-primary"),window.currentKelasFilter=e,J(ra(((n=document.getElementById("santri-search"))==null?void 0:n.value)||"",e))},window.openSantriDetail=e=>Aa(e,a,t),window.renderMentorView=e=>B(e,t),document.getElementById("santri-search").addEventListener("input",e=>{J(ra(e.target.value,window.currentKelasFilter||"all"))}),J(m.pesertaList)}function ra(a,t){return m.pesertaList.filter(e=>{const i=!a||e.nama_lengkap.toLowerCase().includes(a.toLowerCase());return t==="all"?i:t==="privat"?i&&e.jenis==="privat":i&&String(e.id_kelas)===String(t)})}function J(a,t){const e=document.getElementById("santri-grid");if(e){if(a.length===0){e.innerHTML=`<div style="grid-column:1/-1"><div class="empty-state">
       <div class="empty-state-icon">🔍</div><h3>Tidak ada peserta didik ditemukan</h3></div></div>`;return}e.innerHTML=a.map(i=>{var n;return`
   <div class="card" style="cursor:pointer;padding:18px 20px;"
     onclick="openSantriDetail(${i.id})"
@@ -1272,7 +1272,7 @@ ${o!=null&&o.length?`
         font-size:18px;font-weight:700;color:#fdf0e2;flex-shrink:0;">${i.nama_lengkap.charAt(0)}</div>
       <div style="flex:1;min-width:0;">
         <div style="font-weight:700;color:var(--cream-100);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${i.nama_lengkap}</div>
-        <div style="font-size:11.5px;color:var(--text-card-muted);">${((n=i.kelas)==null?void 0:n.nama_kelas)||V(i.jenis)}</div>
+        <div style="font-size:11.5px;color:var(--text-card-muted);">${((n=i.kelas)==null?void 0:n.nama_kelas)||U(i.jenis)}</div>
       </div>
       <span class="${i.jenis==="bimbel"?"badge badge-gold":"badge badge-emerald"}">${i.jenis}</span>
     </div>
@@ -1289,19 +1289,63 @@ ${o!=null&&o.length?`
       </button>
       <div>
         <div class="page-title">${i.nama_lengkap}</div>
-        <div class="page-breadcrumb">${((n=i.kelas)==null?void 0:n.nama_kelas)||V(i.jenis)}</div>
+        <div class="page-breadcrumb">${((n=i.kelas)==null?void 0:n.nama_kelas)||U(i.jenis)}</div>
       </div>
     </div>
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 340px;gap:20px;" id="detail-layout">
-    <!-- Left: Forms -->
-    <div style="display:flex;flex-direction:column;gap:16px;">
+  <div style="display:flex;flex-direction:column;gap:24px;max-width:960px;" id="detail-layout">
+    <!-- Card Form Terpadu Berurutan Ke Bawah -->
+    <div class="card" id="card-laporan-sesi" style="padding:24px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,0.08);">
+        <div>
+          <h3 style="color:var(--cream-100);margin:0 0 4px;font-size:1.15rem;display:flex;align-items:center;gap:8px;">
+            <i class="fa-solid fa-clipboard-list" style="color:#F0AF43;"></i>
+            Input Laporan Sesi Peserta Didik
+          </h3>
+          <p style="margin:0;font-size:12.5px;color:var(--text-card-muted);">
+            Isi bagian yang dibutuhkan (Hafalan / Penilaian / Catatan), lalu klik Simpan di bagian bawah.
+          </p>
+        </div>
+      </div>
 
-      <!-- Kemajuan Hafalan -->
-      <div class="card">
-        <h4 style="color:var(--cream-100);margin-bottom:16px;"><i class="fa-solid fa-book-quran" style="color:#F0AF43;"></i> Input Kemajuan Hafalan</h4>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+      <!-- SEKSI 1: KEHADIRAN & MATERI SESI -->
+      <div style="margin-bottom:24px;padding:16px;background:rgba(255,255,255,0.02);border-radius:10px;border:1px solid rgba(255,255,255,0.06);">
+        <h4 style="color:#F0AF43;margin:0 0 14px;font-size:0.95rem;display:flex;align-items:center;gap:8px;">
+          <i class="fa-solid fa-calendar-check"></i> 1. Kehadiran & Materi Sesi
+        </h4>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:14px;margin-bottom:14px;">
+          <div class="form-group">
+            <label class="form-label">Status Kehadiran</label>
+            <select class="form-control" id="inp-status-hadir">
+              <option value="hadir">✅ Hadir</option>
+              <option value="izin">⚠️ Izin</option>
+              <option value="sakit">🩺 Sakit</option>
+              <option value="alpa">❌ Alpa</option>
+              <option value="none">— Lewati Kehadiran —</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tanggal Sesi</label>
+            <input type="date" class="form-control" id="inp-tgl-kehadiran" value="${new Date().toISOString().slice(0,10)}" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Materi Pembahasan</label>
+            <input type="text" class="form-control" id="inp-materi" placeholder="cth: Tajwid Mad Thobi'i, Makhorijul Huruf" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Perkembangan Materi / Catatan Sesi (Opsional)</label>
+          <input type="text" class="form-control" id="inp-perkembangan-materi" placeholder="cth: Santri sudah memahami panjang 2 harakat dengan baik" />
+        </div>
+      </div>
+
+      <!-- SEKSI 2: KEMAJUAN HAFALAN -->
+      <div style="margin-bottom:24px;padding:16px;background:rgba(255,255,255,0.02);border-radius:10px;border:1px solid rgba(255,255,255,0.06);">
+        <h4 style="color:#F0AF43;margin:0 0 14px;font-size:0.95rem;display:flex;align-items:center;gap:8px;">
+          <i class="fa-solid fa-book-quran"></i> 2. Kemajuan Hafalan
+        </h4>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:14px;margin-bottom:14px;">
           <div class="form-group">
             <label class="form-label">Kitab / Surah</label>
             <input type="text" class="form-control" id="inp-kitab" placeholder="cth: Al-Baqarah, Jilid 2" />
@@ -1310,8 +1354,6 @@ ${o!=null&&o.length?`
             <label class="form-label">Halaman / Ayat</label>
             <input type="text" class="form-control" id="inp-halaman" placeholder="cth: Ayat 1-10, Hal. 12" />
           </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
           <div class="form-group">
             <label class="form-label">Status Kelancaran</label>
             <select class="form-control" id="inp-kelancaran">
@@ -1321,29 +1363,28 @@ ${o!=null&&o.length?`
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">Tanggal</label>
+            <label class="form-label">Tanggal Hafalan</label>
             <input type="date" class="form-control" id="inp-tgl-kemajuan" value="${new Date().toISOString().slice(0,10)}" />
           </div>
         </div>
-        <div class="form-group" style="margin-bottom:14px;">
-          <label class="form-label">Catatan Hafalan</label>
-          <textarea class="form-control" id="inp-catatan-hafalan" rows="2" placeholder="Catatan perkembangan hafalan…"></textarea>
+        <div class="form-group">
+          <label class="form-label">Catatan Hafalan (Opsional)</label>
+          <textarea class="form-control" id="inp-catatan-hafalan" rows="2" placeholder="Catatan khusus perkembangan hafalan atau tajwid yang perlu diperbaiki…"></textarea>
         </div>
-        <button class="btn btn-primary btn-sm" id="btn-save-kemajuan">
-          <i class="fa-solid fa-floppy-disk"></i> Simpan Kemajuan
-        </button>
       </div>
 
-      <!-- Penilaian -->
-      <div class="card">
-        <h4 style="color:var(--cream-100);margin-bottom:16px;"><i class="fa-solid fa-star" style="color:#F0AF43;"></i> Input Penilaian</h4>
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:12px;">
+      <!-- SEKSI 3: PENILAIAN -->
+      <div style="margin-bottom:24px;padding:16px;background:rgba(255,255,255,0.02);border-radius:10px;border:1px solid rgba(255,255,255,0.06);">
+        <h4 style="color:#F0AF43;margin:0 0 14px;font-size:0.95rem;display:flex;align-items:center;gap:8px;">
+          <i class="fa-solid fa-star"></i> 3. Penilaian Sesi
+        </h4>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:14px;margin-bottom:14px;">
           <div class="form-group">
             <label class="form-label">Nilai Angka (0–100)</label>
             <input type="number" class="form-control" id="inp-nilai" min="0" max="100" placeholder="85" />
           </div>
           <div class="form-group">
-            <label class="form-label">Tanggal</label>
+            <label class="form-label">Tanggal Nilai</label>
             <input type="date" class="form-control" id="inp-tgl-nilai" value="${new Date().toISOString().slice(0,10)}" />
           </div>
           <div class="form-group">
@@ -1359,68 +1400,93 @@ ${o!=null&&o.length?`
             <input type="number" class="form-control" id="inp-kelancaran-nilai" min="1" max="5" placeholder="4" />
           </div>
         </div>
-        <div class="form-group" style="margin-bottom:14px;">
-          <label class="form-label">Catatan Penilaian</label>
-          <textarea class="form-control" id="inp-catatan-nilai" rows="2" placeholder="Catatan nilai…"></textarea>
+        <div class="form-group">
+          <label class="form-label">Catatan Penilaian (Opsional)</label>
+          <textarea class="form-control" id="inp-catatan-nilai" rows="2" placeholder="Catatan terkait penilaian ini…"></textarea>
         </div>
-        <button class="btn btn-primary btn-sm" id="btn-save-nilai">
-          <i class="fa-solid fa-floppy-disk"></i> Simpan Penilaian
-        </button>
       </div>
 
-      <!-- Catatan Mentor -->
-      <div class="card">
-        <h4 style="color:var(--cream-100);margin-bottom:14px;"><i class="fa-solid fa-comment-dots" style="color:#60a5fa;"></i> Catatan Mentor</h4>
-        <div class="form-group" style="margin-bottom:14px;">
-          <textarea class="form-control" id="inp-catatan" rows="3" placeholder="Catatan perkembangan, observasi, atau pesan untuk orang tua / wali…"></textarea>
+      <!-- SEKSI 4: CATATAN MENTOR UNTUK WALI -->
+      <div style="margin-bottom:24px;padding:16px;background:rgba(255,255,255,0.02);border-radius:10px;border:1px solid rgba(255,255,255,0.06);">
+        <h4 style="color:#F0AF43;margin:0 0 14px;font-size:0.95rem;display:flex;align-items:center;gap:8px;">
+          <i class="fa-solid fa-comment-dots"></i> 4. Catatan untuk Wali / Orang Tua
+        </h4>
+        <div class="form-group">
+          <textarea class="form-control" id="inp-catatan" rows="3" placeholder="Tuliskan pesan perkembangan, keaktifan santri, atau saran untuk orang tua di rumah…"></textarea>
         </div>
-        <button class="btn btn-secondary btn-sm" id="btn-save-catatan">
-          <i class="fa-solid fa-floppy-disk"></i> Simpan Catatan
+      </div>
+
+      <!-- Tombol Simpan Terpadu di Bawah -->
+      <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:18px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-lg" id="btn-save-laporan" style="min-width:240px;padding:12px 24px;font-size:14px;">
+          <i class="fa-solid fa-floppy-disk"></i> Simpan Laporan Sesi
         </button>
+        <span id="laporan-save-hint" style="font-size:12.5px;color:var(--text-card-muted);">
+          <i class="fa-solid fa-circle-info" style="margin-right:4px;"></i> Semua bagian yang terisi akan otomatis tersimpan bersamaan
+        </span>
       </div>
     </div>
 
-    <!-- Right: History -->
-    <div style="display:flex;flex-direction:column;gap:16px;">
-      <div class="card" id="history-panel">
-        <h4 style="color:var(--cream-100);margin-bottom:14px;"><i class="fa-solid fa-clock-rotate-left" style="color:#F0AF43;"></i> Riwayat Peserta Didik</h4>
-        <div style="font-size:13px;color:var(--text-card-muted);text-align:center;padding:20px 0;">
-          Memuat riwayat…
-        </div>
+    <!-- Riwayat Peserta Didik di Bawahnya -->
+    <div class="card" id="history-panel" style="padding:24px;">
+      <h4 style="color:var(--cream-100);margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+        <i class="fa-solid fa-clock-rotate-left" style="color:#F0AF43;"></i> Riwayat Peserta Didik
+      </h4>
+      <div style="font-size:13px;color:var(--text-card-muted);text-align:center;padding:20px 0;">
+        Memuat riwayat…
       </div>
     </div>
-  </div>`,window.renderMentorView=s=>P(s,e),H(a),document.getElementById("btn-save-kemajuan").addEventListener("click",async()=>{const s={id_peserta:a,id_mentor:m.profile.id,tanggal:document.getElementById("inp-tgl-kemajuan").value,kitab_surat:document.getElementById("inp-kitab").value.trim(),halaman_ayat:document.getElementById("inp-halaman").value.trim(),status_kelancaran:document.getElementById("inp-kelancaran").value,catatan_hafalan:document.getElementById("inp-catatan-hafalan").value.trim()};if(!s.kitab_surat){e("Isi kitab/surah terlebih dahulu.","info");return}try{await _.addKemajuan(s),e("Kemajuan hafalan tersimpan! ✅","success"),document.getElementById("inp-kitab").value="",document.getElementById("inp-halaman").value="",document.getElementById("inp-catatan-hafalan").value="",H(a,e)}catch(l){e("Gagal: "+l.message,"error")}}),document.getElementById("btn-save-nilai").addEventListener("click",async()=>{const s=parseFloat(document.getElementById("inp-nilai").value);if(isNaN(s)){e("Isi nilai angka.","info");return}try{await _.addPenilaian({id_peserta:a,id_mentor:m.profile.id,tanggal:document.getElementById("inp-tgl-nilai").value,nilai_angka:s,nilai_adab:parseInt(document.getElementById("inp-adab").value)||null,nilai_tajwid:parseInt(document.getElementById("inp-tajwid").value)||null,nilai_kelancaran:parseInt(document.getElementById("inp-kelancaran-nilai").value)||null,catatan:document.getElementById("inp-catatan-nilai").value.trim()}),e("Penilaian tersimpan! ✅","success"),document.getElementById("inp-nilai").value="",H(a,e)}catch(l){e("Gagal: "+l.message,"error")}}),document.getElementById("btn-save-catatan").addEventListener("click",async()=>{const s=document.getElementById("inp-catatan").value.trim();if(!s){e("Tulis catatan terlebih dahulu.","info");return}try{await _.addCatatan({id_peserta:a,id_mentor:m.profile.id,isi_catatan:s}),e("Catatan tersimpan! ✅","success"),document.getElementById("inp-catatan").value="",H(a,e)}catch(l){e("Gagal: "+l.message,"error")}}))}async function H(a,t){const e=document.getElementById("history-panel");if(e)try{const[i,n,s,l]=await Promise.all([_.getKemajuan(a,8),_.getPenilaian(a,8),_.getCatatan(a),_.getRiwayatKehadiran(a,10)]);e.innerHTML=`
-    <h4 style="color:var(--cream-100);margin-bottom:14px;"><i class="fa-solid fa-clock-rotate-left" style="color:#F0AF43;"></i> Riwayat Peserta Didik</h4>
+  </div>`,window.renderMentorView=s=>B(s,e),oa(a),document.getElementById("btn-save-laporan").addEventListener("click",async()=>{const s=document.getElementById("btn-save-laporan"),l=new Date().toISOString().slice(0,10),r=document.getElementById("inp-status-hadir").value,o=document.getElementById("inp-materi").value.trim(),d=document.getElementById("inp-perkembangan-materi").value.trim(),c=document.getElementById("inp-kitab").value.trim(),g=document.getElementById("inp-halaman").value.trim(),v=document.getElementById("inp-nilai").value,f=document.getElementById("inp-catatan").value.trim(),x=r!=="none",p=!!c,w=!!v,P=!!f;if(!x&&!p&&!w&&!P){e("Isi minimal satu bagian (Kehadiran, Hafalan, Penilaian, atau Catatan).","info");return}s.disabled=!0,s.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan…';const k=[],$=[];if(x)try{await _.addKehadiran({id_peserta:a,id_mentor:m.profile.id,id_kelas:i.id_kelas||null,tanggal:document.getElementById("inp-tgl-kehadiran").value||l,status_hadir:r,materi_pembahasan:o||null,perkembangan_materi:d||null,catatan_sesi:null}),$.push(`Kehadiran (${r})`),document.getElementById("inp-materi").value="",document.getElementById("inp-perkembangan-materi").value=""}catch(E){k.push("Kehadiran: "+E.message)}if(p)try{await _.addKemajuan({id_peserta:a,id_mentor:m.profile.id,tanggal:document.getElementById("inp-tgl-kemajuan").value||l,kitab_surat:c,halaman_ayat:g,status_kelancaran:document.getElementById("inp-kelancaran").value,catatan_hafalan:document.getElementById("inp-catatan-hafalan").value.trim()||null}),$.push("Kemajuan Hafalan"),document.getElementById("inp-kitab").value="",document.getElementById("inp-halaman").value="",document.getElementById("inp-catatan-hafalan").value=""}catch(E){k.push("Hafalan: "+E.message)}if(w){const E=parseFloat(v);if(isNaN(E))k.push("Penilaian: nilai angka tidak valid");else try{await _.addPenilaian({id_peserta:a,id_mentor:m.profile.id,tanggal:document.getElementById("inp-tgl-nilai").value||l,nilai_angka:E,nilai_adab:parseInt(document.getElementById("inp-adab").value)||null,nilai_tajwid:parseInt(document.getElementById("inp-tajwid").value)||null,nilai_kelancaran:parseInt(document.getElementById("inp-kelancaran-nilai").value)||null,catatan:document.getElementById("inp-catatan-nilai").value.trim()||null}),$.push("Penilaian"),document.getElementById("inp-nilai").value="",document.getElementById("inp-adab").value="",document.getElementById("inp-tajwid").value="",document.getElementById("inp-kelancaran-nilai").value="",document.getElementById("inp-catatan-nilai").value=""}catch(Ia){k.push("Penilaian: "+Ia.message)}}if(P)try{await _.addCatatan({id_peserta:a,id_mentor:m.profile.id,isi_catatan:f}),$.push("Catatan"),document.getElementById("inp-catatan").value=""}catch(E){k.push("Catatan: "+E.message)}s.disabled=!1,s.innerHTML='<i class="fa-solid fa-floppy-disk"></i> Simpan Laporan Sesi',$.length>0&&(e(`✅ Tersimpan: ${$.join(", ")}`,"success"),oa(a)),k.length>0&&k.forEach(E=>e("Gagal — "+E,"error"))}))}async function oa(a,t){const e=document.getElementById("history-panel");if(e)try{const[i,n,s,l]=await Promise.all([_.getKemajuan(a,8),_.getPenilaian(a,8),_.getCatatan(a),_.getRiwayatKehadiran(a,10)]);e.innerHTML=`
+    <h4 style="color:var(--cream-100);margin-bottom:18px;display:flex;align-items:center;gap:8px;">
+      <i class="fa-solid fa-clock-rotate-left" style="color:#F0AF43;"></i> Riwayat Peserta Didik
+    </h4>
 
-    <div style="font-size:12px;font-weight:700;color:var(--brown-300);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Hafalan Terakhir</div>
-    ${i.length===0?'<p style="font-size:12px;color:var(--text-card-muted);margin-bottom:12px;">Belum ada catatan</p>':i.slice(0,4).map(r=>`
-      <div style="padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:8px;margin-bottom:6px;">
-        <div style="font-size:12.5px;color:var(--cream-100);font-weight:600;">${r.kitab_surat} — ${r.halaman_ayat||""}</div>
-        <div style="font-size:11px;color:var(--text-card-muted);margin-top:2px;">${Y(r.tanggal)} • ${te(r.status_kelancaran)}</div>
-      </div>`).join("")}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:20px;">
+      <!-- Kolom Hafalan -->
+      <div style="background:rgba(255,255,255,0.02);padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.05);">
+        <div style="font-size:12px;font-weight:700;color:var(--brown-300);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">
+          <i class="fa-solid fa-book-quran" style="margin-right:6px;"></i> Hafalan Terakhir
+        </div>
+        ${i.length===0?'<p style="font-size:12px;color:var(--text-card-muted);margin:0;">Belum ada catatan</p>':i.slice(0,4).map(r=>`
+          <div style="padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:8px;margin-bottom:6px;">
+            <div style="font-size:12.5px;color:var(--cream-100);font-weight:600;">${r.kitab_surat} — ${r.halaman_ayat||""}</div>
+            <div style="font-size:11px;color:var(--text-card-muted);margin-top:2px;">${Y(r.tanggal)} • ${ie(r.status_kelancaran)}</div>
+          </div>`).join("")}
+      </div>
 
-    <div style="font-size:12px;font-weight:700;color:var(--brown-300);text-transform:uppercase;letter-spacing:0.5px;margin:12px 0 8px;">Penilaian Terakhir</div>
-    ${n.length===0?'<p style="font-size:12px;color:var(--text-card-muted);margin-bottom:12px;">Belum ada penilaian</p>':n.slice(0,4).map(r=>`
-      <div style="padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:8px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;">
-        <div>
-          <div style="font-size:13px;color:var(--cream-100);font-weight:700;">${r.nilai_angka}</div>
-          <div style="font-size:11px;color:var(--text-card-muted);">${Y(r.tanggal)}</div>
+      <!-- Kolom Penilaian -->
+      <div style="background:rgba(255,255,255,0.02);padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.05);">
+        <div style="font-size:12px;font-weight:700;color:var(--brown-300);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">
+          <i class="fa-solid fa-star" style="margin-right:6px;"></i> Penilaian Terakhir
         </div>
-        <div style="font-size:11px;color:var(--text-card-muted);text-align:right;">
-          Adab ${r.nilai_adab||"-"} • Tajwid ${r.nilai_tajwid||"-"} • Lancar ${r.nilai_kelancaran||"-"}
-        </div>
-      </div>`).join("")}
+        ${n.length===0?'<p style="font-size:12px;color:var(--text-card-muted);margin:0;">Belum ada penilaian</p>':n.slice(0,4).map(r=>`
+          <div style="padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:8px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;">
+            <div>
+              <div style="font-size:13px;color:var(--cream-100);font-weight:700;">${r.nilai_angka}</div>
+              <div style="font-size:11px;color:var(--text-card-muted);">${Y(r.tanggal)}</div>
+            </div>
+            <div style="font-size:11px;color:var(--text-card-muted);text-align:right;">
+              Adab ${r.nilai_adab||"-"} • Tajwid ${r.nilai_tajwid||"-"} • Lancar ${r.nilai_kelancaran||"-"}
+            </div>
+          </div>`).join("")}
+      </div>
 
-    <div style="font-size:12px;font-weight:700;color:var(--brown-300);text-transform:uppercase;letter-spacing:0.5px;margin:12px 0 8px;">Riwayat Absensi</div>
-    ${l.length===0?'<p style="font-size:12px;color:var(--text-card-muted);">Belum ada absensi</p>':l.slice(0,6).map(r=>`
-      <div style="padding:7px 12px;background:rgba(255,255,255,0.04);border-radius:8px;margin-bottom:5px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
-          <span style="font-size:12px;font-weight:700;color:${ie(r.status_hadir)};">${ne(r.status_hadir)} ${r.status_hadir}</span>
-          <span style="font-size:11px;color:var(--text-card-muted);">${Y(r.tanggal)}</span>
+      <!-- Kolom Absensi -->
+      <div style="background:rgba(255,255,255,0.02);padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.05);">
+        <div style="font-size:12px;font-weight:700;color:var(--brown-300);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">
+          <i class="fa-solid fa-calendar-check" style="margin-right:6px;"></i> Riwayat Absensi
         </div>
-        ${r.materi_pembahasan?`<div style="font-size:11px;color:var(--text-card-muted);">📚 ${r.materi_pembahasan}</div>`:""}
-        ${r.perkembangan_materi?`<div style="font-size:11px;color:var(--text-card-muted);font-style:italic;">${r.perkembangan_materi}</div>`:""}
-      </div>`).join("")}`}catch{e&&(e.innerHTML='<p style="color:#e05c4b;font-size:13px;">Gagal memuat riwayat.</p>')}}function ee(a,t){a.innerHTML=`
+        ${l.length===0?'<p style="font-size:12px;color:var(--text-card-muted);margin:0;">Belum ada absensi</p>':l.slice(0,4).map(r=>`
+          <div style="padding:7px 12px;background:rgba(255,255,255,0.04);border-radius:8px;margin-bottom:5px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
+              <span style="font-size:12px;font-weight:700;color:${ne(r.status_hadir)};">${se(r.status_hadir)} ${r.status_hadir}</span>
+              <span style="font-size:11px;color:var(--text-card-muted);">${Y(r.tanggal)}</span>
+            </div>
+            ${r.materi_pembahasan?`<div style="font-size:11px;color:var(--text-card-muted);">📚 ${r.materi_pembahasan}</div>`:""}
+            ${r.perkembangan_materi?`<div style="font-size:11px;color:var(--text-card-muted);font-style:italic;">${r.perkembangan_materi}</div>`:""}
+          </div>`).join("")}
+      </div>
+    </div>`}catch{e&&(e.innerHTML='<p style="color:#e05c4b;font-size:13px;">Gagal memuat riwayat.</p>')}}function te(a,t){a.innerHTML=`
   <div class="page-header">
     <div class="page-title">Ganti <span>Password</span></div>
   </div>
@@ -1436,7 +1502,7 @@ ${o!=null&&o.length?`
     <button class="btn btn-primary" id="btn-ganti-pw">
       <i class="fa-solid fa-lock"></i> Ganti Password
     </button>
-  </div>`,document.getElementById("btn-ganti-pw").addEventListener("click",async()=>{const e=document.getElementById("inp-new-pw").value,i=document.getElementById("inp-confirm-pw").value;if(!e||e.length<8){t("Password minimal 8 karakter.","info");return}if(e!==i){t("Konfirmasi password tidak cocok.","error");return}try{await _.updatePassword(e),t("Password berhasil diubah! ✅","success"),document.getElementById("inp-new-pw").value="",document.getElementById("inp-confirm-pw").value=""}catch(n){t("Gagal: "+n.message,"error")}})}function V(a){return a==="bimbel"?"Bimbel Kelompok":a==="privat"?"Privat":a||"-"}function te(a){return a==="lancar"?'<span class="ms" style="font-size:15px;color:#10b981;vertical-align:middle;">check_circle</span> Lancar':a==="cukup"?'<span class="ms" style="font-size:15px;color:#F0AF43;vertical-align:middle;">help</span> Cukup':'<span class="ms" style="font-size:15px;color:#ef4444;vertical-align:middle;">replay</span> Perlu Diulang'}function ie(a){return a==="hadir"?"#10b981":a==="izin"?"#F0AF43":a==="sakit"?"#60a5fa":"#e05c4b"}function ne(a){return a==="hadir"?'<span class="ms" style="font-size:15px;color:#10b981;">check_circle</span>':a==="izin"?'<span class="ms" style="font-size:15px;color:#F0AF43;">description</span>':a==="sakit"?'<span class="ms" style="font-size:15px;color:#60a5fa;">sick</span>':'<span class="ms" style="font-size:15px;color:#ef4444;">cancel</span>'}function Y(a){return a?new Date(a).toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"}):"-"}function oa(a,t,e){document.title="Portal Wali — Quran Insight Academy",a.innerHTML=se(),le(t,e)}function se(){return`
+  </div>`,document.getElementById("btn-ganti-pw").addEventListener("click",async()=>{const e=document.getElementById("inp-new-pw").value,i=document.getElementById("inp-confirm-pw").value;if(!e||e.length<8){t("Password minimal 8 karakter.","info");return}if(e!==i){t("Konfirmasi password tidak cocok.","error");return}try{await _.updatePassword(e),t("Password berhasil diubah! ✅","success"),document.getElementById("inp-new-pw").value="",document.getElementById("inp-confirm-pw").value=""}catch(n){t("Gagal: "+n.message,"error")}})}function U(a){return a==="bimbel"?"Bimbel Kelompok":a==="privat"?"Privat":a||"-"}function ie(a){return a==="lancar"?'<span class="ms" style="font-size:15px;color:#10b981;vertical-align:middle;">check_circle</span> Lancar':a==="cukup"?'<span class="ms" style="font-size:15px;color:#F0AF43;vertical-align:middle;">help</span> Cukup':'<span class="ms" style="font-size:15px;color:#ef4444;vertical-align:middle;">replay</span> Perlu Diulang'}function ne(a){return a==="hadir"?"#10b981":a==="izin"?"#F0AF43":a==="sakit"?"#60a5fa":"#e05c4b"}function se(a){return a==="hadir"?'<span class="ms" style="font-size:15px;color:#10b981;">check_circle</span>':a==="izin"?'<span class="ms" style="font-size:15px;color:#F0AF43;">description</span>':a==="sakit"?'<span class="ms" style="font-size:15px;color:#60a5fa;">sick</span>':'<span class="ms" style="font-size:15px;color:#ef4444;">cancel</span>'}function Y(a){return a?new Date(a).toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"}):"-"}function da(a,t,e){document.title="Portal Wali — Quran Insight Academy",a.innerHTML=le(),re(t,e)}function le(){return`
 <div style="min-height:100vh;background:#f3e9dc;font-family:'Plus Jakarta Sans',sans-serif;">
 
   <!-- Navbar -->
@@ -1557,28 +1623,28 @@ ${o!=null&&o.length?`
   @keyframes spin { to { transform: rotate(360deg); } }
   input::placeholder { color: rgba(201,168,122,0.5) !important; }
 </style>
-`}function le(a,t){window.navigateTo=o=>a(o);const e=document.getElementById("wali-search-input"),i=document.getElementById("wali-search-btn"),n=document.getElementById("wali-guide"),s=document.getElementById("wali-loading"),l=document.getElementById("wali-content");document.getElementById("detail-modal-close").addEventListener("click",()=>{document.getElementById("detail-modal").classList.remove("show")}),document.getElementById("detail-modal").addEventListener("click",function(o){o.target===this&&this.classList.remove("show")});async function r(){const o=e.value.trim();if(!o||o.length<2){t("Masukkan minimal 2 huruf nama peserta didik.","info"),e.focus();return}n.style.display="none",s.style.display="block",l.style.display="none",l.innerHTML="";try{const d=await C.searchPeserta(o);if(s.style.display="none",l.style.display="block",!d||d.length===0){l.innerHTML=`
+`}function re(a,t){window.navigateTo=o=>a(o);const e=document.getElementById("wali-search-input"),i=document.getElementById("wali-search-btn"),n=document.getElementById("wali-guide"),s=document.getElementById("wali-loading"),l=document.getElementById("wali-content");document.getElementById("detail-modal-close").addEventListener("click",()=>{document.getElementById("detail-modal").classList.remove("show")}),document.getElementById("detail-modal").addEventListener("click",function(o){o.target===this&&this.classList.remove("show")});async function r(){const o=e.value.trim();if(!o||o.length<2){t("Masukkan minimal 2 huruf nama peserta didik.","info"),e.focus();return}n.style.display="none",s.style.display="block",l.style.display="none",l.innerHTML="";try{const d=await F.searchPeserta(o);if(s.style.display="none",l.style.display="block",!d||d.length===0){l.innerHTML=`
           <div style="text-align:center;padding:48px;">
             <div style="font-size:52px;margin-bottom:16px;opacity:0.4;">🔍</div>
             <h3 style="color:#4F280C;">Peserta didik tidak ditemukan</h3>
             <p style="color:#81511D;font-size:14px;margin-top:8px;">
               Tidak ada peserta didik aktif dengan nama "<strong>${o}</strong>". Pastikan ejaan sudah benar.
             </p>
-          </div>`;return}re(d,t)}catch(d){s.style.display="none",l.style.display="block",l.innerHTML=`<div style="text-align:center;padding:48px;color:#e05c4b;">
+          </div>`;return}oe(d,t)}catch(d){s.style.display="none",l.style.display="block",l.innerHTML=`<div style="text-align:center;padding:48px;color:#e05c4b;">
         <i class="fa-solid fa-circle-exclamation" style="font-size:36px;margin-bottom:12px;"></i>
         <p>Gagal memuat data: ${d.message}</p></div>`,t("Gagal memuat data. Periksa koneksi Anda.","error")}}i.addEventListener("click",r),e.addEventListener("keydown",o=>{o.key==="Enter"&&r()}),window.openDetailWali=async function(o){var d;document.getElementById("detail-modal").classList.add("show"),document.getElementById("detail-modal-title").textContent="Memuat detail…",document.getElementById("detail-modal-body").innerHTML=`
       <div style="text-align:center;padding:48px;">
         <div style="width:40px;height:40px;border:3px solid rgba(240,175,67,0.2);
           border-top-color:#F0AF43;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto;"></div>
-      </div>`;try{const c=await C.getPesertaDetail(o);if(!c||!c.peserta){document.getElementById("detail-modal").classList.remove("show"),t("Data peserta didik tidak ditemukan.","error");return}document.getElementById("detail-modal-title").textContent=`Profil — ${((d=c.peserta)==null?void 0:d.nama_lengkap)||""}`,document.getElementById("detail-modal-body").innerHTML=de(c),await ce(o,c)}catch(c){document.getElementById("detail-modal").classList.remove("show"),t("Gagal memuat detail: "+c.message,"error")}},window.printRapor=async function(o,d){try{const c=await C.getPesertaDetail(o);c&&c.peserta?qa(c):t("Data peserta didik belum lengkap untuk dicetak.","error")}catch(c){t("Gagal mencetak rapor: "+c.message,"error")}}}function re(a,t){const e=document.getElementById("wali-content"),i=a.length;e.innerHTML=`
+      </div>`;try{const c=await F.getPesertaDetail(o);if(!c||!c.peserta){document.getElementById("detail-modal").classList.remove("show"),t("Data peserta didik tidak ditemukan.","error");return}document.getElementById("detail-modal-title").textContent=`Profil — ${((d=c.peserta)==null?void 0:d.nama_lengkap)||""}`,document.getElementById("detail-modal-body").innerHTML=ce(c),await pe(o,c)}catch(c){document.getElementById("detail-modal").classList.remove("show"),t("Gagal memuat detail: "+c.message,"error")}},window.printRapor=async function(o,d){try{const c=await F.getPesertaDetail(o);c&&c.peserta?Fa(c):t("Data peserta didik belum lengkap untuk dicetak.","error")}catch(c){t("Gagal mencetak rapor: "+c.message,"error")}}}function oe(a,t){const e=document.getElementById("wali-content"),i=a.length;e.innerHTML=`
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
       <h3 style="color:#1a0a02;font-size:1rem;font-weight:700;">
         <i class="fa-solid fa-users" style="color:#F0AF43;"></i> &nbsp;${i} Peserta Didik Ditemukan
       </h3>
     </div>
     <div style="display:flex;flex-direction:column;gap:16px;">
-      ${a.map(n=>oe(n)).join("")}
-    </div>`}function oe(a){const t=a.total_hadir+a.total_izin+a.total_sakit+a.total_alpa>0?Math.round(a.total_hadir/(a.total_hadir+a.total_izin+a.total_sakit+a.total_alpa)*100):0,e=a.nama_kelas||(a.jenis==="privat"?"Program Privat":"-"),i=a.kitab_surat_terakhir?`${a.kitab_surat_terakhir}${a.halaman_ayat_terakhir?" — "+a.halaman_ayat_terakhir:""}`:"Belum ada catatan";return`
+      ${a.map(n=>de(n)).join("")}
+    </div>`}function de(a){const t=a.total_hadir+a.total_izin+a.total_sakit+a.total_alpa>0?Math.round(a.total_hadir/(a.total_hadir+a.total_izin+a.total_sakit+a.total_alpa)*100):0,e=a.nama_kelas||(a.jenis==="privat"?"Program Privat":"-"),i=a.kitab_surat_terakhir?`${a.kitab_surat_terakhir}${a.halaman_ayat_terakhir?" — "+a.halaman_ayat_terakhir:""}`:"Belum ada catatan";return`
   <div style="background:white;border:1px solid rgba(129,81,29,0.15);border-radius:16px;
     padding:20px 24px;box-shadow:0 4px 16px rgba(0,0,0,0.06);
     transition:all 0.25s;cursor:pointer;display:block;"
@@ -1612,7 +1678,7 @@ ${o!=null&&o.length?`
       <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;">
         <!-- Nilai -->
         <div style="text-align:center;min-width:72px;">
-          <div style="font-size:22px;font-weight:800;color:${Ea(a.rata_nilai)};">${a.rata_nilai||"-"}</div>
+          <div style="font-size:22px;font-weight:800;color:${$a(a.rata_nilai)};">${a.rata_nilai||"-"}</div>
           <div style="font-size:10px;color:#81511D;text-transform:uppercase;letter-spacing:0.5px;">Rata Nilai</div>
         </div>
         <!-- Kehadiran -->
@@ -1649,7 +1715,7 @@ ${o!=null&&o.length?`
         <strong style="color:#4F280C;">Alpa:</strong> ${a.total_alpa||0}x
       </div>
     </div>
-  </div>`}function de(a){var k;const{peserta:t,mentor:e,kelas:i,kemajuan:n,penilaian:s,kehadiran_summary:l,riwayat_kehadiran:r,catatan_mentor:o}=a,d=l||{},c=(d.hadir||0)+(d.izin||0)+(d.sakit||0)+(d.alpa||0),f=c>0?Math.round(d.hadir/c*100):0,y=(s||[]).length>0?(s.reduce((p,w)=>p+(w.nilai_angka||0),0)/s.length).toFixed(1):"-",b=(i==null?void 0:i.nama_kelas)||((t==null?void 0:t.jenis)==="privat"?"Program Privat":"-");return`
+  </div>`}function ce(a){var x;const{peserta:t,mentor:e,kelas:i,kemajuan:n,penilaian:s,kehadiran_summary:l,riwayat_kehadiran:r,catatan_mentor:o}=a,d=l||{},c=(d.hadir||0)+(d.izin||0)+(d.sakit||0)+(d.alpa||0),g=c>0?Math.round(d.hadir/c*100):0,v=(s||[]).length>0?(s.reduce((p,w)=>p+(w.nilai_angka||0),0)/s.length).toFixed(1):"-",f=(i==null?void 0:i.nama_kelas)||((t==null?void 0:t.jenis)==="privat"?"Program Privat":"-");return`
   <div style="padding:4px 0;color:#1a0a02;">
     <!-- Profile Header -->
     <div style="background:linear-gradient(135deg,#221104,#3a1c08);border-radius:16px;padding:24px;margin-bottom:20px;
@@ -1658,13 +1724,13 @@ ${o!=null&&o.length?`
         background:linear-gradient(135deg,#4F280C,#D4934E);
         display:flex;align-items:center;justify-content:center;
         font-size:26px;font-weight:700;color:#fdf0e2;">
-        ${((k=t==null?void 0:t.nama_lengkap)==null?void 0:k.charAt(0))||"?"}
+        ${((x=t==null?void 0:t.nama_lengkap)==null?void 0:x.charAt(0))||"?"}
       </div>
       <div style="flex:1;">
         <h2 style="color:#fdf0e2;font-size:1.2rem;margin-bottom:6px;">${(t==null?void 0:t.nama_lengkap)||"-"}</h2>
         <div style="display:flex;gap:12px;flex-wrap:wrap;">
           <span style="font-size:12px;color:#c9a87a;"><i class="fa-solid fa-person" style="color:#F0AF43;"></i> ${t!=null&&t.usia?t.usia+" tahun":"-"}</span>
-          <span style="font-size:12px;color:#c9a87a;"><i class="fa-solid fa-layer-group" style="color:#F0AF43;"></i> ${b}</span>
+          <span style="font-size:12px;color:#c9a87a;"><i class="fa-solid fa-layer-group" style="color:#F0AF43;"></i> ${f}</span>
           <span style="font-size:12px;color:#c9a87a;"><i class="fa-solid fa-user-tie" style="color:#F0AF43;"></i> ${(e==null?void 0:e.nama)||"Belum ditentukan"}</span>
           ${i!=null&&i.hari_jadwal?`<span style="font-size:12px;color:#c9a87a;"><i class="fa-solid fa-calendar" style="color:#F0AF43;"></i> ${i.hari_jadwal} ${i.jam_jadwal||""}</span>`:""}
         </div>
@@ -1681,9 +1747,9 @@ ${o!=null&&o.length?`
 
     <!-- Stats Row -->
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:20px;">
-      ${[[y,"Rata Nilai",Ea(parseFloat(y)),"fa-star"],[f+"%","Kehadiran",f>=80?"#10b981":f>=60?"#F0AF43":"#e05c4b","fa-calendar-check"],[d.hadir||0,"Total Hadir","#10b981","fa-circle-check"],[(d.izin||0)+(d.sakit||0),"Izin/Sakit","#60a5fa","fa-memo-circle-info"],[d.alpa||0,"Alpa","#e05c4b","fa-circle-exclamation"],[(s||[]).length,"Total Penilaian","#F0AF43","fa-clipboard-check"]].map(([p,w,K,x])=>`
+      ${[[v,"Rata Nilai",$a(parseFloat(v)),"fa-star"],[g+"%","Kehadiran",g>=80?"#10b981":g>=60?"#F0AF43":"#e05c4b","fa-calendar-check"],[d.hadir||0,"Total Hadir","#10b981","fa-circle-check"],[(d.izin||0)+(d.sakit||0),"Izin/Sakit","#60a5fa","fa-memo-circle-info"],[d.alpa||0,"Alpa","#e05c4b","fa-circle-exclamation"],[(s||[]).length,"Total Penilaian","#F0AF43","fa-clipboard-check"]].map(([p,w,P,k])=>`
       <div style="background:white;border:1px solid rgba(129,81,29,0.12);border-radius:12px;padding:14px 16px;text-align:center;">
-        <div style="font-size:24px;font-weight:800;color:${K};margin-bottom:4px;">${p}</div>
+        <div style="font-size:24px;font-weight:800;color:${P};margin-bottom:4px;">${p}</div>
         <div style="font-size:11px;color:#81511D;text-transform:uppercase;letter-spacing:0.5px;">${w}</div>
       </div>`).join("")}
     </div>
@@ -1750,7 +1816,7 @@ ${o!=null&&o.length?`
               ${(r||[]).slice(0,20).map((p,w)=>`
               <tr style="border-bottom:1px solid rgba(129,81,29,0.07);${w%2===1?"background:#fdf8f3;":""}">
                 <td style="padding:9px 12px;color:#1a0a02;">${Z(p.tanggal)}</td>
-                <td style="padding:9px 12px;">${pe(p.status_hadir)}</td>
+                <td style="padding:9px 12px;">${me(p.status_hadir)}</td>
                 <td style="padding:9px 12px;color:#4F280C;">${p.materi_pembahasan||"-"}</td>
                 <td style="padding:9px 12px;color:#81511D;font-size:12px;font-style:italic;">${p.catatan_sesi||p.perkembangan_materi||"-"}</td>
               </tr>`).join("")}
@@ -1773,7 +1839,7 @@ ${o!=null&&o.length?`
         </div>`).join("")}
       </div>
     </div>`:""}
-  </div>`}async function ce(a,t){try{const i=((await C.getChartDataPeserta(a)).penilaian||[]).slice(-12),n=document.getElementById("chart-nilai");i.length>0&&n?new Chart(n,{type:"line",data:{labels:i.map(o=>me(o.tanggal)),datasets:[{label:"Nilai",data:i.map(o=>o.nilai_angka),borderColor:"#F0AF43",backgroundColor:"rgba(240,175,67,0.15)",tension:.4,fill:!0,pointRadius:4}]},options:{responsive:!0,plugins:{legend:{display:!1}},scales:{y:{min:0,max:100,grid:{color:"rgba(0,0,0,0.05)"}},x:{grid:{display:!1}}}}}):n&&n.parentElement&&(n.parentElement.innerHTML=`
+  </div>`}async function pe(a,t){try{const i=((await F.getChartDataPeserta(a)).penilaian||[]).slice(-12),n=document.getElementById("chart-nilai");i.length>0&&n?new Chart(n,{type:"line",data:{labels:i.map(o=>ue(o.tanggal)),datasets:[{label:"Nilai",data:i.map(o=>o.nilai_angka),borderColor:"#F0AF43",backgroundColor:"rgba(240,175,67,0.15)",tension:.4,fill:!0,pointRadius:4}]},options:{responsive:!0,plugins:{legend:{display:!1}},scales:{y:{min:0,max:100,grid:{color:"rgba(0,0,0,0.05)"}},x:{grid:{display:!1}}}}}):n&&n.parentElement&&(n.parentElement.innerHTML=`
         <div style="font-size:13px;font-weight:700;color:#1a0a02;margin-bottom:12px;">
           <i class="fa-solid fa-chart-line" style="color:#F0AF43;"></i> Tren Nilai
         </div>
@@ -1787,6 +1853,6 @@ ${o!=null&&o.length?`
         <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:140px;color:#81511D;opacity:0.75;font-size:12.5px;">
           <i class="fa-solid fa-calendar-check" style="font-size:26px;margin-bottom:8px;color:#10b981;"></i>
           Belum ada catatan absensi
-        </div>`)}catch{}}function Ea(a){return a=parseFloat(a),isNaN(a)?"#81511D":a>=80?"#10b981":a>=65?"#F0AF43":"#e05c4b"}function pe(a){const t={hadir:["check_circle","#10b981","rgba(16,185,129,0.12)","Hadir"],izin:["description","#F0AF43","rgba(240,175,67,0.12)","Izin"],sakit:["sick","#60a5fa","rgba(59,130,246,0.12)","Sakit"],alpa:["cancel","#e05c4b","rgba(239,68,68,0.12)","Alpa"]},[e,i,n,s]=t[a]||["help","#81511D","rgba(0,0,0,0.06)",a];return`<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;
+        </div>`)}catch{}}function $a(a){return a=parseFloat(a),isNaN(a)?"#81511D":a>=80?"#10b981":a>=65?"#F0AF43":"#e05c4b"}function me(a){const t={hadir:["check_circle","#10b981","rgba(16,185,129,0.12)","Hadir"],izin:["description","#F0AF43","rgba(240,175,67,0.12)","Izin"],sakit:["sick","#60a5fa","rgba(59,130,246,0.12)","Sakit"],alpa:["cancel","#e05c4b","rgba(239,68,68,0.12)","Alpa"]},[e,i,n,s]=t[a]||["help","#81511D","rgba(0,0,0,0.06)",a];return`<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;
     border-radius:20px;background:${n};color:${i};font-size:12px;font-weight:600;">
-    <span class="ms" style="font-size:15px;">${e}</span> ${s}</span>`}function Z(a){return a?new Date(a).toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"}):"-"}function me(a){return a?new Date(a).toLocaleDateString("id-ID",{day:"numeric",month:"short"}):"-"}function da(a,t="info",e=3500){const i=document.getElementById("toast-container");if(!i)return;const n={success:"fa-circle-check",error:"fa-circle-xmark",info:"fa-circle-info"},s=document.createElement("div");s.className=`toast toast-${t}`,s.innerHTML=`<i class="fa-solid ${n[t]||"fa-circle-info"} toast-icon"></i> ${a}`,i.appendChild(s),requestAnimationFrame(()=>{requestAnimationFrame(()=>{s.classList.add("show")})}),setTimeout(()=>{s.classList.remove("show"),setTimeout(()=>s.remove(),350)},e)}const ca={"/":{render:ma},"/admin":{render:Fa},"/mentor":{render:_a},"/wali":{render:oa},"/portal-wali":{render:oa}};async function B(a,t=!0){const e=(a||"/").replace(/\/$/,"")||"/";t&&history.pushState({},"",e);const i=document.getElementById("app");if(!i)return;const n=ca[e]||ca["/"];i.style.opacity="0.7",i.style.transition="opacity 0.15s ease",await new Promise(s=>setTimeout(s,60)),i.innerHTML="",i.style.opacity="1";try{await n.render(i,B,da)}catch(s){console.error("Render error on route",e,s),da("Terjadi kesalahan saat memuat halaman: "+s.message,"error")}}window.navigate=B;window.navigateTo=B;document.addEventListener("click",a=>{const t=a.target.closest("[data-link]");if(t){a.preventDefault();const e=t.getAttribute("href")||t.dataset.link;e&&B(e)}});window.addEventListener("popstate",()=>{B(window.location.pathname,!1)});(async()=>{try{const a=document.getElementById("initial-loader");a&&(a.style.opacity="0",setTimeout(()=>{a.parentNode&&a.remove()},200)),L.onAuthStateChange(t=>{if(t==="SIGNED_OUT"){const e=window.location.pathname;(e==="/admin"||e==="/mentor")&&B("/")}}),await B(window.location.pathname,!1)}catch(a){console.error("Fatal boot error:",a);const t=document.getElementById("initial-loader");t&&t.remove();const e=document.getElementById("app");e&&!e.innerHTML.trim()&&ma(e,B)}})();
+    <span class="ms" style="font-size:15px;">${e}</span> ${s}</span>`}function Z(a){return a?new Date(a).toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"}):"-"}function ue(a){return a?new Date(a).toLocaleDateString("id-ID",{day:"numeric",month:"short"}):"-"}function ca(a,t="info",e=3500){const i=document.getElementById("toast-container");if(!i)return;const n={success:"fa-circle-check",error:"fa-circle-xmark",info:"fa-circle-info"},s=document.createElement("div");s.className=`toast toast-${t}`,s.innerHTML=`<i class="fa-solid ${n[t]||"fa-circle-info"} toast-icon"></i> ${a}`,i.appendChild(s),requestAnimationFrame(()=>{requestAnimationFrame(()=>{s.classList.add("show")})}),setTimeout(()=>{s.classList.remove("show"),setTimeout(()=>s.remove(),350)},e)}const pa={"/":{render:ua},"/admin":{render:Ca},"/mentor":{render:Ea},"/wali":{render:da},"/portal-wali":{render:da}};async function j(a,t=!0){const e=(a||"/").replace(/\/$/,"")||"/";t&&history.pushState({},"",e);const i=document.getElementById("app");if(!i)return;const n=pa[e]||pa["/"];i.style.opacity="0.7",i.style.transition="opacity 0.15s ease",await new Promise(s=>setTimeout(s,60)),i.innerHTML="",i.style.opacity="1";try{await n.render(i,j,ca)}catch(s){console.error("Render error on route",e,s),ca("Terjadi kesalahan saat memuat halaman: "+s.message,"error")}}window.navigate=j;window.navigateTo=j;document.addEventListener("click",a=>{const t=a.target.closest("[data-link]");if(t){a.preventDefault();const e=t.getAttribute("href")||t.dataset.link;e&&j(e)}});window.addEventListener("popstate",()=>{j(window.location.pathname,!1)});(async()=>{try{const a=document.getElementById("initial-loader");a&&(a.style.opacity="0",setTimeout(()=>{a.parentNode&&a.remove()},200)),S.onAuthStateChange(t=>{if(t==="SIGNED_OUT"){const e=window.location.pathname;(e==="/admin"||e==="/mentor")&&j("/")}}),await j(window.location.pathname,!1)}catch(a){console.error("Fatal boot error:",a);const t=document.getElementById("initial-loader");t&&t.remove();const e=document.getElementById("app");e&&!e.innerHTML.trim()&&ua(e,j)}})();

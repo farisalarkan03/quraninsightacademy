@@ -698,7 +698,11 @@ function openPesertaDetail(pesertaId, main, showToast) {
         <h4 style="color:#F0AF43;margin:0 0 14px;font-size:0.95rem;display:flex;align-items:center;gap:8px;">
           <i class="fa-solid fa-calendar-check"></i> 1. Kehadiran & Materi Sesi
         </h4>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:14px;margin-bottom:14px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:14px;">
+          <div class="form-group">
+            <label class="form-label">Tanggal Sesi</label>
+            <input type="date" class="form-control" id="inp-tgl-sesi" value="${new Date().toISOString().slice(0,10)}" />
+          </div>
           <div class="form-group">
             <label class="form-label">Status Kehadiran</label>
             <select class="form-control" id="inp-status-hadir">
@@ -710,17 +714,9 @@ function openPesertaDetail(pesertaId, main, showToast) {
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">Tanggal Sesi</label>
-            <input type="date" class="form-control" id="inp-tgl-kehadiran" value="${new Date().toISOString().slice(0,10)}" />
-          </div>
-          <div class="form-group">
             <label class="form-label">Materi Pembahasan</label>
             <input type="text" class="form-control" id="inp-materi" placeholder="cth: Tajwid Mad Thobi'i, Makhorijul Huruf" />
           </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Perkembangan Materi / Catatan Sesi (Opsional)</label>
-          <input type="text" class="form-control" id="inp-perkembangan-materi" placeholder="cth: Santri sudah memahami panjang 2 harakat dengan baik" />
         </div>
       </div>
 
@@ -729,7 +725,7 @@ function openPesertaDetail(pesertaId, main, showToast) {
         <h4 style="color:#F0AF43;margin:0 0 14px;font-size:0.95rem;display:flex;align-items:center;gap:8px;">
           <i class="fa-solid fa-book-quran"></i> 2. Kemajuan Hafalan
         </h4>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:14px;margin-bottom:14px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:14px;">
           <div class="form-group">
             <label class="form-label">Kitab / Surah</label>
             <input type="text" class="form-control" id="inp-kitab" placeholder="cth: Al-Baqarah, Jilid 2" />
@@ -746,14 +742,6 @@ function openPesertaDetail(pesertaId, main, showToast) {
               <option value="perlu_ulang">🔄 Perlu Diulang</option>
             </select>
           </div>
-          <div class="form-group">
-            <label class="form-label">Tanggal Hafalan</label>
-            <input type="date" class="form-control" id="inp-tgl-kemajuan" value="${new Date().toISOString().slice(0,10)}" />
-          </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Catatan Hafalan (Opsional)</label>
-          <textarea class="form-control" id="inp-catatan-hafalan" rows="2" placeholder="Catatan khusus perkembangan hafalan atau tajwid yang perlu diperbaiki…"></textarea>
         </div>
       </div>
 
@@ -762,14 +750,10 @@ function openPesertaDetail(pesertaId, main, showToast) {
         <h4 style="color:#F0AF43;margin:0 0 14px;font-size:0.95rem;display:flex;align-items:center;gap:8px;">
           <i class="fa-solid fa-star"></i> 3. Penilaian Sesi
         </h4>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:14px;margin-bottom:14px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:14px;">
           <div class="form-group">
             <label class="form-label">Nilai Angka (0–100)</label>
             <input type="number" class="form-control" id="inp-nilai" min="0" max="100" placeholder="85" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Tanggal Nilai</label>
-            <input type="date" class="form-control" id="inp-tgl-nilai" value="${new Date().toISOString().slice(0,10)}" />
           </div>
           <div class="form-group">
             <label class="form-label">Adab (1–5)</label>
@@ -784,19 +768,15 @@ function openPesertaDetail(pesertaId, main, showToast) {
             <input type="number" class="form-control" id="inp-kelancaran-nilai" min="1" max="5" placeholder="4" />
           </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Catatan Penilaian (Opsional)</label>
-          <textarea class="form-control" id="inp-catatan-nilai" rows="2" placeholder="Catatan terkait penilaian ini…"></textarea>
-        </div>
       </div>
 
-      <!-- SEKSI 4: CATATAN MENTOR UNTUK WALI -->
-      <div style="margin-bottom:24px;padding:16px;background:rgba(255,255,255,0.02);border-radius:10px;border:1px solid rgba(255,255,255,0.06);">
-        <h4 style="color:#F0AF43;margin:0 0 14px;font-size:0.95rem;display:flex;align-items:center;gap:8px;">
-          <i class="fa-solid fa-comment-dots"></i> 4. Catatan untuk Wali / Orang Tua
+      <!-- CATATAN SESI (Terpadu) -->
+      <div style="margin-bottom:24px;padding:16px;background:rgba(240,175,67,0.04);border-radius:10px;border:1px solid rgba(240,175,67,0.15);">
+        <h4 style="color:#F0AF43;margin:0 0 10px;font-size:0.95rem;display:flex;align-items:center;gap:8px;">
+          <i class="fa-solid fa-comment-dots"></i> Catatan Sesi
         </h4>
-        <div class="form-group">
-          <textarea class="form-control" id="inp-catatan" rows="3" placeholder="Tuliskan pesan perkembangan, keaktifan santri, atau saran untuk orang tua di rumah…"></textarea>
+        <div class="form-group" style="margin:0;">
+          <textarea class="form-control" id="inp-catatan" rows="3" placeholder="Tuliskan catatan perkembangan hafalan, penilaian, keaktifan santri, atau pesan untuk orang tua…"></textarea>
         </div>
       </div>
 
@@ -833,9 +813,9 @@ function openPesertaDetail(pesertaId, main, showToast) {
     const today = new Date().toISOString().slice(0,10)
 
     // Kumpulkan data dari form
+    const tglSesi      = document.getElementById('inp-tgl-sesi').value || today
     const statusHadir  = document.getElementById('inp-status-hadir').value
     const materi       = document.getElementById('inp-materi').value.trim()
-    const perkembangan = document.getElementById('inp-perkembangan-materi').value.trim()
     const kitab        = document.getElementById('inp-kitab').value.trim()
     const halaman      = document.getElementById('inp-halaman').value.trim()
     const nilaiStr     = document.getElementById('inp-nilai').value
@@ -847,7 +827,7 @@ function openPesertaDetail(pesertaId, main, showToast) {
     const hasCatatan   = !!catatan
 
     if (!hasKehadiran && !hasKemajuan && !hasPenilaian && !hasCatatan) {
-      showToast('Isi minimal satu bagian (Kehadiran, Hafalan, Penilaian, atau Catatan).', 'info')
+      showToast('Isi minimal satu bagian (Kehadiran, Hafalan, Penilaian, atau Catatan Sesi).', 'info')
       return
     }
 
@@ -857,22 +837,21 @@ function openPesertaDetail(pesertaId, main, showToast) {
     const errors = []
     const saved  = []
 
-    // Simpan Kehadiran & Materi Sesi (terutama untuk peserta privat maupun kelas)
+    // Simpan Kehadiran & Materi Sesi
     if (hasKehadiran) {
       try {
         await mentorService.addKehadiran({
           id_peserta: pesertaId,
           id_mentor:  state.profile.id,
           id_kelas:   p.id_kelas || null,
-          tanggal:    document.getElementById('inp-tgl-kehadiran').value || today,
+          tanggal:    tglSesi,
           status_hadir: statusHadir,
           materi_pembahasan:   materi || null,
-          perkembangan_materi: perkembangan || null,
-          catatan_sesi: null,
+          perkembangan_materi: catatan || null,
+          catatan_sesi: catatan || null,
         })
         saved.push(`Kehadiran (${statusHadir})`)
         document.getElementById('inp-materi').value = ''
-        document.getElementById('inp-perkembangan-materi').value = ''
       } catch(e) { errors.push('Kehadiran: ' + e.message) }
     }
 
@@ -882,16 +861,15 @@ function openPesertaDetail(pesertaId, main, showToast) {
         await mentorService.addKemajuan({
           id_peserta: pesertaId,
           id_mentor:  state.profile.id,
-          tanggal:    document.getElementById('inp-tgl-kemajuan').value || today,
+          tanggal:    tglSesi,
           kitab_surat:       kitab,
           halaman_ayat:      halaman,
           status_kelancaran: document.getElementById('inp-kelancaran').value,
-          catatan_hafalan:   document.getElementById('inp-catatan-hafalan').value.trim() || null,
+          catatan_hafalan:   catatan || null,
         })
         saved.push('Kemajuan Hafalan')
         document.getElementById('inp-kitab').value = ''
         document.getElementById('inp-halaman').value = ''
-        document.getElementById('inp-catatan-hafalan').value = ''
       } catch(e) { errors.push('Hafalan: ' + e.message) }
     }
 
@@ -905,34 +883,25 @@ function openPesertaDetail(pesertaId, main, showToast) {
           await mentorService.addPenilaian({
             id_peserta:       pesertaId,
             id_mentor:        state.profile.id,
-            tanggal:          document.getElementById('inp-tgl-nilai').value || today,
+            tanggal:          tglSesi,
             nilai_angka:      nilai,
             nilai_adab:       parseInt(document.getElementById('inp-adab').value) || null,
             nilai_tajwid:     parseInt(document.getElementById('inp-tajwid').value) || null,
             nilai_kelancaran: parseInt(document.getElementById('inp-kelancaran-nilai').value) || null,
-            catatan:          document.getElementById('inp-catatan-nilai').value.trim() || null,
+            catatan:          catatan || null,
           })
           saved.push('Penilaian')
           document.getElementById('inp-nilai').value = ''
           document.getElementById('inp-adab').value = ''
           document.getElementById('inp-tajwid').value = ''
           document.getElementById('inp-kelancaran-nilai').value = ''
-          document.getElementById('inp-catatan-nilai').value = ''
         } catch(e) { errors.push('Penilaian: ' + e.message) }
       }
     }
 
-    // Simpan Catatan Mentor
-    if (hasCatatan) {
-      try {
-        await mentorService.addCatatan({
-          id_peserta: pesertaId,
-          id_mentor:  state.profile.id,
-          isi_catatan: catatan,
-        })
-        saved.push('Catatan')
-        document.getElementById('inp-catatan').value = ''
-      } catch(e) { errors.push('Catatan: ' + e.message) }
+    // Reset catatan sesi setelah semua berhasil
+    if (saved.length > 0) {
+      document.getElementById('inp-catatan').value = ''
     }
 
     btn.disabled = false
