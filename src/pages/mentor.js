@@ -65,6 +65,13 @@ function renderMentorLogin(app, navigate, showToast) {
           <i class="fa-solid fa-arrow-left mr-1"></i> Kembali ke Beranda
         </button>
       </div>
+      <div style="text-align:center;margin-top:14px;font-size:12.5px;color:#a07850;">
+        Mengalami masalah saat login? Hubungi
+        <a href="https://wa.me/62895422159690" target="_blank" rel="noopener noreferrer"
+           style="color:#F0AF43;font-weight:600;text-decoration:none;">
+          <i class="fa-brands fa-whatsapp" style="margin-right:3px;"></i>Administrator
+        </a>
+      </div>
     </div>
   </div>`
 
