@@ -780,8 +780,6 @@ function buildPesertaForm(p, mentors, kelasList) {
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
     <div class="form-group" style="grid-column:1/-1"><label class="form-label">Nama Lengkap</label>
       <input type="text" class="form-control" id="pf-nama" value="${p?.nama_lengkap||''}" placeholder="Nama lengkap peserta didik" /></div>
-    <div class="form-group"><label class="form-label">Usia</label>
-      <input type="number" class="form-control" id="pf-usia" value="${p?.usia||''}" placeholder="10" /></div>
     <div class="form-group"><label class="form-label">Jenis Kelamin</label>
       <select class="form-control" id="pf-jk">
         <option value="L" ${p?.jenis_kelamin==='L'?'selected':''}>Laki-laki</option>
@@ -802,12 +800,6 @@ function buildPesertaForm(p, mentors, kelasList) {
         <option value="">-- Pilih Mentor --</option>
         ${mentors.map(m=>`<option value="${m.id}" ${p?.id_mentor===m.id?'selected':''}>${m.nama} (${m.jenis_mentor})</option>`).join('')}
       </select></div>
-    <div class="form-group" style="grid-column:1/-1"><label class="form-label">Nama Wali</label>
-      <input type="text" class="form-control" id="pf-wali" value="${p?.nama_wali||''}" placeholder="Nama orang tua/wali" /></div>
-    <div class="form-group"><label class="form-label">Email Wali</label>
-      <input type="email" class="form-control" id="pf-email-wali" value="${p?.email_wali||''}" /></div>
-    <div class="form-group"><label class="form-label">No WA Wali</label>
-      <input type="text" class="form-control" id="pf-wa-wali" value="${p?.no_wa_wali||''}" /></div>
     <div class="form-group" style="grid-column:1/-1"><label class="form-label">Catatan Umum</label>
       <textarea class="form-control" id="pf-catatan" rows="2">${p?.catatan_umum||''}</textarea></div>
   </div>`
@@ -816,14 +808,10 @@ function buildPesertaForm(p, mentors, kelasList) {
 function collectPesertaForm() {
   return {
     nama_lengkap: document.getElementById('pf-nama')?.value?.trim(),
-    usia:         parseInt(document.getElementById('pf-usia')?.value)||null,
     jenis_kelamin:document.getElementById('pf-jk')?.value,
     jenis:        document.getElementById('pf-jenis')?.value,
     id_kelas:     parseInt(document.getElementById('pf-kelas')?.value)||null,
     id_mentor:    document.getElementById('pf-mentor')?.value||null,
-    nama_wali:    document.getElementById('pf-wali')?.value,
-    email_wali:   document.getElementById('pf-email-wali')?.value,
-    no_wa_wali:   document.getElementById('pf-wa-wali')?.value,
     catatan_umum: document.getElementById('pf-catatan')?.value,
   }
 }
