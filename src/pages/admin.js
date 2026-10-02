@@ -712,13 +712,12 @@ async function renderPesertaManage(main, showToast) {
     <div class="table-wrapper">
       <table class="data-table">
         <thead><tr>
-          <th>Nama Lengkap</th><th>Usia</th><th>Jenis</th><th>Kelas</th><th>Mentor</th><th>Status</th><th>Aksi</th>
+          <th>Nama Lengkap</th><th>Jenis</th><th>Kelas</th><th>Mentor</th><th>Status</th><th>Aksi</th>
         </tr></thead>
         <tbody>
-          ${list.length===0?`<tr><td colspan="7" style="text-align:center;padding:28px;color:#81511D;">Tidak ada peserta didik ditemukan.</td></tr>`:
+          ${list.length===0?`<tr><td colspan="6" style="text-align:center;padding:28px;color:#81511D;">Tidak ada peserta didik ditemukan.</td></tr>`:
             list.map(p=>`<tr>
               <td><div style="font-weight:600;">${p.nama_lengkap}</div><div style="font-size:11px;color:#81511D;">${p.nama_wali||''}</div></td>
-              <td>${p.usia||'-'}</td>
               <td>${jenisChip(p.jenis)}</td>
               <td><span style="font-size:13px;">${p.kelas?.nama_kelas||'-'}</span></td>
               <td><span style="font-size:13px;">${p.mentor?.nama||'-'}</span></td>
