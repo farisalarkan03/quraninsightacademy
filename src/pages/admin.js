@@ -801,9 +801,9 @@ function buildPesertaForm(p, mentors, kelasList) {
         <option value="privat" ${p?.jenis==='privat'?'selected':''}>Privat</option>
       </select></div>
     <div class="form-group" id="pf-kelas-group"><label class="form-label">Kelas (Bimbel)</label>
-      <select class="form-control" id="pf-kelas">
+      <select class="form-control" id="pf-kelas" onchange="handleKelasChange()">
         <option value="">-- Pilih Kelas --</option>
-        ${kelasList.map(k=>`<option value="${k.id}" ${p?.id_kelas===k.id?'selected':''}>${k.nama_kelas}</option>`).join('')}
+        ${kelasList.map(k=>`<option value="${k.id}" data-mentor="${k.id_mentor||k.mentor?.id||''}" ${p?.id_kelas===k.id?'selected':''}>${k.nama_kelas}${k.mentor?.nama ? ' (Mentor: ' + k.mentor.nama + ')' : ''}</option>`).join('')}
       </select></div>
     <div class="form-group"><label class="form-label">Assign Mentor</label>
       <select class="form-control" id="pf-mentor">
@@ -826,10 +826,24 @@ function collectPesertaForm() {
   }
 }
 
+window.handleKelasChange = () => {
+  const kelasSelect = document.getElementById('pf-kelas')
+  const mentorSelect = document.getElementById('pf-mentor')
+  if (!kelasSelect || !mentorSelect) return
+  const selectedOpt = kelasSelect.options[kelasSelect.selectedIndex]
+  const mentorId = selectedOpt?.getAttribute('data-mentor')
+  if (mentorId) {
+    mentorSelect.value = mentorId
+  }
+}
+
 window.handleJenisChange = () => {
   const jenis = document.getElementById('pf-jenis')?.value
   const grp   = document.getElementById('pf-kelas-group')
   if (grp) grp.style.display = jenis==='bimbel' ? '' : 'none'
+  if (jenis === 'bimbel') {
+    window.handleKelasChange()
+  }
 }
 
 // ── SPREADSHEET EDITOR ───────────────────────────────────────
