@@ -924,8 +924,25 @@ async function renderSpreadsheet(main, showToast) {
   }
 }
 
+// Kolom yang disembunyikan per tab spreadsheet
+const SS_HIDDEN_COLS = {
+  peserta: new Set(['id','usia','id_kelas','id_mentor','nama_wali','email_wali','alamat','no_wa_wali','catatan_umum','created_at','updated_at']),
+}
+
 const SS_TABLE_MAP = {
-  peserta:   { table: 'peserta_didik', fetch: () => adminService.getPesertaDidik() },
+  peserta:   { table: 'peserta_didik', fetch: async () => {
+    const list = await adminService.getPesertaDidik()
+    // Flatten nested mentor & kelas jadi kolom nama langsung
+    return list.map(p => ({
+      nama_lengkap:  p.nama_lengkap,
+      jenis_kelamin: p.jenis_kelamin,
+      jenis:         p.jenis,
+      mentor:        p.mentor?.nama || '-',
+      kelas:         p.kelas?.nama_kelas || '-',
+      status:        p.status,
+      _id:           p.id, // simpan id tersembunyi untuk keperluan edit
+    }))
+  }},
   mentor:    { table: 'profiles',      fetch: () => adminService.getMentors() },
   kelas:     { table: 'kelas',         fetch: () => adminService.getKelas() },
   kehadiran: { table: 'kehadiran',     fetch: () => adminService.exportAllData('kehadiran', '*, peserta:peserta_didik(nama_lengkap), kelas(nama_kelas)') },
@@ -966,37 +983,35 @@ function renderSSGrid(rawData, showToast) {
     return
   }
 
-  // Columns: flat keys, skip nested objects
+  // Columns: flat keys, skip nested objects & hidden cols for current tab
+  const hiddenCols = SS_HIDDEN_COLS[state.ssActiveTab] || new Set()
   const firstRow = filtered[0]
   const cols = Object.entries(firstRow)
-    .filter(([k,v]) => typeof v !== 'object' || v === null)
+    .filter(([k,v]) => (typeof v !== 'object' || v === null) && !hiddenCols.has(k) && k !== '_id')
     .map(([k]) => k)
 
-  const editableCols = new Set(['nama_lengkap','nama','usia','jenis','status','email_wali','no_wa_wali',
+  const editableCols = new Set(['nama_lengkap','nama','jenis','status','jenis_kelamin',
     'no_hp','jenis_mentor','nama_kelas','hari_jadwal','jam_jadwal','kapasitas',
     'status_hadir','materi_pembahasan','catatan_sesi','perkembangan_materi',
     'kitab_surat','halaman_ayat','status_kelancaran','catatan_hafalan',
-    'nilai_angka','nilai_adab','nilai_tajwid','nilai_kelancaran','catatan',
-    'nama_wali','catatan_umum','deskripsi'])
+    'nilai_angka','nilai_adab','nilai_tajwid','nilai_kelancaran','catatan','deskripsi'])
 
   const scroll = document.getElementById('ss-scroll')
   scroll.innerHTML = `
   <table class="ss-table" id="ss-table-el">
     <thead>
       <tr>
-        <th class="ss-th row-num header-row-num">No</th>
+        <th class="ss-th row-num header-row-num" style="width:36px;min-width:36px;">#</th>
         ${cols.map(c=>`<th class="ss-th">${c}</th>`).join('')}
       </tr>
     </thead>
     <tbody>
       ${filtered.map((row, ri) => `
-      <tr id="ss-tr-${ri}" class="${state.ssDirtyRows.has(row.id)?'row-dirty':''}">
-        <td class="row-num">${ri+1}</td>
+      <tr id="ss-tr-${ri}" class="${state.ssDirtyRows.has(row.id||row._id)?'row-dirty':''}">
+        <td class="row-num" style="width:36px;min-width:36px;font-size:11px;">${ri+1}</td>
         ${cols.map(c => {
           const val = row[c]
-          const editable = editableCols.has(c) && c !== 'id'
-          const isStatus = c === 'status' || c === 'status_hadir' || c === 'jenis' || c==='jenis_mentor' || c==='status_kelancaran' || c==='jenis_kelamin'
-          return `<td class="ss-cell" data-row="${ri}" data-col="${c}" data-id="${row.id||''}">
+          return `<td class="ss-cell" data-row="${ri}" data-col="${c}" data-id="${row.id||row._id||''}">
             <div class="ss-cell-inner ${getValClass(c,val)}" title="${val||''}">${val === null || val === undefined ? '' : String(val)}</div>
           </td>`
         }).join('')}
