@@ -14,8 +14,8 @@ let state = {
   stats: null,
   activeView: 'dashboard',
   // Spreadsheet
-  ssActiveTab: 'peserta',
-  ssData: { peserta: [], mentor: [], kelas: [], kehadiran: [], kemajuan: [], penilaian: [] },
+  ssActiveTab: 'peserta_bimbel',
+  ssData: { peserta_bimbel: [], peserta_privat: [], mentor: [], kelas: [], kehadiran: [], kemajuan: [], penilaian: [] },
   ssDirtyRows: new Set(),
   ssNewRows: [],
   ssSortCol: null,
@@ -875,9 +875,11 @@ async function renderSpreadsheet(main, showToast) {
 
     <!-- Tabs -->
     <div class="spreadsheet-tabs" id="ss-tabs">
-      ${[['peserta','group','Peserta Didik'],['mentor','co_present','Mentor'],['kelas','school','Kelas'],['kehadiran','calendar_month','Kehadiran'],['kemajuan','menu_book','Kemajuan'],['penilaian','grade','Penilaian']].map(([key,icon,label])=>`
-      <div class="sheet-tab ${key==='peserta'?'active':''}" data-tab="${key}" onclick="switchSSTab('${key}',this)">
+      ${[['peserta_bimbel','groups','Peserta Bimbel'],['peserta_privat','person','Peserta Privat'],['mentor','co_present','Mentor'],['kelas','school','Kelas'],['kehadiran','calendar_month','Kehadiran'],['kemajuan','menu_book','Kemajuan'],['penilaian','grade','Penilaian']].map(([key,icon,label])=>`
+      <div class="sheet-tab ${key==='peserta_bimbel'?'active':''}" data-tab="${key}" onclick="switchSSTab('${key}',this)">
         <span class="ms" style="font-size:16px;vertical-align:middle;margin-right:4px;">${icon}</span>${label}
+        ${key==='peserta_bimbel'?'<span style="font-size:10px;background:rgba(16,185,129,0.2);color:#10b981;border-radius:4px;padding:1px 5px;margin-left:3px;">Kelompok</span>':''}
+        ${key==='peserta_privat'?'<span style="font-size:10px;background:rgba(240,175,67,0.2);color:#F0AF43;border-radius:4px;padding:1px 5px;margin-left:3px;">1-on-1</span>':''}
       </div>`).join('')}
     </div>
 
@@ -917,8 +919,8 @@ async function renderSpreadsheet(main, showToast) {
   </div>`
 
   // Load initial tab
-  state.ssActiveTab = 'peserta'
-  await loadSSData('peserta', showToast)
+  state.ssActiveTab = 'peserta_bimbel'
+  await loadSSData('peserta_bimbel', showToast)
 
   // Batch save button
   document.getElementById('btn-batch-save').addEventListener('click', () => batchSave(showToast))
@@ -945,7 +947,7 @@ async function renderSpreadsheet(main, showToast) {
     const itemLabel = labelName ? `"${labelName}"` : 'data ini'
     if (!confirm(`Hapus ${itemLabel} secara permanen dari database?\n\nTindakan ini tidak dapat dibatalkan!`)) return
     try {
-      if (tab === 'peserta') {
+      if (tab === 'peserta' || tab === 'peserta_bimbel' || tab === 'peserta_privat') {
         await adminService.deletePeserta(id)
       } else {
         await adminService.deleteRow(tableName, id)
@@ -968,19 +970,32 @@ async function renderSpreadsheet(main, showToast) {
 
 // Kolom yang disembunyikan per tab spreadsheet
 const SS_HIDDEN_COLS = {
-  peserta: new Set(['id','usia','id_kelas','id_mentor','nama_wali','email_wali','alamat','no_wa_wali','catatan_umum','created_at','updated_at']),
+  peserta_bimbel: new Set(['id','usia','id_kelas','id_mentor','nama_wali','email_wali','alamat','no_wa_wali','catatan_umum','created_at','updated_at']),
+  peserta_privat: new Set(['id','usia','id_kelas','id_mentor','nama_wali','email_wali','alamat','no_wa_wali','catatan_umum','created_at','updated_at']),
 }
 
 const SS_TABLE_MAP = {
-  peserta:   { table: 'peserta_didik', fetch: async () => {
-    const list = await adminService.getPesertaDidik()
+  peserta_bimbel: { table: 'peserta_didik', fetch: async () => {
+    const list = await adminService.getPesertaDidik({ jenis: 'bimbel' })
     // Flatten nested mentor & kelas jadi kolom nama langsung
     return list.map(p => ({
       nama_lengkap:  p.nama_lengkap,
       jenis_kelamin: p.jenis_kelamin,
       jenis:         p.jenis,
-      mentor:        p.mentor?.nama || '-',
       kelas:         p.kelas?.nama_kelas || '-',
+      mentor:        p.mentor?.nama || '-',
+      status:        p.status,
+      _id:           p.id, // simpan id tersembunyi untuk keperluan edit
+    }))
+  }},
+  peserta_privat: { table: 'peserta_didik', fetch: async () => {
+    const list = await adminService.getPesertaDidik({ jenis: 'privat' })
+    // Flatten nested mentor jadi kolom nama langsung (privat tidak punya kelas)
+    return list.map(p => ({
+      nama_lengkap:  p.nama_lengkap,
+      jenis_kelamin: p.jenis_kelamin,
+      jenis:         p.jenis,
+      mentor:        p.mentor?.nama || '-',
       status:        p.status,
       _id:           p.id, // simpan id tersembunyi untuk keperluan edit
     }))
@@ -996,7 +1011,8 @@ async function loadSSData(tab, showToast) {
   const scroll = document.getElementById('ss-scroll')
   scroll.innerHTML = `<div style="text-align:center;padding:48px;"><div class="spinner" style="margin:0 auto;width:36px;height:36px;"></div></div>`
   const tableNameEl = document.getElementById('ss-table-name')
-  if (tableNameEl) tableNameEl.textContent = SS_TABLE_MAP[tab]?.table || tab
+  const tabLabel = { peserta_bimbel: 'peserta_didik (bimbel)', peserta_privat: 'peserta_didik (privat)' }
+  if (tableNameEl) tableNameEl.textContent = tabLabel[tab] || SS_TABLE_MAP[tab]?.table || tab
   try {
     const data = await SS_TABLE_MAP[tab]?.fetch() || []
     state.ssData[tab] = data
