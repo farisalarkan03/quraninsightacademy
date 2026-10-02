@@ -724,8 +724,9 @@ async function renderPesertaManage(main, showToast) {
               <td>${statusChip(p.status)}</td>
               <td>
                 <div style="display:flex;gap:6px;">
-                  <button class="btn btn-ghost btn-sm" onclick="editPeserta(${p.id})"><i class="fa-solid fa-pen"></i></button>
-                  <button class="btn btn-danger btn-sm" onclick="nonaktifPeserta(${p.id})"><i class="fa-solid fa-ban"></i></button>
+                  <button class="btn btn-ghost btn-sm" title="Edit Peserta" onclick="editPeserta(${p.id})"><i class="fa-solid fa-pen"></i></button>
+                  <button class="btn btn-ghost btn-sm" title="Nonaktifkan" onclick="nonaktifPeserta(${p.id})" style="color:#d97706;"><i class="fa-solid fa-ban"></i></button>
+                  <button class="btn btn-danger btn-sm" title="Hapus Permanen dari Database" onclick="hapusPeserta(${p.id}, '${(p.nama_lengkap||'').replace(/'/g, "\\'")}')"><i class="fa-solid fa-trash-can"></i></button>
                 </div>
               </td>
             </tr>`).join('')}
@@ -757,6 +758,16 @@ async function renderPesertaManage(main, showToast) {
     await adminService.updatePeserta(id, {status:'nonaktif'})
     showToast('Peserta didik dinonaktifkan.','info')
     renderPesertaManage(main, showToast)
+  }
+  window.hapusPeserta = async (id, nama) => {
+    if (!confirm(`Hapus "${nama}" secara permanen dari database?\n\nSemua riwayat nilai, kemajuan hafalan, dan absensi peserta didik ini juga akan ikut terhapus. Tindakan ini tidak dapat dibatalkan!`)) return
+    try {
+      await adminService.deletePeserta(id)
+      showToast(`Peserta didik "${nama}" berhasil dihapus dari database!`, 'success')
+      renderPesertaManage(main, showToast)
+    } catch(e) {
+      showToast('Gagal menghapus: ' + e.message, 'error')
+    }
   }
 
   document.getElementById('btn-tambah-peserta').addEventListener('click', () => {
@@ -914,6 +925,23 @@ async function renderSpreadsheet(main, showToast) {
     if (fmt==='csv') exportToCSV(data, `QIA_${state.ssActiveTab}`)
     else exportToExcel(data, `QIA_${state.ssActiveTab}`, state.ssActiveTab)
   }
+  window.deleteSSRow = async (id, tab, labelName) => {
+    if (!id) return
+    const tableName = SS_TABLE_MAP[tab]?.table || tab
+    const itemLabel = labelName ? `"${labelName}"` : 'data ini'
+    if (!confirm(`Hapus ${itemLabel} secara permanen dari database?\n\nTindakan ini tidak dapat dibatalkan!`)) return
+    try {
+      if (tab === 'peserta') {
+        await adminService.deletePeserta(id)
+      } else {
+        await adminService.deleteRow(tableName, id)
+      }
+      showToast('Data berhasil dihapus dari database! ✅', 'success')
+      await loadSSData(tab, showToast)
+    } catch(e) {
+      showToast('Gagal menghapus: ' + e.message, 'error')
+    }
+  }
   window.exportAllSS = async () => {
     showToast('Mengumpulkan semua data…','info')
     try {
@@ -1003,6 +1031,7 @@ function renderSSGrid(rawData, showToast) {
       <tr>
         <th class="ss-th row-num header-row-num" style="width:36px;min-width:36px;">#</th>
         ${cols.map(c=>`<th class="ss-th">${c}</th>`).join('')}
+        <th class="ss-th" style="width:48px;min-width:48px;text-align:center;">Aksi</th>
       </tr>
     </thead>
     <tbody>
@@ -1015,6 +1044,11 @@ function renderSSGrid(rawData, showToast) {
             <div class="ss-cell-inner ${getValClass(c,val)}" title="${val||''}">${val === null || val === undefined ? '' : String(val)}</div>
           </td>`
         }).join('')}
+        <td style="text-align:center;padding:4px 6px;border-right:1px solid #e8edf2;border-bottom:1px solid #e8edf2;">
+          <button class="btn btn-ghost btn-sm" style="color:#ef4444;padding:3px 7px;border-radius:4px;cursor:pointer;" title="Hapus dari database" onclick="deleteSSRow('${row.id||row._id||''}', '${state.ssActiveTab}', '${(row.nama_lengkap||row.nama||'').replace(/'/g, "\\'")}')">
+            <i class="fa-solid fa-trash-can" style="font-size:12px;"></i>
+          </button>
+        </td>
       </tr>`).join('')}
     </tbody>
   </table>`

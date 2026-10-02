@@ -252,6 +252,28 @@ export const adminService = {
     if (error) throw new Error('Gagal simpan massal: ' + error.message)
   },
 
+  async deletePeserta(id) {
+    if (isConfigured) {
+      const { error } = await supabase.from('peserta_didik').delete().eq('id', id)
+      if (error) throw new Error('Gagal menghapus peserta: ' + error.message)
+      return true
+    }
+    const list = getLocalStore('peserta', DEMO_PESERTA)
+    setLocalStore('peserta', list.filter(p => p.id !== id && p.id !== parseInt(id)))
+    return true
+  },
+
+  async deleteRow(table, id) {
+    if (isConfigured) {
+      const { error } = await supabase.from(table).delete().eq('id', id)
+      if (error) throw new Error(`Gagal menghapus data dari ${table}: ` + error.message)
+      return true
+    }
+    const list = getLocalStore(table, [])
+    setLocalStore(table, list.filter(item => item.id !== id && item.id !== parseInt(id)))
+    return true
+  },
+
   async exportAllData(table, columns = '*') {
     if (isConfigured) {
       try {
