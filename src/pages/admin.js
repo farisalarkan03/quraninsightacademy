@@ -878,8 +878,6 @@ async function renderSpreadsheet(main, showToast) {
       ${[['peserta_bimbel','groups','Peserta Bimbel'],['peserta_privat','person','Peserta Privat'],['mentor','co_present','Mentor'],['kelas','school','Kelas'],['kehadiran','calendar_month','Kehadiran'],['kemajuan','menu_book','Kemajuan'],['penilaian','grade','Penilaian']].map(([key,icon,label])=>`
       <div class="sheet-tab ${key==='peserta_bimbel'?'active':''}" data-tab="${key}" onclick="switchSSTab('${key}',this)">
         <span class="ms" style="font-size:16px;vertical-align:middle;margin-right:4px;">${icon}</span>${label}
-        ${key==='peserta_bimbel'?'<span style="font-size:10px;background:rgba(16,185,129,0.2);color:#10b981;border-radius:4px;padding:1px 5px;margin-left:3px;">Kelompok</span>':''}
-        ${key==='peserta_privat'?'<span style="font-size:10px;background:rgba(240,175,67,0.2);color:#F0AF43;border-radius:4px;padding:1px 5px;margin-left:3px;">1-on-1</span>':''}
       </div>`).join('')}
     </div>
 
