@@ -279,8 +279,6 @@ function buildResultCard(p) {
         <div>
           <div style="font-weight:700;color:#1a0a02;font-size:15px;">${p.nama_lengkap}</div>
           <div style="font-size:12px;color:#81511D;margin-top:2px;">
-            <i class="fa-solid fa-person" style="color:#D4934E;"></i> ${p.usia ? p.usia + ' tahun' : '-'} 
-            &nbsp;•&nbsp;
             <i class="fa-solid fa-layer-group" style="color:#D4934E;"></i> ${kelasLabel}
           </div>
           <div style="font-size:12px;color:#81511D;margin-top:2px;">
@@ -357,7 +355,6 @@ function buildDetailHTML(data) {
       <div style="flex:1;">
         <h2 style="color:#fdf0e2;font-size:1.2rem;margin-bottom:6px;">${peserta?.nama_lengkap || '-'}</h2>
         <div style="display:flex;gap:12px;flex-wrap:wrap;">
-          <span style="font-size:12px;color:#c9a87a;"><i class="fa-solid fa-person" style="color:#F0AF43;"></i> ${peserta?.usia ? peserta.usia+' tahun' : '-'}</span>
           <span style="font-size:12px;color:#c9a87a;"><i class="fa-solid fa-layer-group" style="color:#F0AF43;"></i> ${kelasLabel}</span>
           <span style="font-size:12px;color:#c9a87a;"><i class="fa-solid fa-user-tie" style="color:#F0AF43;"></i> ${mentor?.nama || 'Belum ditentukan'}</span>
           ${kelas?.hari_jadwal ? `<span style="font-size:12px;color:#c9a87a;"><i class="fa-solid fa-calendar" style="color:#F0AF43;"></i> ${kelas.hari_jadwal} ${kelas.jam_jadwal||''}</span>` : ''}
