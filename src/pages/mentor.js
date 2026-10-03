@@ -506,10 +506,10 @@ function renderAbsensiTable(santri) {
       <select class="status-select form-control-light" data-idx="${i}"
         style="width:130px;text-align:center;font-weight:600;"
         onchange="updateAbsensiStatus(this)">
-        <option value="hadir"  ${row.status_hadir==='hadir' ?'selected':''} style="color:#059669;">✅ Hadir</option>
-        <option value="izin"   ${row.status_hadir==='izin'  ?'selected':''} style="color:#d97706;">📝 Izin</option>
-        <option value="sakit"  ${row.status_hadir==='sakit' ?'selected':''} style="color:#3b82f6;">🤒 Sakit</option>
-        <option value="alpa"   ${row.status_hadir==='alpa'  ?'selected':''} style="color:#dc2626;">❌ Alpa</option>
+        <option value="hadir"  ${row.status_hadir==='hadir' ?'selected':''} style="color:#059669;">● Hadir</option>
+        <option value="izin"   ${row.status_hadir==='izin'  ?'selected':''} style="color:#d97706;">◐ Izin</option>
+        <option value="sakit"  ${row.status_hadir==='sakit' ?'selected':''} style="color:#3b82f6;">◑ Sakit</option>
+        <option value="alpa"   ${row.status_hadir==='alpa'  ?'selected':''} style="color:#dc2626;">○ Alpa</option>
       </select>
     </td>
     <td style="padding:10px 16px;">
@@ -713,10 +713,10 @@ function openPesertaDetail(pesertaId, main, showToast) {
           <div class="form-group">
             <label class="form-label">Status Kehadiran</label>
             <select class="form-control" id="inp-status-hadir">
-              <option value="hadir">✅ Hadir</option>
-              <option value="izin">⚠️ Izin</option>
-              <option value="sakit">🩺 Sakit</option>
-              <option value="alpa">❌ Alpa</option>
+              <option value="hadir">● Hadir</option>
+              <option value="izin">◐ Izin</option>
+              <option value="sakit">◑ Sakit</option>
+              <option value="alpa">○ Alpa</option>
               <option value="none">— Lewati Kehadiran —</option>
             </select>
           </div>
@@ -744,9 +744,9 @@ function openPesertaDetail(pesertaId, main, showToast) {
           <div class="form-group">
             <label class="form-label">Status Kelancaran</label>
             <select class="form-control" id="inp-kelancaran">
-              <option value="lancar">✅ Lancar</option>
-              <option value="cukup">⚠️ Cukup</option>
-              <option value="perlu_ulang">🔄 Perlu Diulang</option>
+              <option value="lancar">● Lancar</option>
+              <option value="cukup">◑ Cukup</option>
+              <option value="perlu_ulang">○ Perlu Diulang</option>
             </select>
           </div>
         </div>
