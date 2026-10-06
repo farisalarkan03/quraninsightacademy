@@ -442,10 +442,11 @@ async function renderMentorManage(main, showToast) {
               <td>${statusChip(m.status)}</td>
               <td>
                 <div style="display:flex;gap:6px;">
-                  <button class="btn btn-ghost btn-sm" onclick="editMentor('${m.id}')"><i class="fa-solid fa-pen"></i></button>
+                  <button class="btn btn-ghost btn-sm" onclick="editMentor('${m.id}')" title="Edit Mentor"><i class="fa-solid fa-pen"></i></button>
+                  <button class="btn btn-warning btn-sm" onclick="changeMentorPassword('${m.id}','${m.nama.replace(/'/g,"&apos;")}')" title="Ubah Password" style="background:linear-gradient(135deg,#d97706,#b45309);color:#fff;border:none;"><i class="fa-solid fa-key"></i></button>
                   ${m.status==='aktif'?
-                    `<button class="btn btn-danger btn-sm" onclick="toggleMentorStatus('${m.id}','nonaktif')"><i class="fa-solid fa-ban"></i></button>`:
-                    `<button class="btn btn-success btn-sm" onclick="toggleMentorStatus('${m.id}','aktif')"><i class="fa-solid fa-check"></i></button>`}
+                    `<button class="btn btn-danger btn-sm" onclick="toggleMentorStatus('${m.id}','nonaktif')" title="Nonaktifkan"><i class="fa-solid fa-ban"></i></button>`:
+                    `<button class="btn btn-success btn-sm" onclick="toggleMentorStatus('${m.id}','aktif')" title="Aktifkan"><i class="fa-solid fa-check"></i></button>`}
                 </div>
               </td>
             </tr>`).join('')}
@@ -481,6 +482,56 @@ async function renderMentorManage(main, showToast) {
       await adminService.updateMentor(id, {status})
       showToast(`Mentor ${status==='aktif'?'diaktifkan':'dinonaktifkan'}!`, 'success')
       renderMentorManage(main, showToast)
+    }
+    window.changeMentorPassword = (id, nama) => {
+      showModal(`Ubah Password — ${nama}`, `
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #f59e0b;border-radius:10px;padding:14px;font-size:13px;color:#92400e;">
+          <i class="fa-solid fa-triangle-exclamation" style="margin-right:6px;"></i>
+          Password baru akan langsung aktif. Pastikan sudah memberitahu mentor terkait.
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password Baru</label>
+          <div style="position:relative;">
+            <input type="password" class="form-control" id="cp-pw" placeholder="Min. 8 karakter" style="padding-right:44px;" />
+            <button type="button" onclick="document.getElementById('cp-pw').type=document.getElementById('cp-pw').type==='password'?'text':'password'" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#81511D;font-size:16px;">
+              <i class="fa-solid fa-eye" id="cp-eye-icon"></i>
+            </button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Konfirmasi Password</label>
+          <input type="password" class="form-control" id="cp-pw2" placeholder="Ulangi password baru" />
+        </div>
+        <div id="cp-match-msg" style="font-size:12px;min-height:18px;"></div>
+      </div>`,
+      async () => {
+        const pw  = document.getElementById('cp-pw').value
+        const pw2 = document.getElementById('cp-pw2').value
+        if (!pw || pw.length < 8)  { showToast('Password minimal 8 karakter.', 'info'); return }
+        if (pw !== pw2)            { showToast('Konfirmasi password tidak cocok.', 'error'); return }
+        try {
+          await adminService.resetMentorPassword(id, pw)
+          showToast(`Password ${nama} berhasil diubah!`, 'success')
+          closeModal()
+        } catch(e) { showToast('Gagal: ' + e.message, 'error') }
+      })
+      // Real-time match validation
+      setTimeout(() => {
+        const pw2El = document.getElementById('cp-pw2')
+        const msgEl = document.getElementById('cp-match-msg')
+        if (pw2El && msgEl) {
+          pw2El.addEventListener('input', () => {
+            const pw = document.getElementById('cp-pw').value
+            if (!pw2El.value) { msgEl.textContent = ''; return }
+            if (pw2El.value === pw) {
+              msgEl.innerHTML = '<i class="fa-solid fa-circle-check" style="color:#16a34a;"></i> <span style="color:#16a34a;">Password cocok</span>'
+            } else {
+              msgEl.innerHTML = '<i class="fa-solid fa-circle-xmark" style="color:#dc2626;"></i> <span style="color:#dc2626;">Password tidak cocok</span>'
+            }
+          })
+        }
+      }, 100)
     }
   } catch(e) { showToast('Gagal memuat mentor: ' + e.message, 'error') }
 

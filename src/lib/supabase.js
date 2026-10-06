@@ -6,8 +6,9 @@
 import { createClient } from '@supabase/supabase-js'
 
 // Konfigurasi Supabase — hardcoded untuk memastikan berjalan di semua environment
-const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL  || 'https://wawamhpdthlttfttwjyc.supabase.co'
-const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indhd2FtaHBkdGhsdHRmdHR3anljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk2MjE4MzYsImV4cCI6MjEwNTE5NzgzNn0.zx35_sMK7z4CSw6b9OXzkFwpp3AsnVO1hOjQa42lAtg'
+const SUPABASE_URL         = import.meta.env.VITE_SUPABASE_URL  || 'https://wawamhpdthlttfttwjyc.supabase.co'
+const SUPABASE_ANON        = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indhd2FtaHBkdGhsdHRmdHR3anljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk2MjE4MzYsImV4cCI6MjEwNTE5NzgzNn0.zx35_sMK7z4CSw6b9OXzkFwpp3AsnVO1hOjQa42lAtg'
+const SUPABASE_SERVICE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || ''
 
 export const isConfigured = true
 
@@ -17,6 +18,13 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON, {
     autoRefreshToken: true,
   }
 })
+
+// Admin client — hanya digunakan untuk operasi yang membutuhkan hak admin (ubah password)
+const supabaseAdmin = SUPABASE_SERVICE_KEY
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false }
+    })
+  : null
 
 
 // ────────────────────────────────────────────────────────────
@@ -175,6 +183,17 @@ export const adminService = {
   async updateMentor(id, updates) {
     const { data, error } = await supabase.from('profiles').update(updates).eq('id', id).select().single()
     if (error) throw new Error('Gagal update mentor: ' + error.message)
+    return data
+  },
+
+  async resetMentorPassword(userId, newPassword) {
+    if (!supabaseAdmin) {
+      throw new Error('Service role key belum dikonfigurasi. Tambahkan VITE_SUPABASE_SERVICE_ROLE_KEY di file .env')
+    }
+    const { data, error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+      password: newPassword
+    })
+    if (error) throw new Error('Gagal mengubah password: ' + error.message)
     return data
   },
 
