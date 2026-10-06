@@ -263,6 +263,48 @@ export const adminService = {
     return true
   },
 
+  async getPesertaDetail(pesertaId) {
+    const pId = Number(pesertaId)
+    if (isConfigured) {
+      try {
+        const [pRes, hRes, kRes, nRes] = await Promise.all([
+          supabase.from('peserta_didik').select('*, mentor:profiles(nama), kelas(nama_kelas)').eq('id', pId).single(),
+          supabase.from('kehadiran').select('*').eq('id_peserta', pId).order('tanggal', { ascending: false }),
+          supabase.from('kemajuan').select('*').eq('id_peserta', pId).order('tanggal', { ascending: false }),
+          supabase.from('penilaian').select('*').eq('id_peserta', pId).order('tanggal', { ascending: false }),
+        ])
+        if (pRes.data) {
+          const kehadiran = hRes.data || []
+          const kemajuan = kRes.data || []
+          const penilaian = nRes.data || []
+          const hadirCount = kehadiran.filter(h => h.status_hadir === 'hadir').length
+          const izinCount  = kehadiran.filter(h => h.status_hadir === 'izin').length
+          const sakitCount = kehadiran.filter(h => h.status_hadir === 'sakit').length
+          const alpaCount  = kehadiran.filter(h => h.status_hadir === 'alpa').length
+          return {
+            peserta: pRes.data,
+            mentor: pRes.data.mentor || { nama: 'Belum ditentukan' },
+            kelas: pRes.data.kelas || { nama_kelas: pRes.data.jenis === 'privat' ? 'Program Privat' : '-' },
+            kemajuan,
+            penilaian,
+            kehadiran_summary: {
+              hadir: hadirCount,
+              izin: izinCount,
+              sakit: sakitCount,
+              alpa: alpaCount,
+              total: kehadiran.length
+            },
+            riwayat_kehadiran: kehadiran
+          }
+        }
+      } catch(e) {
+        console.error('adminService.getPesertaDetail error:', e)
+      }
+    }
+    // Demo Mode fallback
+    return waliService.getPesertaDetail(pId)
+  },
+
   async deleteRow(table, id) {
     if (isConfigured) {
       const { error } = await supabase.from(table).delete().eq('id', id)
@@ -273,6 +315,19 @@ export const adminService = {
     setLocalStore(table, list.filter(item => item.id !== id && item.id !== parseInt(id)))
     return true
   },
+
+  async updateRow(table, id, updates) {
+    if (isConfigured) {
+      const { error } = await supabase.from(table).update(updates).eq('id', id)
+      if (error) throw new Error(`Gagal memperbarui data ${table}: ` + error.message)
+      return true
+    }
+    const list = getLocalStore(table, [])
+    const idx = list.findIndex(item => item.id === id || item.id === parseInt(id))
+    if (idx !== -1) { list[idx] = { ...list[idx], ...updates }; setLocalStore(table, list) }
+    return true
+  },
+
 
   async exportAllData(table, columns = '*') {
     if (isConfigured) {

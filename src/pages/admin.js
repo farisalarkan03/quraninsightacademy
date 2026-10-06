@@ -692,9 +692,9 @@ async function renderPesertaManage(main, showToast) {
     <div><div class="page-title">Peserta <span>Didik</span></div></div>
     <div style="display:flex;gap:10px;">
       <div class="search-wrapper">
-        <i class="fa-solid fa-magnifying-glass search-icon" style="color:var(--brown-400);"></i>
+        <i class="fa-solid fa-magnifying-glass search-icon" style="color:#81511D;"></i>
         <input type="text" id="peserta-search" placeholder="Cari nama peserta didik…"
-          class="form-control search-input" style="min-width:220px;" />
+          class="form-control search-input" style="min-width:240px;background:#ffffff!important;border:1.5px solid var(--cream-300)!important;color:#2b1406!important;font-weight:600!important;" />
       </div>
       <button class="btn btn-primary" id="btn-tambah-peserta"><i class="fa-solid fa-plus"></i> Tambah Peserta Didik</button>
     </div>
@@ -712,21 +712,21 @@ async function renderPesertaManage(main, showToast) {
     <div class="table-wrapper">
       <table class="data-table">
         <thead><tr>
-          <th>Nama Lengkap</th><th>Jenis</th><th>Kelas</th><th>Mentor</th><th>Status</th><th>Aksi</th>
+          <th>Nama Lengkap</th><th>Jenis</th><th>Mentor</th><th>Status</th><th>Aksi</th>
         </tr></thead>
         <tbody>
-          ${list.length===0?`<tr><td colspan="6" style="text-align:center;padding:28px;color:#81511D;">Tidak ada peserta didik ditemukan.</td></tr>`:
+          ${list.length===0?`<tr><td colspan="5" style="text-align:center;padding:28px;color:#81511D;">Tidak ada peserta didik ditemukan.</td></tr>`:
             list.map(p=>`<tr>
               <td><div style="font-weight:600;">${p.nama_lengkap}</div><div style="font-size:11px;color:#81511D;">${p.nama_wali||''}</div></td>
               <td>${jenisChip(p.jenis)}</td>
-              <td><span style="font-size:13px;">${p.kelas?.nama_kelas||'-'}</span></td>
               <td><span style="font-size:13px;">${p.mentor?.nama||'-'}</span></td>
               <td>${statusChip(p.status)}</td>
               <td>
                 <div style="display:flex;gap:6px;">
+                  <button class="btn btn-ghost btn-sm" title="Lihat Laporan" onclick="lihatLaporanPeserta(${p.id},'${(p.nama_lengkap||'').replace(/'/g,"\\'")}')\" style="color:#0ea5e9;"><i class="fa-solid fa-chart-line"></i></button>
                   <button class="btn btn-ghost btn-sm" title="Edit Peserta" onclick="editPeserta(${p.id})"><i class="fa-solid fa-pen"></i></button>
                   <button class="btn btn-ghost btn-sm" title="Nonaktifkan" onclick="nonaktifPeserta(${p.id})" style="color:#d97706;"><i class="fa-solid fa-ban"></i></button>
-                  <button class="btn btn-danger btn-sm" title="Hapus Permanen dari Database" onclick="hapusPeserta(${p.id}, '${(p.nama_lengkap||'').replace(/'/g, "\\'")}')"><i class="fa-solid fa-trash-can"></i></button>
+                  <button class="btn btn-danger btn-sm" title="Hapus Permanen" onclick="hapusPeserta(${p.id}, '${(p.nama_lengkap||'').replace(/'/g,"\\'")}')"><i class="fa-solid fa-trash-can"></i></button>
                 </div>
               </td>
             </tr>`).join('')}
@@ -738,6 +738,7 @@ async function renderPesertaManage(main, showToast) {
   renderPesertaTable(peserta)
 
   document.getElementById('peserta-search').addEventListener('input', e => {
+
     const q = e.target.value.toLowerCase()
     renderPesertaTable(peserta.filter(p=>p.nama_lengkap.toLowerCase().includes(q)))
   })
@@ -767,6 +768,301 @@ async function renderPesertaManage(main, showToast) {
       renderPesertaManage(main, showToast)
     } catch(e) {
       showToast('Gagal menghapus: ' + e.message, 'error')
+    }
+  }
+
+  window.lihatLaporanPeserta = async (pesertaId, namaPeserta, activeTab = 'kehadiran') => {
+    // Tampilkan modal loading dulu
+    showModal(`📊 Progress & Laporan: ${namaPeserta}`, `<div style="text-align:center;padding:40px;"><div class="spinner" style="margin:0 auto;"></div><p style="margin-top:12px;color:#81511D;font-weight:600;">Memuat data laporan…</p></div>`, null)
+    try {
+      const data = await adminService.getPesertaDetail(pesertaId)
+      if (!data) { showToast('Data tidak ditemukan.', 'error'); closeModal(); return }
+      const { kemajuan = [], penilaian = [], riwayat_kehadiran = [], kehadiran_summary = {} } = data
+      const avgNilai = penilaian.length > 0 ? (penilaian.reduce((s,n)=>s+(n.nilai_angka||0),0)/penilaian.length).toFixed(1) : '-'
+
+      const modalBody = `
+      <div style="font-family:inherit;color:#1a0a02;">
+        <!-- Stats ringkas dengan kontras tinggi -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">
+          <div style="background:#ffffff;border:1.5px solid rgba(16,185,129,0.35);border-radius:12px;padding:12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+            <div style="font-size:24px;font-weight:800;color:#059669;">${kehadiran_summary.hadir||0}</div>
+            <div style="font-size:11px;font-weight:700;color:#047857;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Hadir</div>
+          </div>
+          <div style="background:#ffffff;border:1.5px solid rgba(249,115,22,0.35);border-radius:12px;padding:12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+            <div style="font-size:24px;font-weight:800;color:#ea580c;">${(kehadiran_summary.izin||0)+(kehadiran_summary.sakit||0)}</div>
+            <div style="font-size:11px;font-weight:700;color:#c2410c;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Izin/Sakit</div>
+          </div>
+          <div style="background:#ffffff;border:1.5px solid rgba(239,68,68,0.35);border-radius:12px;padding:12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+            <div style="font-size:24px;font-weight:800;color:#dc2626;">${kehadiran_summary.alpa||0}</div>
+            <div style="font-size:11px;font-weight:700;color:#b91c1c;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Alpa</div>
+          </div>
+          <div style="background:#ffffff;border:1.5px solid rgba(240,175,67,0.45);border-radius:12px;padding:12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+            <div style="font-size:24px;font-weight:800;color:#b45309;">${avgNilai}</div>
+            <div style="font-size:11px;font-weight:700;color:#78350f;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Rata Nilai</div>
+          </div>
+        </div>
+
+        <!-- Tabs laporan -->
+        <div style="display:flex;gap:8px;margin-bottom:14px;border-bottom:2px solid rgba(129,81,29,0.15);padding-bottom:10px;">
+          <button id="ltab-kehadiran" onclick="switchLaporanTab('kehadiran')" style="padding:7px 15px;border-radius:8px;font-weight:700;font-size:12.5px;cursor:pointer;transition:all 0.2s;">Kehadiran (${riwayat_kehadiran.length})</button>
+          <button id="ltab-kemajuan" onclick="switchLaporanTab('kemajuan')" style="padding:7px 15px;border-radius:8px;font-weight:700;font-size:12.5px;cursor:pointer;transition:all 0.2s;">Kemajuan Hafalan (${kemajuan.length})</button>
+          <button id="ltab-penilaian" onclick="switchLaporanTab('penilaian')" style="padding:7px 15px;border-radius:8px;font-weight:700;font-size:12.5px;cursor:pointer;transition:all 0.2s;">Penilaian (${penilaian.length})</button>
+        </div>
+        <div id="laporan-tab-content"></div>
+      </div>`
+
+      // Tampilkan konten laporan di modal
+      const bodyEl = document.getElementById('admin-modal-body')
+      if (bodyEl) bodyEl.innerHTML = modalBody
+      const innerEl = document.getElementById('admin-modal-inner')
+      if (innerEl) innerEl.className = 'modal modal-lg'
+      const footerEl = document.getElementById('admin-modal-footer')
+      if (footerEl) footerEl.innerHTML = `<button class="btn btn-primary" onclick="closeModal()" style="background:#2b1406;color:#fdf0e2;border:none;padding:8px 22px;font-weight:700;border-radius:8px;box-shadow:0 2px 8px rgba(43,20,6,0.2);">Tutup</button>`
+
+      // State data laporan
+      window._laporanData = { kehadiran: riwayat_kehadiran, kemajuan, penilaian, pesertaId, namaPeserta }
+
+      window.switchLaporanTab = (tab) => {
+        ;['kehadiran','kemajuan','penilaian'].forEach(t => {
+          const btn = document.getElementById(`ltab-${t}`)
+          if (btn) {
+            if (t === tab) {
+              btn.style.background = 'linear-gradient(135deg, #d97706, #F0AF43)'
+              btn.style.color = '#1a0a02'
+              btn.style.border = 'none'
+              btn.style.fontWeight = '800'
+              btn.style.boxShadow = '0 2px 8px rgba(240,175,67,0.3)'
+            } else {
+              btn.style.background = '#ffffff'
+              btn.style.color = '#4F280C'
+              btn.style.border = '1.5px solid rgba(129,81,29,0.22)'
+              btn.style.fontWeight = '600'
+              btn.style.boxShadow = 'none'
+            }
+          }
+        })
+        const { kehadiran, kemajuan, penilaian } = window._laporanData
+        const container = document.getElementById('laporan-tab-content')
+        if (!container) return
+
+        const getStatusChip = (st) => {
+          const s = String(st || '').toLowerCase()
+          if (s === 'hadir' || s === 'lancar') {
+            return `<span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(16,185,129,0.15);color:#047857;border:1px solid rgba(16,185,129,0.35);">● ${st}</span>`
+          }
+          if (s === 'alpa' || s === 'perlu_ulang' || s === 'perlu_latihan') {
+            return `<span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(239,68,68,0.15);color:#b91c1c;border:1px solid rgba(239,68,68,0.35);">● ${st}</span>`
+          }
+          return `<span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(249,115,22,0.15);color:#c2410c;border:1px solid rgba(249,115,22,0.35);">● ${st || '-'}</span>`
+        }
+
+        if (tab === 'kehadiran') {
+          container.innerHTML = kehadiran.length === 0
+            ? `<p style="color:#81511D;font-weight:600;text-align:center;padding:32px;background:#ffffff;border:1.5px dashed rgba(129,81,29,0.2);border-radius:10px;">Belum ada data riwayat kehadiran.</p>`
+            : `<div style="max-height:350px;overflow-y:auto;border:1.5px solid rgba(129,81,29,0.18);border-radius:10px;background:#ffffff;box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+              <table style="width:100%;border-collapse:collapse;font-size:13px;background:#ffffff;">
+                <thead style="position:sticky;top:0;z-index:2;"><tr style="background:#2b1406;">
+                  <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#F0AF43;letter-spacing:0.5px;text-transform:uppercase;">Tanggal</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#F0AF43;letter-spacing:0.5px;text-transform:uppercase;">Status</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#F0AF43;letter-spacing:0.5px;text-transform:uppercase;">Materi</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#F0AF43;letter-spacing:0.5px;text-transform:uppercase;">Catatan</th>
+                  <th style="padding:10px 12px;text-align:center;font-size:11px;font-weight:700;color:#F0AF43;letter-spacing:0.5px;text-transform:uppercase;width:80px;">Aksi</th>
+                </tr></thead>
+                <tbody>
+                  ${kehadiran.map((h,i)=>`<tr id="lrow-kehadiran-${i}" style="background:${i%2===0?'#ffffff':'#fdfaf6'};border-bottom:1px solid rgba(129,81,29,0.1);">
+                    <td style="padding:9px 12px;"><strong style="color:#2b1406;font-size:12.5px;">${h.tanggal||'-'}</strong></td>
+                    <td style="padding:9px 12px;">${getStatusChip(h.status_hadir)}</td>
+                    <td style="padding:9px 12px;"><span style="color:#2b1406;font-size:12.5px;font-weight:600;">${h.materi_pembahasan||'-'}</span></td>
+                    <td style="padding:9px 12px;"><span style="color:#4F280C;font-size:12px;line-height:1.45;">${h.catatan_sesi||h.perkembangan_materi||'-'}</span></td>
+                    <td style="padding:9px 12px;text-align:center;">
+                      <div style="display:flex;gap:5px;justify-content:center;">
+                        <button title="Edit" onclick="editLaporan('kehadiran',${i})" style="padding:4px 9px;border-radius:6px;background:#ffffff;border:1.5px solid rgba(240,175,67,0.6);color:#b45309;cursor:pointer;font-size:12px;transition:all 0.15s;" onmouseover="this.style.background='#fef3c7'" onmouseout="this.style.background='#ffffff'"><i class="fa-solid fa-pen"></i></button>
+                        <button title="Hapus" onclick="hapusLaporan('kehadiran',${h.id||0},${i})" style="padding:4px 9px;border-radius:6px;background:#ffffff;border:1.5px solid rgba(239,68,68,0.5);color:#dc2626;cursor:pointer;font-size:12px;transition:all 0.15s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#ffffff'"><i class="fa-solid fa-trash-can"></i></button>
+                      </div>
+                    </td>
+                  </tr>`).join('')}
+                </tbody>
+              </table>
+            </div>`
+        } else if (tab === 'kemajuan') {
+          container.innerHTML = kemajuan.length === 0
+            ? `<p style="color:#81511D;font-weight:600;text-align:center;padding:32px;background:#ffffff;border:1.5px dashed rgba(129,81,29,0.2);border-radius:10px;">Belum ada data kemajuan hafalan.</p>`
+            : `<div style="max-height:350px;overflow-y:auto;border:1.5px solid rgba(129,81,29,0.18);border-radius:10px;background:#ffffff;box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+              <table style="width:100%;border-collapse:collapse;font-size:13px;background:#ffffff;">
+                <thead style="position:sticky;top:0;z-index:2;"><tr style="background:#2b1406;">
+                  <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#F0AF43;letter-spacing:0.5px;text-transform:uppercase;">Tanggal</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#F0AF43;letter-spacing:0.5px;text-transform:uppercase;">Kitab/Surah</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#F0AF43;letter-spacing:0.5px;text-transform:uppercase;">Halaman/Ayat</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#F0AF43;letter-spacing:0.5px;text-transform:uppercase;">Status</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#F0AF43;letter-spacing:0.5px;text-transform:uppercase;">Catatan</th>
+                  <th style="padding:10px 12px;text-align:center;font-size:11px;font-weight:700;color:#F0AF43;letter-spacing:0.5px;text-transform:uppercase;width:80px;">Aksi</th>
+                </tr></thead>
+                <tbody>
+                  ${kemajuan.map((k,i)=>`<tr id="lrow-kemajuan-${i}" style="background:${i%2===0?'#ffffff':'#fdfaf6'};border-bottom:1px solid rgba(129,81,29,0.1);">
+                    <td style="padding:9px 12px;"><strong style="color:#2b1406;font-size:12.5px;">${k.tanggal||'-'}</strong></td>
+                    <td style="padding:9px 12px;"><strong style="color:#2b1406;font-size:13.5px;">${k.kitab_surat||'-'}</strong></td>
+                    <td style="padding:9px 12px;"><span style="color:#4F280C;font-size:12.5px;font-weight:600;">${k.halaman_ayat||'-'}</span></td>
+                    <td style="padding:9px 12px;">${getStatusChip(k.status_kelancaran)}</td>
+                    <td style="padding:9px 12px;"><span style="color:#4F280C;font-size:12px;line-height:1.45;">${k.catatan_hafalan||'-'}</span></td>
+                    <td style="padding:9px 12px;text-align:center;">
+                      <div style="display:flex;gap:5px;justify-content:center;">
+                        <button title="Edit" onclick="editLaporan('kemajuan',${i})" style="padding:4px 9px;border-radius:6px;background:#ffffff;border:1.5px solid rgba(240,175,67,0.6);color:#b45309;cursor:pointer;font-size:12px;transition:all 0.15s;" onmouseover="this.style.background='#fef3c7'" onmouseout="this.style.background='#ffffff'"><i class="fa-solid fa-pen"></i></button>
+                        <button title="Hapus" onclick="hapusLaporan('kemajuan',${k.id||0},${i})" style="padding:4px 9px;border-radius:6px;background:#ffffff;border:1.5px solid rgba(239,68,68,0.5);color:#dc2626;cursor:pointer;font-size:12px;transition:all 0.15s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#ffffff'"><i class="fa-solid fa-trash-can"></i></button>
+                      </div>
+                    </td>
+                  </tr>`).join('')}
+                </tbody>
+              </table>
+            </div>`
+        } else if (tab === 'penilaian') {
+          container.innerHTML = penilaian.length === 0
+            ? `<p style="color:#81511D;font-weight:600;text-align:center;padding:32px;background:#ffffff;border:1.5px dashed rgba(129,81,29,0.2);border-radius:10px;">Belum ada data penilaian.</p>`
+            : `<div style="max-height:350px;overflow-y:auto;border:1.5px solid rgba(129,81,29,0.18);border-radius:10px;background:#ffffff;box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+              <table style="width:100%;border-collapse:collapse;font-size:13px;background:#ffffff;">
+                <thead style="position:sticky;top:0;z-index:2;"><tr style="background:#2b1406;">
+                  <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#F0AF43;letter-spacing:0.5px;text-transform:uppercase;">Tanggal</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#F0AF43;letter-spacing:0.5px;text-transform:uppercase;">Nilai Angka</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#F0AF43;letter-spacing:0.5px;text-transform:uppercase;">Adab</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#F0AF43;letter-spacing:0.5px;text-transform:uppercase;">Tajwid</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#F0AF43;letter-spacing:0.5px;text-transform:uppercase;">Kelancaran</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#F0AF43;letter-spacing:0.5px;text-transform:uppercase;">Catatan</th>
+                  <th style="padding:10px 12px;text-align:center;font-size:11px;font-weight:700;color:#F0AF43;letter-spacing:0.5px;text-transform:uppercase;width:80px;">Aksi</th>
+                </tr></thead>
+                <tbody>
+                  ${penilaian.map((n,i)=>`<tr id="lrow-penilaian-${i}" style="background:${i%2===0?'#ffffff':'#fdfaf6'};border-bottom:1px solid rgba(129,81,29,0.1);">
+                    <td style="padding:9px 12px;"><strong style="color:#2b1406;font-size:12.5px;">${n.tanggal||'-'}</strong></td>
+                    <td style="padding:9px 12px;"><b style="color:#059669;font-size:16px;">${n.nilai_angka||'-'}</b></td>
+                    <td style="padding:9px 12px;"><span style="color:#2b1406;font-weight:600;font-size:13px;">${n.nilai_adab||'-'}</span></td>
+                    <td style="padding:9px 12px;"><span style="color:#2b1406;font-weight:600;font-size:13px;">${n.nilai_tajwid||'-'}</span></td>
+                    <td style="padding:9px 12px;"><span style="color:#2b1406;font-weight:600;font-size:13px;">${n.nilai_kelancaran||'-'}</span></td>
+                    <td style="padding:9px 12px;"><span style="color:#4F280C;font-size:12px;line-height:1.45;">${n.catatan||'-'}</span></td>
+                    <td style="padding:9px 12px;text-align:center;">
+                      <div style="display:flex;gap:5px;justify-content:center;">
+                        <button title="Edit" onclick="editLaporan('penilaian',${i})" style="padding:4px 9px;border-radius:6px;background:#ffffff;border:1.5px solid rgba(240,175,67,0.6);color:#b45309;cursor:pointer;font-size:12px;transition:all 0.15s;" onmouseover="this.style.background='#fef3c7'" onmouseout="this.style.background='#ffffff'"><i class="fa-solid fa-pen"></i></button>
+                        <button title="Hapus" onclick="hapusLaporan('penilaian',${n.id||0},${i})" style="padding:4px 9px;border-radius:6px;background:#ffffff;border:1.5px solid rgba(239,68,68,0.5);color:#dc2626;cursor:pointer;font-size:12px;transition:all 0.15s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#ffffff'"><i class="fa-solid fa-trash-can"></i></button>
+                      </div>
+                    </td>
+                  </tr>`).join('')}
+                </tbody>
+              </table>
+            </div>`
+        }
+      }
+
+      window.hapusLaporan = async (tabel, rowId, idx) => {
+        const tableMap = { kehadiran: 'kehadiran', kemajuan: 'kemajuan', penilaian: 'penilaian' }
+        if (!rowId) { showToast('ID data tidak ditemukan, tidak bisa dihapus.', 'error'); return }
+        if (!confirm('Hapus data laporan ini secara permanen?')) return
+        try {
+          await adminService.deleteRow(tableMap[tabel], rowId)
+          showToast('Data laporan berhasil dihapus!', 'success')
+          window.lihatLaporanPeserta(pesertaId, namaPeserta, tabel)
+        } catch(e) { showToast('Gagal menghapus: ' + e.message, 'error') }
+      }
+
+      window.editLaporan = (tabel, idx) => {
+        const row = window._laporanData[tabel][idx]
+        if (!row) return
+        let formHTML = ''
+        if (tabel === 'kehadiran') {
+          formHTML = `
+            <div style="display:grid;gap:12px;color:#1a0a02;">
+              <div><label style="font-size:12px;font-weight:700;color:#4F280C;display:block;margin-bottom:4px;">Tanggal</label>
+                <input type="date" id="el-tgl" value="${row.tanggal||''}" class="form-control" style="background:#ffffff;border:1.5px solid rgba(129,81,29,0.3);color:#2b1406;font-weight:600;" /></div>
+              <div><label style="font-size:12px;font-weight:700;color:#4F280C;display:block;margin-bottom:4px;">Status Hadir</label>
+                <select id="el-status" class="form-control" style="background:#ffffff;border:1.5px solid rgba(129,81,29,0.3);color:#2b1406;font-weight:600;">
+                  ${['hadir','izin','sakit','alpa'].map(s=>`<option value="${s}" ${row.status_hadir===s?'selected':''}>${s}</option>`).join('')}
+                </select></div>
+              <div><label style="font-size:12px;font-weight:700;color:#4F280C;display:block;margin-bottom:4px;">Materi</label>
+                <input type="text" id="el-materi" value="${row.materi_pembahasan||''}" class="form-control" style="background:#ffffff;border:1.5px solid rgba(129,81,29,0.3);color:#2b1406;font-weight:600;" /></div>
+              <div><label style="font-size:12px;font-weight:700;color:#4F280C;display:block;margin-bottom:4px;">Catatan Sesi</label>
+                <textarea id="el-catatan" rows="2" class="form-control" style="background:#ffffff;border:1.5px solid rgba(129,81,29,0.3);color:#2b1406;font-weight:500;">${row.catatan_sesi||row.perkembangan_materi||''}</textarea></div>
+            </div>`
+        } else if (tabel === 'kemajuan') {
+          formHTML = `
+            <div style="display:grid;gap:12px;color:#1a0a02;">
+              <div><label style="font-size:12px;font-weight:700;color:#4F280C;display:block;margin-bottom:4px;">Tanggal</label>
+                <input type="date" id="el-tgl" value="${row.tanggal||''}" class="form-control" style="background:#ffffff;border:1.5px solid rgba(129,81,29,0.3);color:#2b1406;font-weight:600;" /></div>
+              <div><label style="font-size:12px;font-weight:700;color:#4F280C;display:block;margin-bottom:4px;">Kitab/Surah</label>
+                <input type="text" id="el-kitab" value="${row.kitab_surat||''}" class="form-control" style="background:#ffffff;border:1.5px solid rgba(129,81,29,0.3);color:#2b1406;font-weight:600;" /></div>
+              <div><label style="font-size:12px;font-weight:700;color:#4F280C;display:block;margin-bottom:4px;">Halaman/Ayat</label>
+                <input type="text" id="el-halaman" value="${row.halaman_ayat||''}" class="form-control" style="background:#ffffff;border:1.5px solid rgba(129,81,29,0.3);color:#2b1406;font-weight:600;" /></div>
+              <div><label style="font-size:12px;font-weight:700;color:#4F280C;display:block;margin-bottom:4px;">Status Kelancaran</label>
+                <select id="el-kelancaran" class="form-control" style="background:#ffffff;border:1.5px solid rgba(129,81,29,0.3);color:#2b1406;font-weight:600;">
+                  ${['lancar','cukup','perlu_latihan'].map(s=>`<option value="${s}" ${row.status_kelancaran===s?'selected':''}>${s}</option>`).join('')}
+                </select></div>
+              <div><label style="font-size:12px;font-weight:700;color:#4F280C;display:block;margin-bottom:4px;">Catatan Hafalan</label>
+                <textarea id="el-catatan" rows="2" class="form-control" style="background:#ffffff;border:1.5px solid rgba(129,81,29,0.3);color:#2b1406;font-weight:500;">${row.catatan_hafalan||''}</textarea></div>
+            </div>`
+        } else if (tabel === 'penilaian') {
+          formHTML = `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;color:#1a0a02;">
+              <div style="grid-column:1/-1"><label style="font-size:12px;font-weight:700;color:#4F280C;display:block;margin-bottom:4px;">Tanggal</label>
+                <input type="date" id="el-tgl" value="${row.tanggal||''}" class="form-control" style="background:#ffffff;border:1.5px solid rgba(129,81,29,0.3);color:#2b1406;font-weight:600;" /></div>
+              <div><label style="font-size:12px;font-weight:700;color:#4F280C;display:block;margin-bottom:4px;">Nilai Angka</label>
+                <input type="number" id="el-nilai" value="${row.nilai_angka||''}" class="form-control" min="0" max="100" style="background:#ffffff;border:1.5px solid rgba(129,81,29,0.3);color:#2b1406;font-weight:600;" /></div>
+              <div><label style="font-size:12px;font-weight:700;color:#4F280C;display:block;margin-bottom:4px;">Nilai Adab (1-5)</label>
+                <input type="number" id="el-adab" value="${row.nilai_adab||''}" class="form-control" min="1" max="5" style="background:#ffffff;border:1.5px solid rgba(129,81,29,0.3);color:#2b1406;font-weight:600;" /></div>
+              <div><label style="font-size:12px;font-weight:700;color:#4F280C;display:block;margin-bottom:4px;">Nilai Tajwid (1-5)</label>
+                <input type="number" id="el-tajwid" value="${row.nilai_tajwid||''}" class="form-control" min="1" max="5" style="background:#ffffff;border:1.5px solid rgba(129,81,29,0.3);color:#2b1406;font-weight:600;" /></div>
+              <div><label style="font-size:12px;font-weight:700;color:#4F280C;display:block;margin-bottom:4px;">Nilai Kelancaran (1-5)</label>
+                <input type="number" id="el-kelnilai" value="${row.nilai_kelancaran||''}" class="form-control" min="1" max="5" style="background:#ffffff;border:1.5px solid rgba(129,81,29,0.3);color:#2b1406;font-weight:600;" /></div>
+              <div style="grid-column:1/-1"><label style="font-size:12px;font-weight:700;color:#4F280C;display:block;margin-bottom:4px;">Catatan</label>
+                <textarea id="el-catatan" rows="2" class="form-control" style="background:#ffffff;border:1.5px solid rgba(129,81,29,0.3);color:#2b1406;font-weight:500;">${row.catatan||''}</textarea></div>
+            </div>`
+        }
+
+        showModal(`Edit ${tabel.charAt(0).toUpperCase()+tabel.slice(1)} #${idx+1}`, formHTML, async () => {
+          let updates = {}
+          const tableMap = { kehadiran: 'kehadiran', kemajuan: 'kemajuan', penilaian: 'penilaian' }
+          if (tabel === 'kehadiran') {
+            updates = {
+              tanggal: document.getElementById('el-tgl')?.value,
+              status_hadir: document.getElementById('el-status')?.value,
+              materi_pembahasan: document.getElementById('el-materi')?.value || null,
+              catatan_sesi: document.getElementById('el-catatan')?.value || null,
+              perkembangan_materi: document.getElementById('el-catatan')?.value || null,
+            }
+          } else if (tabel === 'kemajuan') {
+            updates = {
+              tanggal: document.getElementById('el-tgl')?.value,
+              kitab_surat: document.getElementById('el-kitab')?.value,
+              halaman_ayat: document.getElementById('el-halaman')?.value,
+              status_kelancaran: document.getElementById('el-kelancaran')?.value,
+              catatan_hafalan: document.getElementById('el-catatan')?.value || null,
+            }
+          } else if (tabel === 'penilaian') {
+            updates = {
+              tanggal: document.getElementById('el-tgl')?.value,
+              nilai_angka: parseFloat(document.getElementById('el-nilai')?.value) || null,
+              nilai_adab: parseInt(document.getElementById('el-adab')?.value) || null,
+              nilai_tajwid: parseInt(document.getElementById('el-tajwid')?.value) || null,
+              nilai_kelancaran: parseInt(document.getElementById('el-kelnilai')?.value) || null,
+              catatan: document.getElementById('el-catatan')?.value || null,
+            }
+          }
+          if (!row.id) { showToast('ID tidak ditemukan, tidak bisa disimpan.','error'); return }
+          try {
+            await adminService.updateRow(tableMap[tabel], row.id, updates)
+            showToast('Data laporan berhasil diperbarui!', 'success')
+            window.lihatLaporanPeserta(pesertaId, namaPeserta, tabel)
+          } catch(err) {
+            showToast('Gagal update: ' + err.message, 'error')
+          }
+        })
+
+        // Ganti tombol batal agar kembali ke laporan peserta bukan menutup modal
+        const cancelBtn = document.querySelector('#admin-modal-footer .btn-ghost')
+        if (cancelBtn) {
+          cancelBtn.onclick = () => window.lihatLaporanPeserta(pesertaId, namaPeserta, tabel)
+        }
+      }
+
+      // Aktifkan tab yang diminta
+      window.switchLaporanTab(activeTab)
+    } catch(e) {
+      closeModal()
+      showToast('Gagal memuat laporan: ' + e.message, 'error')
     }
   }
 

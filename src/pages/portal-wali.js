@@ -78,13 +78,15 @@ function buildWaliHTML() {
               onblur="this.style.borderColor='rgba(240,175,67,0.25)';this.style.background='rgba(255,255,255,0.06)'" />
           </div>
           <button id="wali-search-btn"
-            style="padding:16px 28px;border-radius:0 14px 14px 0;border:2px solid rgba(240,175,67,0.25);
+            title="Cari Peserta Didik"
+            style="padding:16px 20px;border-radius:0 14px 14px 0;border:2px solid rgba(240,175,67,0.25);
             border-left:none;
             background:linear-gradient(135deg,#d97706,#F0AF43);color:#1a0a02;
-            font-weight:700;font-size:15px;cursor:pointer;
-            transition:all 0.25s;white-space:nowrap;"
-            onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
-            Cari Peserta Didik
+            font-size:18px;cursor:pointer;
+            transition:all 0.25s;display:flex;align-items:center;justify-content:center;"
+            onmouseover="this.style.opacity='0.85';this.style.transform='scale(1.05)'"
+            onmouseout="this.style.opacity='1';this.style.transform='scale(1)'">
+            <i class="fa-solid fa-magnifying-glass"></i>
           </button>
         </div>
         <p style="font-size:12px;color:#c9a87a;margin-top:10px;">

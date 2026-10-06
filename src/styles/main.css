@@ -529,6 +529,71 @@ p  { line-height: 1.7; }
 }
 
 /* ────────────────────────────────────────────────────────────
+   11b. ADMIN MODAL THEME (Warm Ivory & High Contrast)
+   ──────────────────────────────────────────────────────────── */
+#admin-modal .modal {
+  background: #fdfaf6;
+  border: 1.5px solid rgba(129,81,29,0.25);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 64px rgba(43,20,6,0.32);
+  color: #1a0a02;
+}
+#admin-modal .modal-header {
+  border-bottom: 1.5px solid rgba(129,81,29,0.18);
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+}
+#admin-modal .modal-title {
+  color: #2b1406;
+  font-size: 1.25rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#admin-modal .modal-close {
+  color: #81511D;
+  font-size: 22px;
+}
+#admin-modal .modal-close:hover {
+  color: #dc2626;
+  background: rgba(239,68,68,0.12);
+}
+#admin-modal .modal-footer {
+  border-top: 1.5px solid rgba(129,81,29,0.18);
+  margin-top: 20px;
+  padding-top: 14px;
+}
+#admin-modal .form-control {
+  background: #ffffff;
+  border: 1.5px solid rgba(129,81,29,0.28);
+  color: #2b1406;
+  font-weight: 500;
+}
+#admin-modal .form-control:focus {
+  border-color: var(--gold-500);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(240,175,67,0.2);
+}
+#admin-modal .form-control option {
+  background: #ffffff;
+  color: #2b1406;
+}
+#admin-modal .form-label {
+  color: #4F280C;
+  font-weight: 700;
+}
+#admin-modal .btn-ghost {
+  background: #ffffff;
+  border: 1.5px solid rgba(129,81,29,0.25);
+  color: #4F280C;
+  font-weight: 600;
+}
+#admin-modal .btn-ghost:hover {
+  background: #f3e9dc;
+}
+
+/* ────────────────────────────────────────────────────────────
    12. TOAST NOTIFICATIONS
    ──────────────────────────────────────────────────────────── */
 #toast-container {
@@ -676,10 +741,23 @@ p  { line-height: 1.7; }
 .search-wrapper { position: relative; }
 .search-wrapper .search-icon {
   position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
-  color: var(--brown-400); font-size: 15px; pointer-events: none;
+  color: #81511D; font-size: 15px; pointer-events: none;
 }
 .search-input {
   padding-left: 42px !important;
+  background: #ffffff !important;
+  border: 1.5px solid var(--cream-300) !important;
+  color: #2b1406 !important; /* warna cokelat tua */
+  font-weight: 600 !important;
+}
+.search-input::placeholder {
+  color: #81511D !important;
+  opacity: 0.75 !important;
+}
+.search-input:focus {
+  border-color: var(--gold-500) !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(240,175,67,0.2) !important;
 }
 
 /* ────────────────────────────────────────────────────────────

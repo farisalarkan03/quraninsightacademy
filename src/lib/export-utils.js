@@ -94,6 +94,15 @@ export function printRaporPeserta(pesertaData) {
   const kehadiran = kehadiran_summary || {}
   const nilaiList = (penilaian || []).slice(0, 10)
   const kemajuanList = (kemajuan || []).slice(0, 10)
+  // Kumpulkan catatan sesi dari riwayat kehadiran (catatan_sesi atau perkembangan_materi)
+  const catatanSesiList = (riwayat_kehadiran || [])
+    .filter(h => (h.catatan_sesi || h.perkembangan_materi))
+    .map(h => ({
+      tanggal: h.tanggal || '',
+      status: h.status_hadir || '',
+      catatan: h.catatan_sesi || h.perkembangan_materi || ''
+    }))
+    .slice(0, 20)
   const totalPertemuan = (kehadiran.hadir || 0) + (kehadiran.izin || 0) + (kehadiran.sakit || 0) + (kehadiran.alpa || 0)
   const pctHadir = totalPertemuan > 0 ? Math.round((kehadiran.hadir / totalPertemuan) * 100) : 0
   const avgNilai = nilaiList.length > 0
@@ -126,12 +135,20 @@ export function printRaporPeserta(pesertaData) {
   td { padding: 7px 10px; border-bottom: 1px solid #e8d4bc; }
   tr:nth-child(even) td { background: #fdf8f3; }
   h2.section { font-size: 14px; color: #221104; border-left: 3px solid #F0AF43; padding-left: 10px; margin: 16px 0 10px; }
+  .note-box { background: #fdf8f3; border: 1px solid #e8d4bc; border-left: 3px solid #F0AF43; border-radius: 6px; padding: 10px 14px; margin-bottom: 8px; }
+  .note-box .note-meta { font-size: 11px; color: #81511D; margin-bottom: 4px; }
+  .note-box .note-text { font-size: 13px; color: #1a0a02; line-height: 1.6; }
+  .badge-status { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; text-transform: uppercase; }
+  .badge-hadir { background: #d1fae5; color: #065f46; }
+  .badge-izin  { background: #fef3c7; color: #92400e; }
+  .badge-sakit { background: #dbeafe; color: #1e40af; }
+  .badge-alpa  { background: #fee2e2; color: #991b1b; }
   .footer { text-align: center; font-size: 11px; color: #81511D; margin-top: 24px; border-top: 1px solid #e8d4bc; padding-top: 12px; }
 </style>
 </head>
 <body>
 <div class="header">
-  <h1>📖 Quran Insight Academy</h1>
+  <h1>Quran Insight Academy</h1>
   <p>Laporan Perkembangan Peserta Didik</p>
   <span class="badge">${peserta?.jenis?.toUpperCase() || 'BIMBEL'}</span>
 </div>
@@ -170,11 +187,16 @@ export function printRaporPeserta(pesertaData) {
   ${kemajuanList.map(k => `<tr><td>${k.tanggal||''}</td><td>${k.kitab_surat||''}</td><td>${k.halaman_ayat||''}</td><td>${k.status_kelancaran||''}</td></tr>`).join('')}
 </table>
 
-<h2 class="section">Riwayat Penilaian</h2>
-<table>
-  <tr><th>Tanggal</th><th>Nilai</th><th>Adab</th><th>Tajwid</th><th>Kelancaran</th><th>Catatan</th></tr>
-  ${nilaiList.map(n => `<tr><td>${n.tanggal||''}</td><td><b>${n.nilai_angka||'-'}</b></td><td>${n.nilai_adab||'-'}</td><td>${n.nilai_tajwid||'-'}</td><td>${n.nilai_kelancaran||'-'}</td><td>${n.catatan||''}</td></tr>`).join('')}
-</table>
+
+${catatanSesiList.length ? `
+<h2 class="section">Catatan Sesi</h2>
+${catatanSesiList.map(c => {
+  const badgeClass = c.status === 'hadir' ? 'badge-hadir' : c.status === 'izin' ? 'badge-izin' : c.status === 'sakit' ? 'badge-sakit' : c.status === 'alpa' ? 'badge-alpa' : ''
+  return `<div class="note-box">
+  <div class="note-meta">${c.tanggal}${c.status ? ` &nbsp;·&nbsp; <span class="badge-status ${badgeClass}">${c.status}</span>` : ''}</div>
+  <div class="note-text">${c.catatan}</div>
+</div>`
+}).join('')}` : ''}
 
 ${catatan_mentor?.length ? `
 <h2 class="section">Catatan Mentor</h2>
