@@ -593,6 +593,57 @@ p  { line-height: 1.7; }
   background: #f3e9dc;
 }
 
+/* Modal Portal Mentor — High Contrast Islamic Dark & Gold */
+#mentor-modal .modal {
+  background: #1e0d03 !important;
+  border: 1.5px solid #F0AF43 !important;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.85) !important;
+  color: #ffffff !important;
+  border-radius: var(--radius-lg);
+}
+#mentor-modal .modal-header {
+  border-bottom: 1.5px solid rgba(240,175,67,0.25) !important;
+}
+#mentor-modal .modal-title {
+  color: #ffffff !important;
+  font-weight: 800 !important;
+}
+#mentor-modal .modal-close {
+  color: #d8bfa2 !important;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+}
+#mentor-modal .modal-close:hover {
+  color: #ef4444 !important;
+  background: rgba(239,68,68,0.12) !important;
+}
+#mentor-modal .modal-footer {
+  border-top: 1.5px solid rgba(240,175,67,0.25) !important;
+}
+#mentor-modal .form-control {
+  background: #2b1506 !important;
+  border: 1.5px solid rgba(240,175,67,0.3) !important;
+  color: #ffffff !important;
+  font-weight: 500 !important;
+}
+#mentor-modal .form-control:focus {
+  border-color: #F0AF43 !important;
+  box-shadow: 0 0 0 3px rgba(240,175,67,0.25) !important;
+  background: #361a07 !important;
+}
+#mentor-modal .form-control option {
+  background: #1e0d03 !important;
+  color: #ffffff !important;
+}
+#mentor-modal .form-label {
+  color: #F0AF43 !important;
+  font-weight: 700 !important;
+}
+
 /* ────────────────────────────────────────────────────────────
    12. TOAST NOTIFICATIONS
    ──────────────────────────────────────────────────────────── */

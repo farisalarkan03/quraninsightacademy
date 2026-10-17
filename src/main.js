@@ -33,11 +33,14 @@ const routes = {
   '/mentor':      { render: renderMentor },
   '/wali':        { render: renderWali },
   '/portal-wali': { render: renderWali },
+  '/laporan':     { render: renderWali },
 }
 
 async function navigate(path, push = true) {
-  const cleanPath = (path || '/').replace(/\/$/, '') || '/'
-  if (push) history.pushState({}, '', cleanPath)
+  const fullPath = path || '/'
+  const [pathname] = fullPath.split('?')
+  const cleanPath = (pathname || '/').replace(/\/$/, '') || '/'
+  if (push) history.pushState({}, '', fullPath)
 
   const app = document.getElementById('app')
   if (!app) return

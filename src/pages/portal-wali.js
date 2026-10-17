@@ -8,37 +8,55 @@ import { printRaporPeserta } from '@/lib/export-utils.js'
 
 export function renderWali(app, navigate, showToast) {
   document.title = 'Portal Wali — Quran Insight Academy'
-  app.innerHTML = buildWaliHTML()
-  setupWaliEvents(navigate, showToast)
+  const params = new URLSearchParams(window.location.search)
+  const directId = params.get('id') || params.get('santri')
+  app.innerHTML = buildWaliHTML(directId)
+  setupWaliEvents(navigate, showToast, directId)
 }
 
-function buildWaliHTML() {
+function buildWaliHTML(directId) {
   return `
 <div style="min-height:100vh;background:#f3e9dc;font-family:'Plus Jakarta Sans',sans-serif;">
 
   <!-- Navbar -->
-  <nav style="background:#1a0a02;border-bottom:1px solid rgba(240,175,67,0.2);
-    padding:0 24px;height:68px;display:flex;align-items:center;justify-content:space-between;
-    position:sticky;top:0;z-index:100;">
-    <div style="display:flex;align-items:center;gap:12px;">
-      <button onclick="window.navigateTo('/')"
-        style="background:none;border:none;color:#c9a87a;cursor:pointer;padding:6px 8px;border-radius:8px;
-        transition:color 0.2s;font-size:14px;"
-        onmouseover="this.style.color='#F0AF43'" onmouseout="this.style.color='#c9a87a'">
+  <nav class="wali-nav">
+    <div class="wali-nav-left">
+      <button onclick="window.navigateTo('/')" class="wali-back-btn" title="Kembali ke Beranda">
         <i class="fa-solid fa-arrow-left"></i>
       </button>
-      <div style="width:38px;height:38px;border-radius:10px;
-        background:linear-gradient(135deg,#d97706,#F0AF43);
-        display:flex;align-items:center;justify-content:center;">
-        <span class="ms" style="font-size:20px;color:#221104;">menu_book</span>
+      <div class="wali-logo-icon">
+        <span class="ms" style="font-size:19px;color:#221104;">menu_book</span>
       </div>
-      <div>
-        <div style="font-weight:700;color:#fdf0e2;font-size:15px;">Portal Wali</div>
-        <div style="font-size:11px;color:#F0AF43;">Quran Insight Academy</div>
+      <div class="wali-nav-title-group">
+        <div class="wali-nav-title">${directId ? 'Laporan Santri' : 'Portal Wali'}</div>
+        <div class="wali-nav-subtitle">Quran Insight Academy</div>
       </div>
     </div>
+    ${directId ? `
+    <button onclick="window.navigateTo('/wali')" class="wali-search-other-btn" title="Cari Santri Lain">
+      <i class="fa-solid fa-magnifying-glass"></i> <span class="wali-btn-label">Santri Lain</span>
+    </button>
+    ` : ''}
   </nav>
 
+  <!-- Hero Header -->
+  ${directId ? `
+  <div style="background:linear-gradient(135deg,#1a0a02 0%,#221104 60%,#3a1c08 100%);
+    padding:32px 24px 36px;text-align:center;position:relative;overflow:hidden;">
+    <div style="position:relative;z-index:1;">
+      <div style="display:inline-flex;align-items:center;gap:8px;padding:4px 14px;border-radius:20px;
+        background:rgba(240,175,67,0.15);border:1px solid rgba(240,175,67,0.35);color:#F0AF43;font-size:11.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">
+        <i class="fa-solid fa-graduation-cap"></i> Dokumen Resmi Perkembangan Santri
+      </div>
+      <h1 style="color:#fdf0e2;margin-bottom:6px;font-size:clamp(1.4rem,3.5vw,2rem);font-weight:800;">
+        Laporan Perkembangan <span style="color:#F0AF43;">Peserta Didik</span>
+      </h1>
+      <p style="color:#c9a87a;max-width:540px;margin:0 auto;font-size:13px;line-height:1.6;">
+        Pantau rekapan nilai, hafalan, kehadiran, dan catatan mentor ananda yang dapat dicetak atau disimpan sebagai PDF resmi.
+      </p>
+    </div>
+  </div>
+  ` : `
   <!-- Hero Search -->
   <div style="background:linear-gradient(135deg,#1a0a02 0%,#221104 60%,#3a1c08 100%);
     padding:56px 24px 64px;text-align:center;position:relative;overflow:hidden;">
@@ -95,10 +113,12 @@ function buildWaliHTML() {
       </div>
     </div>
   </div>
+  `}
 
   <!-- Results Area -->
-  <div id="wali-results" style="max-width:900px;margin:0 auto;padding:32px 24px 60px;">
+  <div id="wali-results" style="max-width:960px;margin:0 auto;padding:28px 24px 60px;">
     <!-- Default: panduan -->
+    ${!directId ? `
     <div id="wali-guide" style="text-align:center;padding:48px 24px;">
       <div style="margin-bottom:16px;"><span class="ms" style="font-size:64px;color:#81511D;opacity:0.4;">search</span></div>
       <h3 style="color:#4F280C;font-size:1.1rem;margin-bottom:8px;">Cari Nama Peserta Didik</h3>
@@ -106,12 +126,13 @@ function buildWaliHTML() {
         Masukkan nama peserta didik Anda di kotak pencarian di atas untuk melihat perkembangan belajarnya.
       </p>
     </div>
+    ` : ''}
 
-    <div id="wali-loading" style="display:none;text-align:center;padding:48px;">
+    <div id="wali-loading" style="${directId ? 'display:block;' : 'display:none;'}text-align:center;padding:48px;">
       <div style="width:40px;height:40px;border:3px solid rgba(240,175,67,0.2);
         border-top-color:#F0AF43;border-radius:50%;animation:spin 0.8s linear infinite;
         margin:0 auto 16px;"></div>
-      <p style="color:#81511D;">Mencari data peserta didik…</p>
+      <p style="color:#81511D;font-weight:600;">Memuat data laporan peserta didik…</p>
     </div>
 
     <div id="wali-content" style="display:none;"></div>
@@ -135,11 +156,241 @@ function buildWaliHTML() {
 <style>
   @keyframes spin { to { transform: rotate(360deg); } }
   input::placeholder { color: rgba(201,168,122,0.5) !important; }
+
+  /* Wali Portal Responsive Styles */
+  .wali-nav {
+    background: #1a0a02;
+    border-bottom: 1px solid rgba(240,175,67,0.2);
+    padding: 0 20px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    gap: 12px;
+  }
+  .wali-nav-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    flex: 1;
+  }
+  .wali-back-btn {
+    background: none;
+    border: none;
+    color: #c9a87a;
+    cursor: pointer;
+    padding: 6px 8px;
+    border-radius: 8px;
+    font-size: 15px;
+    flex-shrink: 0;
+    transition: color 0.2s;
+  }
+  .wali-back-btn:hover { color: #F0AF43; }
+  .wali-logo-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #d97706, #F0AF43);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .wali-nav-title-group {
+    min-width: 0;
+    overflow: hidden;
+  }
+  .wali-nav-title {
+    font-weight: 800;
+    color: #fdf0e2;
+    font-size: 14.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .wali-nav-subtitle {
+    font-size: 11px;
+    color: #F0AF43;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .wali-search-other-btn {
+    background: rgba(240, 175, 67, 0.12);
+    border: 1px solid rgba(240, 175, 67, 0.35);
+    color: #F0AF43;
+    padding: 7px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .wali-search-other-btn:hover {
+    background: rgba(240, 175, 67, 0.22);
+  }
+
+  /* Student Card Responsive */
+  .wali-student-card {
+    background: linear-gradient(135deg, #221104, #3a1c08);
+    border-radius: 16px;
+    padding: 22px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    box-shadow: 0 4px 20px rgba(26,10,2,0.25);
+    border: 1px solid rgba(240,175,67,0.25);
+  }
+  .wali-student-info-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+    min-width: 200px;
+  }
+  .wali-student-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #4F280C, #D4934E);
+    border: 2px solid #F0AF43;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 800;
+    color: #fdf0e2;
+  }
+  .wali-student-meta {
+    flex: 1;
+    min-width: 0;
+  }
+  .wali-student-name {
+    color: #fdf0e2;
+    font-size: 1.25rem;
+    font-weight: 800;
+    margin: 0 0 6px 0;
+    line-height: 1.3;
+  }
+  .wali-student-tags {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .wali-tag {
+    font-size: 12px;
+    color: #c9a87a;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .wali-student-action-row {
+    flex-shrink: 0;
+  }
+  .wali-print-btn {
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(135deg, #d97706, #F0AF43);
+    color: #1a0a02;
+    font-size: 13.5px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(240,175,67,0.35);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .wali-print-btn:hover {
+    opacity: 0.92;
+    transform: translateY(-1px);
+  }
+
+  /* Mobile Screen (< 640px) */
+  @media (max-width: 640px) {
+    .wali-nav {
+      padding: 0 10px;
+      height: 56px;
+      gap: 6px;
+    }
+    .wali-logo-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+    }
+    .wali-nav-title {
+      font-size: 13px;
+    }
+    .wali-nav-subtitle {
+      font-size: 10px;
+    }
+    .wali-search-other-btn {
+      padding: 6px 10px;
+      font-size: 11px;
+      border-radius: 8px;
+    }
+    .wali-student-card {
+      padding: 16px;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 14px;
+    }
+    .wali-student-info-row {
+      width: 100%;
+      min-width: 0;
+      gap: 12px;
+    }
+    .wali-student-avatar {
+      width: 48px;
+      height: 48px;
+      font-size: 20px;
+    }
+    .wali-student-name {
+      font-size: 1.15rem;
+      word-break: break-word;
+    }
+    .wali-student-action-row {
+      width: 100%;
+    }
+    .wali-print-btn {
+      width: 100%;
+      padding: 11px 16px;
+      font-size: 13.5px;
+    }
+    #wali-results {
+      padding: 16px 12px 48px !important;
+    }
+  }
+
+  @media (max-width: 380px) {
+    .wali-btn-label {
+      display: none;
+    }
+    .wali-search-other-btn {
+      padding: 6px 9px;
+    }
+  }
 </style>
 `
 }
 
-function setupWaliEvents(navigate, showToast) {
+function setupWaliEvents(navigate, showToast, directId = null) {
   window.navigateTo = (path) => navigate(path)
 
   const input   = document.getElementById('wali-search-input')
@@ -149,52 +400,105 @@ function setupWaliEvents(navigate, showToast) {
   const content = document.getElementById('wali-content')
 
   // Close detail modal
-  document.getElementById('detail-modal-close').addEventListener('click', () => {
-    document.getElementById('detail-modal').classList.remove('show')
-  })
-  document.getElementById('detail-modal').addEventListener('click', function(e) {
-    if (e.target === this) this.classList.remove('show')
-  })
+  const modalClose = document.getElementById('detail-modal-close')
+  if (modalClose) {
+    modalClose.addEventListener('click', () => {
+      document.getElementById('detail-modal').classList.remove('show')
+    })
+  }
+  const detailModal = document.getElementById('detail-modal')
+  if (detailModal) {
+    detailModal.addEventListener('click', function(e) {
+      if (e.target === this) this.classList.remove('show')
+    })
+  }
+
+  // JIKA DIRECT ID ADA: LANGSUNG LOAD DATA SANTRI KE HALAMAN
+  if (directId) {
+    (async () => {
+      try {
+        const data = await waliService.getPesertaDetail(directId)
+        if (loading) loading.style.display = 'none'
+        if (!data || !data.peserta) {
+          if (content) {
+            content.style.display = 'block'
+            content.innerHTML = `
+              <div style="text-align:center;padding:56px 24px;background:#ffffff;border:1.5px solid rgba(129,81,29,0.15);border-radius:16px;">
+                <div style="font-size:54px;margin-bottom:14px;">🔍</div>
+                <h3 style="color:#4F280C;font-size:1.25rem;font-weight:800;margin-bottom:8px;">Data Peserta Didik Tidak Ditemukan</h3>
+                <p style="color:#81511D;font-size:14px;max-width:440px;margin:0 auto 20px;line-height:1.6;">
+                  Laporan santri dengan ID <strong>#${directId}</strong> tidak ditemukan atau tautan sudah tidak aktif.
+                </p>
+                <button onclick="window.navigateTo('/wali')" style="display:inline-flex;align-items:center;gap:8px;padding:11px 22px;border-radius:10px;border:none;background:linear-gradient(135deg,#d97706,#F0AF43);color:#1a0a02;font-weight:800;font-size:14px;cursor:pointer;">
+                  <i class="fa-solid fa-magnifying-glass"></i> Cari Santri di Portal Wali
+                </button>
+              </div>`
+          }
+          return
+        }
+
+        document.title = `Laporan — ${data.peserta?.nama_lengkap || ''} | Quran Insight Academy`
+        if (content) {
+          content.style.display = 'block'
+          content.innerHTML = buildDetailHTML(data)
+        }
+        await renderDetailCharts(directId, data)
+      } catch (err) {
+        if (loading) loading.style.display = 'none'
+        if (content) {
+          content.style.display = 'block'
+          content.innerHTML = `<div style="text-align:center;padding:48px;color:#e05c4b;"><p>Gagal memuat laporan: ${err.message}</p></div>`
+        }
+      }
+    })()
+  }
 
   async function doSearch() {
+    if (!input) return
     const q = input.value.trim()
     if (!q || q.length < 2) {
       showToast('Masukkan minimal 2 huruf nama peserta didik.', 'info')
       input.focus(); return
     }
-    guide.style.display   = 'none'
-    loading.style.display = 'block'
-    content.style.display = 'none'
-    content.innerHTML     = ''
+    if (guide) guide.style.display   = 'none'
+    if (loading) loading.style.display = 'block'
+    if (content) {
+      content.style.display = 'none'
+      content.innerHTML     = ''
+    }
 
     try {
       const results = await waliService.searchPeserta(q)
-      loading.style.display = 'none'
-      content.style.display = 'block'
-      if (!results || results.length === 0) {
-        content.innerHTML = `
-          <div style="text-align:center;padding:48px;">
-            <div style="font-size:52px;margin-bottom:16px;opacity:0.4;">🔍</div>
-            <h3 style="color:#4F280C;">Peserta didik tidak ditemukan</h3>
-            <p style="color:#81511D;font-size:14px;margin-top:8px;">
-              Tidak ada peserta didik aktif dengan nama "<strong>${q}</strong>". Pastikan ejaan sudah benar.
-            </p>
-          </div>`
-        return
+      if (loading) loading.style.display = 'none'
+      if (content) {
+        content.style.display = 'block'
+        if (!results || results.length === 0) {
+          content.innerHTML = `
+            <div style="text-align:center;padding:48px;">
+              <div style="font-size:52px;margin-bottom:16px;opacity:0.4;">🔍</div>
+              <h3 style="color:#4F280C;">Peserta didik tidak ditemukan</h3>
+              <p style="color:#81511D;font-size:14px;margin-top:8px;">
+                Tidak ada peserta didik aktif dengan nama "<strong>${q}</strong>". Pastikan ejaan sudah benar.
+              </p>
+            </div>`
+          return
+        }
+        renderResultCards(results, showToast)
       }
-      renderResultCards(results, showToast)
     } catch (err) {
-      loading.style.display = 'none'
-      content.style.display = 'block'
-      content.innerHTML = `<div style="text-align:center;padding:48px;color:#e05c4b;">
-        <i class="fa-solid fa-circle-exclamation" style="font-size:36px;margin-bottom:12px;"></i>
-        <p>Gagal memuat data: ${err.message}</p></div>`
+      if (loading) loading.style.display = 'none'
+      if (content) {
+        content.style.display = 'block'
+        content.innerHTML = `<div style="text-align:center;padding:48px;color:#e05c4b;">
+          <i class="fa-solid fa-circle-exclamation" style="font-size:36px;margin-bottom:12px;"></i>
+          <p>Gagal memuat data: ${err.message}</p></div>`
+      }
       showToast('Gagal memuat data. Periksa koneksi Anda.', 'error')
     }
   }
 
-  btn.addEventListener('click', doSearch)
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch() })
+  if (btn) btn.addEventListener('click', doSearch)
+  if (input) input.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch() })
 
   // Expose global functions for onclick
   window.openDetailWali = async function(id) {
@@ -346,28 +650,23 @@ function buildDetailHTML(data) {
   return `
   <div style="padding:4px 0;color:#1a0a02;">
     <!-- Profile Header -->
-    <div style="background:linear-gradient(135deg,#221104,#3a1c08);border-radius:16px;padding:24px;margin-bottom:20px;
-      display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-      <div style="width:64px;height:64px;border-radius:50%;flex-shrink:0;
-        background:linear-gradient(135deg,#4F280C,#D4934E);
-        display:flex;align-items:center;justify-content:center;
-        font-size:26px;font-weight:700;color:#fdf0e2;">
-        ${peserta?.nama_lengkap?.charAt(0) || '?'}
-      </div>
-      <div style="flex:1;">
-        <h2 style="color:#fdf0e2;font-size:1.2rem;margin-bottom:6px;">${peserta?.nama_lengkap || '-'}</h2>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;">
-          <span style="font-size:12px;color:#c9a87a;"><i class="fa-solid fa-layer-group" style="color:#F0AF43;"></i> ${kelasLabel}</span>
-          <span style="font-size:12px;color:#c9a87a;"><i class="fa-solid fa-user-tie" style="color:#F0AF43;"></i> ${mentor?.nama || 'Belum ditentukan'}</span>
-          ${kelas?.hari_jadwal ? `<span style="font-size:12px;color:#c9a87a;"><i class="fa-solid fa-calendar" style="color:#F0AF43;"></i> ${kelas.hari_jadwal} ${kelas.jam_jadwal||''}</span>` : ''}
+    <div class="wali-student-card">
+      <div class="wali-student-info-row">
+        <div class="wali-student-avatar">
+          ${peserta?.nama_lengkap?.charAt(0) || '?'}
+        </div>
+        <div class="wali-student-meta">
+          <h2 class="wali-student-name">${peserta?.nama_lengkap || '-'}</h2>
+          <div class="wali-student-tags">
+            <span class="wali-tag"><i class="fa-solid fa-layer-group" style="color:#F0AF43;"></i> ${kelasLabel}</span>
+            <span class="wali-tag"><i class="fa-solid fa-user-tie" style="color:#F0AF43;"></i> ${mentor?.nama || 'Belum ditentukan'}</span>
+            ${kelas?.hari_jadwal ? `<span class="wali-tag"><i class="fa-solid fa-calendar" style="color:#F0AF43;"></i> ${kelas.hari_jadwal} ${kelas.jam_jadwal||''}</span>` : ''}
+          </div>
         </div>
       </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        <button onclick="printRapor(${peserta?.id},'${peserta?.nama_lengkap}')"
-          style="padding:9px 16px;border-radius:10px;border:1px solid rgba(240,175,67,0.3);
-          background:rgba(240,175,67,0.12);color:#F0AF43;font-size:13px;font-weight:600;cursor:pointer;
-          transition:all 0.2s;" onmouseover="this.style.background='rgba(240,175,67,0.22)'" onmouseout="this.style.background='rgba(240,175,67,0.12)'">
-          <i class="fa-solid fa-print"></i> Cetak Rapor
+      <div class="wali-student-action-row">
+        <button onclick="printRapor(${peserta?.id},'${peserta?.nama_lengkap}')" class="wali-print-btn">
+          <i class="fa-solid fa-file-pdf"></i> Cetak / Simpan PDF
         </button>
       </div>
     </div>

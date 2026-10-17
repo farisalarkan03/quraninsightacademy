@@ -4,7 +4,8 @@
 // ============================================================
 
 import '@/styles/main.css'
-import { authService, mentorService } from '@/lib/supabase.js'
+import { authService, mentorService, waliService } from '@/lib/supabase.js'
+import { printRaporPeserta } from '@/lib/export-utils.js'
 
 // State
 let state = {
@@ -152,6 +153,18 @@ function buildMentorShell() {
   <main class="main-content" id="main-content">
     <!-- Content rendered here -->
   </main>
+
+  <!-- Modal Portal Mentor (Tambah/Edit Laporan) -->
+  <div class="modal-backdrop" id="mentor-modal">
+    <div class="modal modal-lg" id="mentor-modal-inner" style="background:#221104;border:1px solid rgba(240,175,67,0.3);box-shadow:0 12px 40px rgba(0,0,0,0.85);">
+      <div class="modal-header" style="border-bottom:1px solid rgba(255,255,255,0.08);padding:16px 22px;">
+        <span class="modal-title" id="mentor-modal-title" style="color:var(--cream-100);font-weight:700;font-size:1.1rem;"></span>
+        <button class="modal-close" id="mentor-modal-close" style="color:var(--cream-100);background:none;border:none;font-size:18px;cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body" id="mentor-modal-body" style="padding:22px;max-height:calc(85vh - 130px);overflow-y:auto;"></div>
+      <div class="modal-footer" id="mentor-modal-footer" style="border-top:1px solid rgba(255,255,255,0.08);padding:14px 22px;display:flex;justify-content:flex-end;gap:10px;"></div>
+    </div>
+  </div>
 </div>`
 }
 
@@ -171,6 +184,16 @@ function attachMentorEvents(navigate, showToast) {
   document.getElementById('sidebar-overlay').addEventListener('click', () => {
     document.getElementById('sidebar').classList.remove('open')
     document.getElementById('sidebar-overlay').classList.remove('show')
+  })
+
+  // Modal events
+  document.getElementById('mentor-modal-close')?.addEventListener('click', () => {
+    closeMentorModal()
+  })
+  document.getElementById('mentor-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'mentor-modal') {
+      closeMentorModal()
+    }
   })
 
   // Nav items
@@ -668,330 +691,948 @@ function renderSantriGrid(list, showToast) {
 }
 
 function openPesertaDetail(pesertaId, main, showToast) {
-  const p = state.pesertaList.find(x=>x.id===pesertaId)
+  const p = state.pesertaList.find(x => x.id === pesertaId)
   if (!p) return
   state.selectedPeserta = p
 
   main.innerHTML = `
-  <div class="page-header">
-    <div style="display:flex;align-items:center;gap:12px;">
-      <button onclick="renderMentorView('santri-list')" class="btn btn-ghost btn-sm">
-        <i class="fa-solid fa-arrow-left"></i>
+  <div class="page-header" style="margin-bottom:20px;">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <button onclick="renderMentorView('santri-list')" class="btn btn-secondary btn-sm" style="display:inline-flex;align-items:center;gap:6px;font-weight:700;">
+        <i class="fa-solid fa-arrow-left"></i> Kembali ke Daftar
       </button>
       <div>
-        <div class="page-title">${p.nama_lengkap}</div>
-        <div class="page-breadcrumb">${p.kelas?.nama_kelas || jenisLabel(p.jenis)}</div>
+        <div class="page-title" style="font-size:1.5rem;font-weight:800;color:var(--brown-900);">Detail <span>Peserta Didik</span></div>
+        <div class="page-breadcrumb" style="font-size:13px;color:var(--text-muted);font-weight:600;">${escapeHtml(p.nama_lengkap)} • ${escapeHtml(p.kelas?.nama_kelas || jenisLabel(p.jenis))}</div>
       </div>
     </div>
   </div>
 
-  <div style="display:flex;flex-direction:column;gap:24px;max-width:960px;" id="detail-layout">
-    <!-- Card Form Terpadu Berurutan Ke Bawah -->
-    <div class="card" id="card-laporan-sesi" style="padding:24px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,0.08);">
+  <div style="display:flex;flex-direction:column;gap:24px;max-width:980px;" id="detail-layout">
+    <!-- Card Data Peserta Didik & Tombol Tambah Laporan di Atas -->
+    <div class="card" style="padding:24px 26px;border:1.5px solid rgba(240,175,67,0.45);background:#180902;border-radius:16px;box-shadow:0 8px 32px rgba(26,10,2,0.35);">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-bottom:18px;border-bottom:1.5px solid rgba(240,175,67,0.25);">
+        <!-- Data Siswa (Kiri) -->
+        <div style="display:flex;align-items:center;gap:16px;">
+          <div style="width:62px;height:62px;border-radius:50%;background:linear-gradient(135deg,#81511D,#4F280C);border:2.5px solid #F0AF43;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#ffffff;flex-shrink:0;box-shadow:0 4px 16px rgba(240,175,67,0.4);">
+            ${escapeHtml(p.nama_lengkap.charAt(0))}
+          </div>
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <h2 style="margin:0;font-size:1.35rem;color:#ffffff;font-weight:800;letter-spacing:0.3px;">${escapeHtml(p.nama_lengkap)}</h2>
+              <span style="background:${p.jenis==='bimbel'?'#78350f':'#064e3b'};color:${p.jenis==='bimbel'?'#fde68a':'#a7f3d0'};border:1px solid ${p.jenis==='bimbel'?'#f59e0b':'#10b981'};padding:3px 10px;border-radius:14px;font-size:11.5px;font-weight:800;">${jenisLabel(p.jenis)}</span>
+              <span style="background:${p.status==='aktif'?'#064e3b':'#450a0a'};color:${p.status==='aktif'?'#a7f3d0':'#fecaca'};border:1px solid ${p.status==='aktif'?'#10b981':'#ef4444'};padding:3px 10px;border-radius:14px;font-size:11.5px;font-weight:800;">${(p.status||'aktif').toUpperCase()}</span>
+            </div>
+            <div style="font-size:13px;color:#e8d4bc;margin-top:4px;font-weight:500;">
+              ${p.usia ? p.usia + ' Tahun' : ''} ${p.jenis_kelamin ? '• ' + (p.jenis_kelamin==='L'?'Ikhwan (L)':'Akhwat (P)') : ''} • ID Santri: <strong style="color:#F0AF43;font-weight:800;">#${p.id}</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tombol Kanan: Tambah Laporan + PDF/WA Share -->
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-primary" id="btn-tambah-laporan-top" onclick="window.openTambahLaporanModal(${pesertaId})" style="display:inline-flex;align-items:center;gap:8px;padding:11px 22px;font-weight:800;font-size:14px;background:linear-gradient(135deg,#F0AF43,#d97706);color:#1a0a02;border:none;border-radius:10px;box-shadow:0 4px 16px rgba(240,175,67,0.4);cursor:pointer;">
+            <i class="fa-solid fa-plus-circle"></i> Tambah Laporan
+          </button>
+          <button id="btn-share-report" onclick="window.openShareModal(${pesertaId})" title="Kirim laporan ke Orang Tua" style="display:inline-flex;align-items:center;gap:8px;padding:11px 18px;font-weight:800;font-size:14px;background:linear-gradient(135deg,#25D366,#128C7E);color:#ffffff;border:none;border-radius:10px;box-shadow:0 4px 16px rgba(37,211,102,0.35);cursor:pointer;">
+            <i class="fa-brands fa-whatsapp" style="font-size:16px;"></i> PDF & Kirim WA
+          </button>
+        </div>
+      </div>
+
+      <!-- Detail Info Siswa (Grid) -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:16px;margin-top:18px;">
         <div>
-          <h3 style="color:var(--cream-100);margin:0 0 4px;font-size:1.15rem;display:flex;align-items:center;gap:8px;">
-            <i class="fa-solid fa-clipboard-list" style="color:#F0AF43;"></i>
-            Input Laporan Sesi Peserta Didik
-          </h3>
-          <p style="margin:0;font-size:12.5px;color:var(--text-card-muted);">
-            Isi bagian yang dibutuhkan (Hafalan / Penilaian / Catatan), lalu klik Simpan di bagian bawah.
-          </p>
-        </div>
-      </div>
-
-      <!-- SEKSI 1: KEHADIRAN & MATERI SESI -->
-      <div style="margin-bottom:24px;padding:16px;background:rgba(255,255,255,0.02);border-radius:10px;border:1px solid rgba(255,255,255,0.06);">
-        <h4 style="color:#F0AF43;margin:0 0 14px;font-size:0.95rem;display:flex;align-items:center;gap:8px;">
-          <i class="fa-solid fa-calendar-check"></i> 1. Kehadiran & Materi Sesi
-        </h4>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:14px;">
-          <div class="form-group">
-            <label class="form-label">Tanggal Sesi</label>
-            <input type="date" class="form-control" id="inp-tgl-sesi" value="${new Date().toISOString().slice(0,10)}" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Status Kehadiran</label>
-            <select class="form-control" id="inp-status-hadir">
-              <option value="hadir">● Hadir</option>
-              <option value="izin">◐ Izin</option>
-              <option value="sakit">◑ Sakit</option>
-              <option value="alpa">○ Alpa</option>
-              <option value="none">— Lewati Kehadiran —</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Materi Pembahasan</label>
-            <input type="text" class="form-control" id="inp-materi" placeholder="cth: Tajwid Mad Thobi'i, Makhorijul Huruf" />
+          <div style="font-size:11.5px;color:#F0AF43;text-transform:uppercase;letter-spacing:0.5px;font-weight:800;margin-bottom:3px;">Kelas / Kelompok</div>
+          <div style="font-size:14px;color:#ffffff;font-weight:700;">
+            <i class="fa-solid fa-chalkboard-user" style="color:#F0AF43;margin-right:6px;"></i> ${escapeHtml(p.kelas?.nama_kelas || jenisLabel(p.jenis))}
           </div>
         </div>
-      </div>
-
-      <!-- SEKSI 2: KEMAJUAN HAFALAN -->
-      <div style="margin-bottom:24px;padding:16px;background:rgba(255,255,255,0.02);border-radius:10px;border:1px solid rgba(255,255,255,0.06);">
-        <h4 style="color:#F0AF43;margin:0 0 14px;font-size:0.95rem;display:flex;align-items:center;gap:8px;">
-          <i class="fa-solid fa-book-quran"></i> 2. Kemajuan Hafalan
-        </h4>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:14px;">
-          <div class="form-group">
-            <label class="form-label">Kitab / Surah</label>
-            <input type="text" class="form-control" id="inp-kitab" placeholder="cth: Al-Baqarah, Jilid 2" />
+        <div>
+          <div style="font-size:11.5px;color:#F0AF43;text-transform:uppercase;letter-spacing:0.5px;font-weight:800;margin-bottom:3px;display:flex;align-items:center;justify-content:space-between;">
+            <span>Orang Tua / Wali</span>
+            <button onclick="window.openEditKontakWaliModal(${pesertaId})" style="background:none;border:none;color:#F0AF43;cursor:pointer;font-size:11px;font-weight:800;text-decoration:underline;padding:0;" title="Edit kontak wali">
+              <i class="fa-solid fa-pen-to-square"></i> Edit
+            </button>
           </div>
-          <div class="form-group">
-            <label class="form-label">Halaman / Ayat</label>
-            <input type="text" class="form-control" id="inp-halaman" placeholder="cth: Ayat 1-10, Hal. 12" />
+          <div style="font-size:14px;color:#ffffff;font-weight:700;">
+            <i class="fa-solid fa-user-shield" style="color:#F0AF43;margin-right:6px;"></i> ${escapeHtml(p.nama_wali || 'Belum diisi')}
           </div>
-          <div class="form-group">
-            <label class="form-label">Status Kelancaran</label>
-            <select class="form-control" id="inp-kelancaran">
-              <option value="lancar">● Lancar</option>
-              <option value="cukup">◑ Cukup</option>
-              <option value="perlu_ulang">○ Perlu Diulang</option>
-            </select>
+        </div>
+        <div>
+          <div style="font-size:11.5px;color:#F0AF43;text-transform:uppercase;letter-spacing:0.5px;font-weight:800;margin-bottom:3px;display:flex;align-items:center;justify-content:space-between;">
+            <span>No. WhatsApp Wali</span>
+            <button onclick="window.openEditKontakWaliModal(${pesertaId})" style="background:none;border:none;color:#F0AF43;cursor:pointer;font-size:11px;font-weight:800;text-decoration:underline;padding:0;" title="Input / Edit nomor WhatsApp wali">
+              <i class="fa-solid fa-pen-to-square"></i> Edit
+            </button>
+          </div>
+          <div style="font-size:14px;color:#ffffff;font-weight:700;">
+            ${p.no_wa_wali ? `<a href="https://wa.me/${formatWaNumber(p.no_wa_wali)}" target="_blank" rel="noopener noreferrer" style="color:#4ade80;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:6px;"><i class="fa-brands fa-whatsapp" style="font-size:16px;"></i> ${escapeHtml(p.no_wa_wali)}</a>` : '<span style="color:#fca5a5;font-size:12.5px;">⚠️ Belum diisi · <a href="javascript:void(0)" onclick="window.openEditKontakWaliModal(' + pesertaId + ')" style="color:#F0AF43;font-weight:800;">+ Input No. WA</a></span>'}
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11.5px;color:#F0AF43;text-transform:uppercase;letter-spacing:0.5px;font-weight:800;margin-bottom:3px;">Tanggal Terdaftar</div>
+          <div style="font-size:14px;color:#ffffff;font-weight:700;">
+            <i class="fa-solid fa-calendar-check" style="color:#F0AF43;margin-right:6px;"></i> ${formatDate(p.tanggal_daftar)}
           </div>
         </div>
       </div>
 
-      <!-- SEKSI 3: PENILAIAN -->
-      <div style="margin-bottom:24px;padding:16px;background:rgba(255,255,255,0.02);border-radius:10px;border:1px solid rgba(255,255,255,0.06);">
-        <h4 style="color:#F0AF43;margin:0 0 14px;font-size:0.95rem;display:flex;align-items:center;gap:8px;">
-          <i class="fa-solid fa-star"></i> 3. Penilaian Sesi
-        </h4>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:14px;">
-          <div class="form-group">
-            <label class="form-label">Nilai Angka (0–100)</label>
-            <input type="number" class="form-control" id="inp-nilai" min="0" max="100" placeholder="85" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Adab (1–5)</label>
-            <input type="number" class="form-control" id="inp-adab" min="1" max="5" placeholder="5" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Tajwid (1–5)</label>
-            <input type="number" class="form-control" id="inp-tajwid" min="1" max="5" placeholder="4" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Kelancaran (1–5)</label>
-            <input type="number" class="form-control" id="inp-kelancaran-nilai" min="1" max="5" placeholder="4" />
-          </div>
+      ${(p.alamat || p.catatan_umum || p.email_wali) ? `
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(250px, 1fr));gap:14px;margin-top:16px;padding-top:16px;border-top:1px dashed rgba(240,175,67,0.3);font-size:13.5px;">
+          ${p.email_wali ? `<div><span style="color:#F0AF43;font-weight:700;">Email Wali:</span> <span style="color:#ffffff;font-weight:600;">${escapeHtml(p.email_wali)}</span></div>` : ''}
+          ${p.alamat ? `<div><span style="color:#F0AF43;font-weight:700;">Alamat:</span> <span style="color:#ffffff;font-weight:600;">${escapeHtml(p.alamat)}</span></div>` : ''}
+          ${p.catatan_umum ? `<div><span style="color:#F0AF43;font-weight:700;">Catatan Umum:</span> <span style="color:#ffffff;font-weight:600;">${escapeHtml(p.catatan_umum)}</span></div>` : ''}
         </div>
-      </div>
-
-      <!-- CATATAN SESI (Terpadu) -->
-      <div style="margin-bottom:24px;padding:16px;background:rgba(240,175,67,0.04);border-radius:10px;border:1px solid rgba(240,175,67,0.15);">
-        <h4 style="color:#F0AF43;margin:0 0 10px;font-size:0.95rem;display:flex;align-items:center;gap:8px;">
-          <i class="fa-solid fa-comment-dots"></i> Catatan Sesi
-        </h4>
-        <div class="form-group" style="margin:0;">
-          <textarea class="form-control" id="inp-catatan" rows="3" placeholder="Tuliskan catatan perkembangan hafalan, penilaian, keaktifan santri, atau pesan untuk orang tua…"></textarea>
-        </div>
-      </div>
-
-      <!-- Tombol Simpan Terpadu di Bawah -->
-      <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:18px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
-        <button class="btn btn-primary btn-lg" id="btn-save-laporan" style="min-width:240px;padding:12px 24px;font-size:14px;">
-          <i class="fa-solid fa-floppy-disk"></i> Simpan Laporan Sesi
-        </button>
-        <span id="laporan-save-hint" style="font-size:12.5px;color:var(--text-card-muted);">
-          <i class="fa-solid fa-circle-info" style="margin-right:4px;"></i> Semua bagian yang terisi akan otomatis tersimpan bersamaan
-        </span>
-      </div>
+      ` : ''}
     </div>
 
-    <!-- Riwayat Peserta Didik di Bawahnya -->
-    <div class="card" id="history-panel" style="padding:24px;">
-      <h4 style="color:var(--cream-100);margin-bottom:16px;display:flex;align-items:center;gap:8px;">
-        <i class="fa-solid fa-clock-rotate-left" style="color:#F0AF43;"></i> Riwayat Peserta Didik
-      </h4>
-      <div style="font-size:13px;color:var(--text-card-muted);text-align:center;padding:20px 0;">
-        Memuat riwayat…
+    <!-- Histori Laporan yang di-input -->
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap;">
+        <h3 style="color:#1a0a02;margin:0;font-size:1.3rem;font-weight:800;display:flex;align-items:center;gap:10px;">
+          <i class="fa-solid fa-clock-rotate-left" style="color:#d97706;"></i>
+          Histori Laporan Sesi & Kehadiran
+        </h3>
+        <span id="histori-count-badge" style="background:#1a0a02;color:#fbbf24;font-size:12.5px;font-weight:800;padding:6px 16px;border-radius:20px;border:1.5px solid rgba(240,175,67,0.5);box-shadow:0 2px 8px rgba(0,0,0,0.18);">
+          Memuat riwayat…
+        </span>
+      </div>
+
+      <!-- Container Riwayat Laporan -->
+      <div id="laporan-history-list">
+        <div class="card" style="text-align:center;padding:40px;color:#d8bfa2;border:1.5px solid rgba(240,175,67,0.3);background:#180902;border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,0.2);">
+          <i class="fa-solid fa-spinner fa-spin fa-2x" style="color:#F0AF43;margin-bottom:12px;"></i>
+          <p style="margin:0;font-size:14px;color:#ffffff;font-weight:600;">Memuat histori laporan peserta didik…</p>
+        </div>
       </div>
     </div>
   </div>`
 
   window.renderMentorView = (v) => renderView(v, showToast)
 
-  // Load history
+  // Load history data
   loadPesertaHistory(pesertaId, showToast)
+}
 
-  // SINGLE SAVE: simpan semua data sekaligus
-  document.getElementById('btn-save-laporan').addEventListener('click', async () => {
-    const btn  = document.getElementById('btn-save-laporan')
-    const today = new Date().toISOString().slice(0,10)
+async function loadPesertaHistory(pesertaId, showToast) {
+  const container = document.getElementById('laporan-history-list')
+  if (!container) return
 
-    // Kumpulkan data dari form
-    const tglSesi      = document.getElementById('inp-tgl-sesi').value || today
-    const statusHadir  = document.getElementById('inp-status-hadir').value
-    const materi       = document.getElementById('inp-materi').value.trim()
-    const kitab        = document.getElementById('inp-kitab').value.trim()
-    const halaman      = document.getElementById('inp-halaman').value.trim()
-    const nilaiStr     = document.getElementById('inp-nilai').value
-    const catatan      = document.getElementById('inp-catatan').value.trim()
+  try {
+    const [kehadiranList, kemajuanList, penilaianList] = await Promise.all([
+      mentorService.getRiwayatKehadiran(pesertaId, 50),
+      mentorService.getKemajuan(pesertaId, 50),
+      mentorService.getPenilaian(pesertaId, 50),
+    ])
 
-    const hasKehadiran = statusHadir !== 'none'
-    const hasKemajuan  = !!kitab
-    const hasPenilaian = !!nilaiStr
-    const hasCatatan   = !!catatan
+    // Update count badge
+    const badge = document.getElementById('histori-count-badge')
+    if (badge) badge.textContent = `${kehadiranList.length} Laporan Tercatat`
 
-    if (!hasKehadiran && !hasKemajuan && !hasPenilaian && !hasCatatan) {
-      showToast('Isi minimal satu bagian (Kehadiran, Hafalan, Penilaian, atau Catatan Sesi).', 'info')
+    // Map kemajuan & penilaian by date
+    const kemajuanByDate = {}
+    kemajuanList.forEach(k => {
+      if (k.tanggal && !kemajuanByDate[k.tanggal]) kemajuanByDate[k.tanggal] = k
+    })
+    const penilaianByDate = {}
+    penilaianList.forEach(p => {
+      if (p.tanggal && !penilaianByDate[p.tanggal]) penilaianByDate[p.tanggal] = p
+    })
+
+    // Store in global window for modal edit access
+    window._currentPesertaHistory = {
+      pesertaId,
+      kehadiranList,
+      kemajuanList,
+      penilaianList,
+      kemajuanByDate,
+      penilaianByDate
+    }
+
+    if (kehadiranList.length === 0) {
+      container.innerHTML = `
+      <div class="card" style="text-align:center;padding:48px 24px;background:#180902;border:1.5px dashed rgba(240,175,67,0.5);border-radius:14px;box-shadow:0 6px 24px rgba(26,10,2,0.25);">
+        <div style="font-size:44px;margin-bottom:12px;">📋</div>
+        <h4 style="color:#ffffff;margin:0 0 8px;font-size:18px;font-weight:800;">Belum Ada Histori Laporan</h4>
+        <p style="font-size:14px;color:#e8d4bc;margin:0 auto 20px;max-width:440px;line-height:1.6;font-weight:500;">
+          Belum ada data kehadiran atau laporan sesi yang dicatat untuk peserta didik ini. Klik tombol di bawah untuk menambah laporan baru.
+        </p>
+        <button class="btn btn-primary" onclick="window.openTambahLaporanModal(${pesertaId})" style="display:inline-flex;align-items:center;gap:8px;padding:10px 22px;font-weight:800;background:linear-gradient(135deg,#F0AF43,#d97706);color:#1a0a02;border:none;border-radius:9px;box-shadow:0 4px 16px rgba(240,175,67,0.4);cursor:pointer;">
+          <i class="fa-solid fa-plus-circle"></i> Tambah Laporan Sekarang
+        </button>
+      </div>`
       return
     }
+
+    container.innerHTML = kehadiranList.map(rep => {
+      const status = rep.status_hadir || 'hadir'
+
+      return `
+      <div class="card report-history-card" style="
+        padding: 18px 22px;
+        margin-bottom: 12px;
+        background: #180902;
+        border: 1.5px solid rgba(240,175,67,0.45);
+        border-radius: 14px;
+        box-shadow: 0 4px 16px rgba(26,10,2,0.25);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        flex-wrap: wrap;
+        transition: all 0.2s ease;
+      ">
+        <!-- Judul Laporan + Status Badge + Tanggal Sesi -->
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+          <div style="width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,#4f280c,#2b1406);border:1.5px solid #F0AF43;display:flex;align-items:center;justify-content:center;color:#F0AF43;font-size:19px;flex-shrink:0;box-shadow:0 4px 12px rgba(240,175,67,0.3);">
+            <i class="fa-solid fa-calendar-day"></i>
+          </div>
+          <div>
+            <div style="font-weight:800;font-size:16px;color:#ffffff;display:flex;align-items:center;gap:10px;flex-wrap:wrap;letter-spacing:0.2px;">
+              <span>Laporan ${formatTanggalLaporan(rep.tanggal)}</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:800;${khBadgeStyle(status)}">
+                ${khIcon(status)} ${status.toUpperCase()}
+              </span>
+            </div>
+            <div style="font-size:13px;color:#e8d4bc;margin-top:4px;font-weight:600;">
+              <i class="fa-regular fa-clock" style="color:#F0AF43;margin-right:5px;"></i> Tanggal Sesi: <strong style="color:#ffffff;font-weight:800;">${formatDate(rep.tanggal)}</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tombol Edit di Samping Laporan -->
+        <div style="display:flex;align-items:center;gap:10px;">
+          <button class="btn btn-sm" onclick="window.openEditLaporanModal(${rep.id}, ${pesertaId})" style="
+            background: linear-gradient(135deg, #F0AF43, #d97706);
+            color: #1a0a02;
+            font-weight: 800;
+            font-size: 13.5px;
+            padding: 9px 20px;
+            border-radius: 9px;
+            border: none;
+            box-shadow: 0 4px 14px rgba(240,175,67,0.45);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+          ">
+            <i class="fa-solid fa-pen-to-square"></i> Edit
+          </button>
+          <button class="btn btn-sm" onclick="window.deleteLaporan(${rep.id}, ${pesertaId})" title="Hapus laporan ini" style="
+            background: #450a0a;
+            color: #fecaca;
+            border: 1.5px solid #ef4444;
+            border-radius: 9px;
+            padding: 9px 14px;
+            cursor: pointer;
+            font-weight: 700;
+          ">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        </div>
+      </div>`
+    }).join('')
+
+  } catch (err) {
+    container.innerHTML = `<div class="card" style="padding:22px;color:#991b1b;background:#fee2e2;border:1.5px solid #ef4444;border-radius:12px;font-size:14px;font-weight:700;">Gagal memuat histori laporan: ${err.message}</div>`
+  }
+}
+
+// ── HELPER FORMAT WA ──────────────────────────────────────
+function formatWaNumber(phone) {
+  if (!phone) return ''
+  let cleaned = String(phone).replace(/\D/g, '')
+  if (cleaned.startsWith('0')) {
+    cleaned = '62' + cleaned.slice(1)
+  } else if (cleaned.startsWith('8')) {
+    cleaned = '62' + cleaned
+  }
+  return cleaned
+}
+
+// ── PDF & WHATSAPP SHARE ──────────────────────────────────
+window.openShareModal = (pesertaId) => {
+  const p = state.pesertaList.find(x => x.id === pesertaId)
+  if (!p) return
+
+  const bodyHtml = `
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <!-- Info Santri Singkat -->
+    <div style="background:#251105;border:1.5px solid rgba(240,175,67,0.3);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:14px;">
+      <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#81511D,#4F280C);border:1.5px solid #F0AF43;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#ffffff;flex-shrink:0;">${escapeHtml(p.nama_lengkap.charAt(0))}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:800;color:#ffffff;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(p.nama_lengkap)}</div>
+        <div style="color:#e8d4bc;font-size:13px;margin-top:2px;">${escapeHtml(p.kelas?.nama_kelas || jenisLabel(p.jenis))} · Wali: ${escapeHtml(p.nama_wali || 'Belum diisi')}</div>
+      </div>
+    </div>
+
+    <!-- Input / Edit No. WA Wali Langsung di Modal -->
+    <div style="background:#200d03;border:1.5px solid rgba(240,175,67,0.35);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <label for="share-wa-input" style="font-size:12px;color:#F0AF43;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;display:flex;align-items:center;gap:6px;">
+          <i class="fa-brands fa-whatsapp" style="font-size:16px;color:#25D366;"></i> Nomor WhatsApp Wali Santri:
+        </label>
+        <span id="share-wa-inline-status" style="font-size:11.5px;color:#4ade80;font-weight:700;"></span>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <input type="tel" id="share-wa-input" value="${escapeHtml(p.no_wa_wali || '')}" placeholder="Contoh: 08123456789 atau 628..." style="flex:1;padding:10px 14px;border:1.5px solid rgba(240,175,67,0.4);border-radius:8px;background:#180902;color:#ffffff;font-size:14px;font-weight:700;outline:none;" />
+        <button type="button" onclick="window.saveWaInline(${pesertaId})" style="padding:10px 16px;background:linear-gradient(135deg,#d97706,#F0AF43);color:#1a0a02;border:none;border-radius:8px;font-weight:800;font-size:12.5px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;">
+          <i class="fa-solid fa-floppy-disk"></i> Simpan
+        </button>
+      </div>
+      <div style="font-size:11.5px;color:#d8bfa2;line-height:1.4;">
+        💡 <em>Anda dapat langsung mengisi / mengubah nomor di atas. Pesan laporan WhatsApp akan langsung ditujukan ke nomor ini.</em>
+      </div>
+    </div>
+
+    <p style="font-size:13.5px;color:#e8d4bc;margin:0;line-height:1.6;">Pilih opsi laporan yang ingin dibagikan:</p>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <button onclick="window.generatePesertaReport(${pesertaId})" style="display:flex;align-items:center;gap:12px;padding:14px 18px;background:#251105;border:1.5px solid rgba(240,175,67,0.4);border-radius:12px;cursor:pointer;text-align:left;transition:all 0.2s;" onmouseover="this.style.borderColor='#F0AF43'" onmouseout="this.style.borderColor='rgba(240,175,67,0.4)'">
+        <div style="width:42px;height:42px;background:linear-gradient(135deg,#b91c1c,#ef4444);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <i class="fa-solid fa-file-pdf" style="color:#ffffff;font-size:18px;"></i>
+        </div>
+        <div>
+          <div style="color:#ffffff;font-weight:800;font-size:14px;">Cetak / Simpan sebagai PDF</div>
+          <div style="color:#d8bfa2;font-size:12px;margin-top:2px;">Buka dialog cetak rapor resmi untuk disimpan sebagai file PDF</div>
+        </div>
+        <i class="fa-solid fa-chevron-right" style="color:#F0AF43;margin-left:auto;"></i>
+      </button>
+
+      <button onclick="window.shareToWhatsApp(${pesertaId})" style="display:flex;align-items:center;gap:12px;padding:14px 18px;background:#251105;border:1.5px solid rgba(37,211,102,0.4);border-radius:12px;cursor:pointer;text-align:left;transition:all 0.2s;" onmouseover="this.style.borderColor='#25D366'" onmouseout="this.style.borderColor='rgba(37,211,102,0.4)'">
+        <div style="width:42px;height:42px;background:linear-gradient(135deg,#128C7E,#25D366);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <i class="fa-brands fa-whatsapp" style="color:#ffffff;font-size:20px;"></i>
+        </div>
+        <div>
+          <div style="color:#ffffff;font-weight:800;font-size:14px;">Kirim Link Rapor ke WhatsApp Wali</div>
+          <div style="color:#d8bfa2;font-size:12px;margin-top:2px;">Kirim chat WA berisi ringkasan & link khusus rapor anak</div>
+        </div>
+        <i class="fa-solid fa-chevron-right" style="color:#25D366;margin-left:auto;"></i>
+      </button>
+    </div>
+  </div>`
+
+  const footerHtml = `<button class="btn btn-ghost" onclick="closeMentorModal()" style="color:#ffffff;border:1px solid rgba(255,255,255,0.2);font-weight:700;">Tutup</button>`
+  showMentorModal(`<i class="fa-solid fa-share-nodes" style="color:#F0AF43;margin-right:8px;"></i> Bagikan Laporan — ${escapeHtml(p.nama_lengkap)}`, bodyHtml, footerHtml)
+}
+
+window.saveWaInline = async (pesertaId) => {
+  const p = state.pesertaList.find(x => x.id === pesertaId)
+  if (!p) return
+
+  const inputEl = document.getElementById('share-wa-input')
+  const noWaWali = inputEl ? inputEl.value.trim() : ''
+  if (!noWaWali) {
+    alert('Mohon ketikkan nomor WhatsApp terlebih dahulu.')
+    if (inputEl) inputEl.focus()
+    return
+  }
+
+  p.no_wa_wali = noWaWali
+  if (state.selectedPeserta && state.selectedPeserta.id === pesertaId) {
+    state.selectedPeserta.no_wa_wali = noWaWali
+  }
+
+  const statusEl = document.getElementById('share-wa-inline-status')
+  if (statusEl) statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan…'
+
+  try {
+    await mentorService.updatePeserta(pesertaId, { no_wa_wali: noWaWali })
+    if (statusEl) statusEl.innerHTML = '<i class="fa-solid fa-circle-check"></i> Tersimpan!'
+    showToast('Nomor WhatsApp wali santri berhasil disimpan!', 'success')
+  } catch (err) {
+    console.error(err)
+    if (statusEl) statusEl.innerHTML = '<span style="color:#fca5a5;">Gagal simpan</span>'
+  }
+}
+
+window.openEditKontakWaliModal = (pesertaId) => {
+  const p = state.pesertaList.find(x => x.id === pesertaId)
+  if (!p) return
+
+  const bodyHtml = `
+  <div style="display:flex;flex-direction:column;gap:14px;">
+    <div>
+      <label style="display:block;font-size:12px;color:#F0AF43;font-weight:800;margin-bottom:6px;text-transform:uppercase;">Nama Orang Tua / Wali:</label>
+      <input type="text" id="edit-kontak-nama" value="${escapeHtml(p.nama_wali || '')}" placeholder="Contoh: Bapak Ahmad / Ibu Fatimah" style="width:100%;padding:10px 14px;border:1.5px solid rgba(240,175,67,0.4);border-radius:8px;background:#180902;color:#ffffff;font-size:14px;font-weight:600;box-sizing:border-box;" />
+    </div>
+    <div>
+      <label style="display:block;font-size:12px;color:#F0AF43;font-weight:800;margin-bottom:6px;text-transform:uppercase;">No. WhatsApp Wali:</label>
+      <input type="tel" id="edit-kontak-wa" value="${escapeHtml(p.no_wa_wali || '')}" placeholder="Contoh: 08123456789 atau 628..." style="width:100%;padding:10px 14px;border:1.5px solid rgba(240,175,67,0.4);border-radius:8px;background:#180902;color:#ffffff;font-size:14px;font-weight:700;box-sizing:border-box;" />
+      <div style="font-size:11.5px;color:#d8bfa2;margin-top:5px;">
+        Nomor ini akan digunakan sebagai tujuan kirim link laporan & PDF rapor ananda.
+      </div>
+    </div>
+  </div>`
+
+  const footerHtml = `
+    <button class="btn btn-ghost" onclick="closeMentorModal()" style="color:#ffffff;border:1px solid rgba(255,255,255,0.2);font-weight:700;">Batal</button>
+    <button class="btn btn-primary" onclick="window.saveKontakWali(${pesertaId})" style="padding:10px 20px;font-weight:800;background:linear-gradient(135deg,#d97706,#F0AF43);color:#1a0a02;border:none;border-radius:8px;cursor:pointer;">
+      <i class="fa-solid fa-floppy-disk"></i> Simpan Kontak
+    </button>`
+
+  showMentorModal('<i class="fa-solid fa-address-book" style="color:#F0AF43;margin-right:8px;"></i> Edit Kontak Wali Santri', bodyHtml, footerHtml)
+}
+
+window.saveKontakWali = async (pesertaId) => {
+  const p = state.pesertaList.find(x => x.id === pesertaId)
+  if (!p) return
+
+  const namaWali = (document.getElementById('edit-kontak-nama')?.value || '').trim()
+  const noWaWali = (document.getElementById('edit-kontak-wa')?.value || '').trim()
+
+  p.nama_wali = namaWali
+  p.no_wa_wali = noWaWali
+  if (state.selectedPeserta && state.selectedPeserta.id === pesertaId) {
+    state.selectedPeserta.nama_wali = namaWali
+    state.selectedPeserta.no_wa_wali = noWaWali
+  }
+
+  try {
+    await mentorService.updatePeserta(pesertaId, { nama_wali: namaWali, no_wa_wali: noWaWali })
+  } catch (e) {
+    console.error('Error saving kontak wali:', e)
+  }
+
+  closeMentorModal()
+  showToast('Kontak wali santri berhasil diperbarui!', 'success')
+
+  const main = document.getElementById('mentor-main-content')
+  if (main) openPesertaDetail(pesertaId, main, showToast)
+}
+
+window.generatePesertaReport = (pesertaId) => {
+  const p = state.pesertaList.find(x => x.id === pesertaId)
+  const hist = window._currentPesertaHistory
+  if (!p) return
+  closeMentorModal()
+
+  const kehadiranList = (hist?.pesertaId === pesertaId && hist.kehadiranList) ? hist.kehadiranList : []
+  const kemajuanList = (hist?.pesertaId === pesertaId && hist.kemajuanList) ? hist.kemajuanList : []
+  const penilaianList = (hist?.pesertaId === pesertaId && hist.penilaianList) ? hist.penilaianList : []
+
+  const hadirCount = kehadiranList.filter(r => r.status_hadir === 'hadir').length
+  const izinCount  = kehadiranList.filter(r => r.status_hadir === 'izin').length
+  const sakitCount = kehadiranList.filter(r => r.status_hadir === 'sakit').length
+  const alpaCount  = kehadiranList.filter(r => r.status_hadir === 'alpa' || (!['hadir','izin','sakit'].includes(r.status_hadir) && r.status_hadir)).length
+
+  const pesertaData = {
+    peserta: p,
+    mentor: { nama: state.profile?.nama_lengkap || state.profile?.nama || 'Mentor QIA' },
+    kelas: p.kelas || { nama_kelas: p.jenis === 'privat' ? 'Program Privat' : jenisLabel(p.jenis) },
+    kemajuan: kemajuanList,
+    penilaian: penilaianList,
+    kehadiran_summary: {
+      hadir: hadirCount,
+      izin: izinCount,
+      sakit: sakitCount,
+      alpa: alpaCount,
+      total: kehadiranList.length
+    },
+    riwayat_kehadiran: kehadiranList,
+    catatan_mentor: []
+  }
+
+  printRaporPeserta(pesertaData)
+}
+
+window.shareToWhatsApp = (pesertaId) => {
+  const p = state.pesertaList.find(x => x.id === pesertaId)
+  const hist = window._currentPesertaHistory
+  if (!p) return
+
+  // Periksa apakah ada input nomor WA dari modal share
+  const inputEl = document.getElementById('share-wa-input')
+  const typedWa = inputEl ? inputEl.value.trim() : (p.no_wa_wali || '')
+  if (!typedWa) {
+    alert('Mohon masukkan nomor WhatsApp wali terlebih dahulu pada kolom yang disediakan.')
+    if (inputEl) inputEl.focus()
+    return
+  }
+
+  // Jika nomor baru / berbeda, simpan otomatis
+  if (typedWa !== p.no_wa_wali) {
+    p.no_wa_wali = typedWa
+    if (state.selectedPeserta && state.selectedPeserta.id === pesertaId) {
+      state.selectedPeserta.no_wa_wali = typedWa
+    }
+    mentorService.updatePeserta(pesertaId, { no_wa_wali: typedWa }).catch(console.error)
+  }
+
+  closeMentorModal()
+
+  const kehadiranList = hist?.pesertaId === pesertaId ? hist.kehadiranList : []
+  const kemajuanByDate = hist?.pesertaId === pesertaId ? hist.kemajuanByDate : {}
+
+  const totalHadir = kehadiranList.filter(r => r.status_hadir === 'hadir').length
+  const totalIzin = kehadiranList.filter(r => r.status_hadir === 'izin').length
+  const totalSakit = kehadiranList.filter(r => r.status_hadir === 'sakit').length
+  const totalAlpa = kehadiranList.filter(r => !['hadir','izin','sakit'].includes(r.status_hadir)).length
+  const totalSesi = kehadiranList.length
+  const pctH = totalSesi > 0 ? Math.round((totalHadir / totalSesi) * 100) : 0
+  const now = new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' })
+
+  // Link khusus laporan peserta didik (langsung mengarah ke data santri bersangkutan)
+  const laporanUrl = `${window.location.origin}/wali?id=${pesertaId}`
+
+  // Hafalan terakhir
+  const kmList = hist?.pesertaId === pesertaId ? hist.kemajuanList : []
+  const lastKm = kmList && kmList.length > 0 ? kmList[0] : null
+  const lastHafalan = lastKm
+    ? `${lastKm.kitab_surat}${lastKm.halaman_ayat ? ' — ' + lastKm.halaman_ayat : ''} (${lastKm.status_kelancaran || 'cukup'})`
+    : 'Belum ada catatan'
+
+  // Build last 3 session summaries
+  const recentSesi = kehadiranList.slice(0, 3).map((rep, i) => {
+    const km = kemajuanByDate[rep.tanggal]
+    const statusIcon = rep.status_hadir==='hadir'?'✅':rep.status_hadir==='izin'?'📋':rep.status_hadir==='sakit'?'🤒':'❌'
+    let line = `${i+1}. ${formatTanggalLaporan(rep.tanggal)} — ${statusIcon} ${(rep.status_hadir||'hadir').toUpperCase()}`
+    if (rep.materi_pembahasan) line += `\n   📚 Materi: ${rep.materi_pembahasan}`
+    if (km) line += `\n   📖 Hafalan: ${km.kitab_surat}${km.halaman_ayat?' — '+km.halaman_ayat:''}`
+    if (rep.catatan_sesi || rep.perkembangan_materi) line += `\n   💬 ${rep.catatan_sesi || rep.perkembangan_materi}`
+    return line
+  }).join('\n\n')
+
+  const msg = `Assalamu'alaikum Wr. Wb.
+
+Kepada Yth. Bapak/Ibu *${p.nama_wali || 'Orang Tua / Wali'}*
+
+Berikut kami sampaikan laporan perkembangan belajar ananda *${p.nama_lengkap}* di Quran Insight Academy:
+
+👤 *Nama Santri:* ${p.nama_lengkap}
+🏫 *Kelas / Program:* ${p.kelas?.nama_kelas || jenisLabel(p.jenis)}
+📅 *Per Tanggal:* ${now}
+
+📊 *Rekap Kehadiran (Total ${totalSesi} Sesi):*
+✅ Hadir: ${totalHadir} sesi (${pctH}%)
+📋 Izin: ${totalIzin} sesi
+🤒 Sakit: ${totalSakit} sesi
+❌ Alpa: ${totalAlpa} sesi
+
+📖 *Hafalan Terakhir:*
+${lastHafalan}
+
+📝 *Laporan Sesi Terbaru:*
+${recentSesi || 'Belum ada laporan sesi.'}
+
+📄 *Laporan Lengkap & Download PDF:*
+Untuk melihat rekapan lengkap grafik nilai, materi setiap sesi, catatan ustadz/ustadzah, serta mengunduh/mencetak dokumen PDF resmi rapor ananda, silakan klik tautan resmi di bawah ini:
+👉 ${laporanUrl}
+
+Alhamdulillah, kami terus mendampingi perkembangan ananda. Jazakumullah Khairan Katsiran atas amanah dan kerjasamanya.
+
+_Pengajar Quran Insight Academy_`
+
+  const waNum = formatWaNumber(typedWa)
+  const waUrl = `https://wa.me/${waNum}?text=${encodeURIComponent(msg)}`
+  window.open(waUrl, '_blank')
+}
+
+// ── MODAL: TAMBAH LAPORAN ──────────────────────────────────
+window.openTambahLaporanModal = (pesertaId) => {
+  const p = state.pesertaList.find(x => x.id === pesertaId)
+  if (!p) return
+
+  const today = new Date().toISOString().slice(0, 10)
+
+  const bodyHtml = `
+  <div style="display:flex;flex-direction:column;gap:18px;">
+    <!-- Bagian 1: Kehadiran & Tanggal -->
+    <div style="padding:16px;background:#2a1406;border-radius:12px;border:1.5px solid rgba(240,175,67,0.25);">
+      <h4 style="color:#F0AF43;margin:0 0 14px;font-size:0.95rem;font-weight:800;display:flex;align-items:center;gap:8px;">
+        <i class="fa-solid fa-calendar-check"></i> 1. Kehadiran & Materi Sesi
+      </h4>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:14px;">
+        <div class="form-group">
+          <label class="form-label" style="color:#F0AF43;font-weight:700;">Tanggal Sesi</label>
+          <input type="date" class="form-control" id="modal-inp-tgl-sesi" value="${today}" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="color:#F0AF43;font-weight:700;">Status Kehadiran</label>
+          <select class="form-control" id="modal-inp-status-hadir">
+            <option value="hadir" selected>● Hadir</option>
+            <option value="izin">◐ Izin</option>
+            <option value="sakit">◑ Sakit</option>
+            <option value="alpa">○ Alpa</option>
+          </select>
+        </div>
+        <div class="form-group" style="grid-column:1/-1;">
+          <label class="form-label" style="color:#F0AF43;font-weight:700;">Materi Pembahasan</label>
+          <input type="text" class="form-control" id="modal-inp-materi" placeholder="cth: Tajwid Mad Thobi'i, Makhorijul Huruf, Iqro 3" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Bagian 2: Kemajuan Hafalan (Opsional) -->
+    <div style="padding:16px;background:#2a1406;border-radius:12px;border:1.5px solid rgba(240,175,67,0.25);">
+      <h4 style="color:#F0AF43;margin:0 0 14px;font-size:0.95rem;font-weight:800;display:flex;align-items:center;gap:8px;">
+        <i class="fa-solid fa-book-quran"></i> 2. Kemajuan Hafalan / Tahsin (Opsional)
+      </h4>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:14px;">
+        <div class="form-group">
+          <label class="form-label" style="color:#F0AF43;font-weight:700;">Kitab / Surah</label>
+          <input type="text" class="form-control" id="modal-inp-kitab" placeholder="cth: An-Naba, Al-Baqarah, Jilid 2" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="color:#F0AF43;font-weight:700;">Halaman / Ayat</label>
+          <input type="text" class="form-control" id="modal-inp-halaman" placeholder="cth: Ayat 1-10, Hal. 12" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="color:#F0AF43;font-weight:700;">Status Kelancaran</label>
+          <select class="form-control" id="modal-inp-kelancaran">
+            <option value="lancar" selected>● Lancar</option>
+            <option value="cukup">◐ Cukup</option>
+            <option value="perlu_ulang">○ Perlu Diulang</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bagian 3: Penilaian Sesi (Opsional) -->
+    <div style="padding:16px;background:#2a1406;border-radius:12px;border:1.5px solid rgba(240,175,67,0.25);">
+      <h4 style="color:#F0AF43;margin:0 0 14px;font-size:0.95rem;font-weight:800;display:flex;align-items:center;gap:8px;">
+        <i class="fa-solid fa-star"></i> 3. Penilaian Sesi (Opsional)
+      </h4>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:14px;">
+        <div class="form-group">
+          <label class="form-label" style="color:#F0AF43;font-weight:700;">Nilai Angka (0–100)</label>
+          <input type="number" class="form-control" id="modal-inp-nilai" min="0" max="100" placeholder="85" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="color:#F0AF43;font-weight:700;">Adab (1–5)</label>
+          <input type="number" class="form-control" id="modal-inp-adab" min="1" max="5" placeholder="5" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="color:#F0AF43;font-weight:700;">Tajwid (1–5)</label>
+          <input type="number" class="form-control" id="modal-inp-tajwid" min="1" max="5" placeholder="4" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="color:#F0AF43;font-weight:700;">Kelancaran (1–5)</label>
+          <input type="number" class="form-control" id="modal-inp-kelancaran-nilai" min="1" max="5" placeholder="4" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Bagian 4: Catatan Sesi -->
+    <div style="padding:16px;background:#2b1506;border-radius:12px;border:1.5px solid rgba(240,175,67,0.25);">
+      <h4 style="color:#F0AF43;margin:0 0 10px;font-size:0.95rem;font-weight:800;display:flex;align-items:center;gap:8px;">
+        <i class="fa-solid fa-comment-dots"></i> Catatan Sesi / Perkembangan
+      </h4>
+      <div class="form-group" style="margin:0;">
+        <textarea class="form-control" id="modal-inp-catatan" rows="3" placeholder="Tuliskan catatan perkembangan hafalan, penilaian, keaktifan santri, atau pesan untuk orang tua…"></textarea>
+      </div>
+    </div>
+  </div>`
+
+  const footerHtml = `
+    <button class="btn btn-ghost" onclick="closeMentorModal()" style="color:#ffffff;border:1px solid rgba(255,255,255,0.2);font-weight:700;">Batal</button>
+    <button class="btn btn-primary" id="btn-modal-submit-tambah" style="min-width:160px;font-weight:800;">
+      <i class="fa-solid fa-floppy-disk"></i> Simpan Laporan
+    </button>
+  `
+
+  showMentorModal(`<i class="fa-solid fa-plus-circle" style="color:#F0AF43;margin-right:8px;"></i> Tambah Laporan Sesi — ${escapeHtml(p.nama_lengkap)}`, bodyHtml, footerHtml)
+
+  document.getElementById('btn-modal-submit-tambah').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-modal-submit-tambah')
+    const tglSesi     = document.getElementById('modal-inp-tgl-sesi').value || today
+    const statusHadir = document.getElementById('modal-inp-status-hadir').value
+    const materi      = document.getElementById('modal-inp-materi').value.trim()
+    const kitab       = document.getElementById('modal-inp-kitab').value.trim()
+    const halaman     = document.getElementById('modal-inp-halaman').value.trim()
+    const kelancaranV = document.getElementById('modal-inp-kelancaran').value
+    const nilaiStr    = document.getElementById('modal-inp-nilai').value
+    const adab        = parseInt(document.getElementById('modal-inp-adab').value) || null
+    const tajwid      = parseInt(document.getElementById('modal-inp-tajwid').value) || null
+    const kelancaranN = parseInt(document.getElementById('modal-inp-kelancaran-nilai').value) || null
+    const catatan     = document.getElementById('modal-inp-catatan').value.trim()
 
     btn.disabled = true
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan…'
 
-    const errors = []
-    const saved  = []
+    try {
+      // 1. Simpan Kehadiran
+      await mentorService.addKehadiran({
+        id_peserta: pesertaId,
+        id_mentor: state.profile.id,
+        id_kelas: p.id_kelas || null,
+        tanggal: tglSesi,
+        status_hadir: statusHadir,
+        materi_pembahasan: materi || null,
+        perkembangan_materi: catatan || null,
+        catatan_sesi: catatan || null,
+      })
 
-    // Simpan Kehadiran & Materi Sesi
-    if (hasKehadiran) {
-      try {
-        await mentorService.addKehadiran({
-          id_peserta: pesertaId,
-          id_mentor:  state.profile.id,
-          id_kelas:   p.id_kelas || null,
-          tanggal:    tglSesi,
-          status_hadir: statusHadir,
-          materi_pembahasan:   materi || null,
-          perkembangan_materi: catatan || null,
-          catatan_sesi: catatan || null,
-        })
-        saved.push(`Kehadiran (${statusHadir})`)
-        document.getElementById('inp-materi').value = ''
-      } catch(e) { errors.push('Kehadiran: ' + e.message) }
-    }
-
-    // Simpan Kemajuan Hafalan
-    if (hasKemajuan) {
-      try {
+      // 2. Simpan Kemajuan jika diisi
+      if (kitab) {
         await mentorService.addKemajuan({
           id_peserta: pesertaId,
-          id_mentor:  state.profile.id,
-          tanggal:    tglSesi,
-          kitab_surat:       kitab,
-          halaman_ayat:      halaman,
-          status_kelancaran: document.getElementById('inp-kelancaran').value,
-          catatan_hafalan:   catatan || null,
+          id_mentor: state.profile.id,
+          tanggal: tglSesi,
+          kitab_surat: kitab,
+          halaman_ayat: halaman || null,
+          status_kelancaran: kelancaranV,
+          catatan_hafalan: catatan || null,
         })
-        saved.push('Kemajuan Hafalan')
-        document.getElementById('inp-kitab').value = ''
-        document.getElementById('inp-halaman').value = ''
-      } catch(e) { errors.push('Hafalan: ' + e.message) }
-    }
-
-    // Simpan Penilaian
-    if (hasPenilaian) {
-      const nilai = parseFloat(nilaiStr)
-      if (isNaN(nilai)) {
-        errors.push('Penilaian: nilai angka tidak valid')
-      } else {
-        try {
-          await mentorService.addPenilaian({
-            id_peserta:       pesertaId,
-            id_mentor:        state.profile.id,
-            tanggal:          tglSesi,
-            nilai_angka:      nilai,
-            nilai_adab:       parseInt(document.getElementById('inp-adab').value) || null,
-            nilai_tajwid:     parseInt(document.getElementById('inp-tajwid').value) || null,
-            nilai_kelancaran: parseInt(document.getElementById('inp-kelancaran-nilai').value) || null,
-            catatan:          catatan || null,
-          })
-          saved.push('Penilaian')
-          document.getElementById('inp-nilai').value = ''
-          document.getElementById('inp-adab').value = ''
-          document.getElementById('inp-tajwid').value = ''
-          document.getElementById('inp-kelancaran-nilai').value = ''
-        } catch(e) { errors.push('Penilaian: ' + e.message) }
       }
-    }
 
-    // Reset catatan sesi setelah semua berhasil
-    if (saved.length > 0) {
-      document.getElementById('inp-catatan').value = ''
-    }
+      // 3. Simpan Penilaian jika diisi
+      if (nilaiStr) {
+        const nilai = parseFloat(nilaiStr)
+        if (!isNaN(nilai)) {
+          await mentorService.addPenilaian({
+            id_peserta: pesertaId,
+            id_mentor: state.profile.id,
+            tanggal: tglSesi,
+            nilai_angka: nilai,
+            nilai_adab: adab,
+            nilai_tajwid: tajwid,
+            nilai_kelancaran: kelancaranN,
+            catatan: catatan || null,
+          })
+        }
+      }
 
-    btn.disabled = false
-    btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Simpan Laporan Sesi'
-
-    if (saved.length > 0) {
-      showToast(`✅ Tersimpan: ${saved.join(', ')}`, 'success')
+      closeMentorModal()
+      showToast('Laporan sesi berhasil disimpan! ✅', 'success')
       loadPesertaHistory(pesertaId, showToast)
-    }
-    if (errors.length > 0) {
-      errors.forEach(err => showToast('Gagal — ' + err, 'error'))
+    } catch (err) {
+      btn.disabled = false
+      btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Simpan Laporan'
+      showToast('Gagal simpan laporan: ' + err.message, 'error')
     }
   })
 }
 
-async function loadPesertaHistory(pesertaId, showToast) {
-  const panel = document.getElementById('history-panel')
-  if (!panel) return
+// ── MODAL: EDIT LAPORAN (EDIT KEHADIRAN & SESI) ─────────────
+window.openEditLaporanModal = (kehadiranId, pesertaId) => {
+  const p = state.pesertaList.find(x => x.id === pesertaId)
+  if (!p) return
+
+  const history = window._currentPesertaHistory
+  const rep = history?.kehadiranList?.find(k => Number(k.id) === Number(kehadiranId))
+  if (!rep) {
+    showToast('Data laporan tidak ditemukan.', 'error')
+    return
+  }
+
+  const km = history?.kemajuanByDate ? history.kemajuanByDate[rep.tanggal] : null
+  const pn = history?.penilaianByDate ? history.penilaianByDate[rep.tanggal] : null
+
+  const bodyHtml = `
+  <div style="display:flex;flex-direction:column;gap:18px;">
+    <div style="padding:12px 16px;background:#2d1708;border-radius:10px;border-left:4px solid #F0AF43;font-size:13.5px;color:#ffffff;line-height:1.5;">
+      Mengedit data kehadiran dan materi sesi untuk peserta <strong style="color:#F0AF43;">${escapeHtml(p.nama_lengkap)}</strong>.
+    </div>
+
+    <!-- Bagian 1: Kehadiran & Tanggal -->
+    <div style="padding:16px;background:#2a1406;border-radius:12px;border:1.5px solid rgba(240,175,67,0.25);">
+      <h4 style="color:#F0AF43;margin:0 0 14px;font-size:0.95rem;font-weight:800;display:flex;align-items:center;gap:8px;">
+        <i class="fa-solid fa-calendar-check"></i> 1. Kehadiran & Materi Sesi
+      </h4>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:14px;">
+        <div class="form-group">
+          <label class="form-label" style="color:#F0AF43;font-weight:700;">Tanggal Sesi</label>
+          <input type="date" class="form-control" id="modal-edit-tgl" value="${rep.tanggal}" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="color:#F0AF43;font-weight:700;">Status Kehadiran</label>
+          <select class="form-control" id="modal-edit-status">
+            <option value="hadir" ${rep.status_hadir==='hadir'?'selected':''}>● Hadir</option>
+            <option value="izin" ${rep.status_hadir==='izin'?'selected':''}>◐ Izin</option>
+            <option value="sakit" ${rep.status_hadir==='sakit'?'selected':''}>◑ Sakit</option>
+            <option value="alpa" ${rep.status_hadir==='alpa'?'selected':''}>○ Alpa</option>
+          </select>
+        </div>
+        <div class="form-group" style="grid-column:1/-1;">
+          <label class="form-label" style="color:#F0AF43;font-weight:700;">Materi Pembahasan</label>
+          <input type="text" class="form-control" id="modal-edit-materi" value="${escapeHtml(rep.materi_pembahasan||'')}" placeholder="cth: Tajwid Mad Thobi'i, Makhorijul Huruf" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Bagian 2: Kemajuan Hafalan -->
+    <div style="padding:16px;background:#2a1406;border-radius:12px;border:1.5px solid rgba(240,175,67,0.25);">
+      <h4 style="color:#F0AF43;margin:0 0 14px;font-size:0.95rem;font-weight:800;display:flex;align-items:center;gap:8px;">
+        <i class="fa-solid fa-book-quran"></i> 2. Kemajuan Hafalan / Tahsin
+      </h4>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:14px;">
+        <div class="form-group">
+          <label class="form-label" style="color:#F0AF43;font-weight:700;">Kitab / Surah</label>
+          <input type="text" class="form-control" id="modal-edit-kitab" value="${escapeHtml(km?.kitab_surat||'')}" placeholder="cth: An-Naba, Al-Baqarah" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="color:#F0AF43;font-weight:700;">Halaman / Ayat</label>
+          <input type="text" class="form-control" id="modal-edit-halaman" value="${escapeHtml(km?.halaman_ayat||'')}" placeholder="cth: Ayat 1-10, Hal. 12" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="color:#F0AF43;font-weight:700;">Status Kelancaran</label>
+          <select class="form-control" id="modal-edit-kelancaran">
+            <option value="lancar" ${km?.status_kelancaran==='lancar'?'selected':''}>● Lancar</option>
+            <option value="cukup" ${km?.status_kelancaran==='cukup'?'selected':''}>◐ Cukup</option>
+            <option value="perlu_ulang" ${km?.status_kelancaran==='perlu_ulang'?'selected':''}>○ Perlu Diulang</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bagian 3: Penilaian Sesi -->
+    <div style="padding:16px;background:#2a1406;border-radius:12px;border:1.5px solid rgba(240,175,67,0.25);">
+      <h4 style="color:#F0AF43;margin:0 0 14px;font-size:0.95rem;font-weight:800;display:flex;align-items:center;gap:8px;">
+        <i class="fa-solid fa-star"></i> 3. Penilaian Sesi
+      </h4>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:14px;">
+        <div class="form-group">
+          <label class="form-label" style="color:#F0AF43;font-weight:700;">Nilai Angka (0–100)</label>
+          <input type="number" class="form-control" id="modal-edit-nilai" min="0" max="100" value="${pn?.nilai_angka ?? ''}" placeholder="85" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="color:#F0AF43;font-weight:700;">Adab (1–5)</label>
+          <input type="number" class="form-control" id="modal-edit-adab" min="1" max="5" value="${pn?.nilai_adab ?? ''}" placeholder="5" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="color:#F0AF43;font-weight:700;">Tajwid (1–5)</label>
+          <input type="number" class="form-control" id="modal-edit-tajwid" min="1" max="5" value="${pn?.nilai_tajwid ?? ''}" placeholder="4" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="color:#F0AF43;font-weight:700;">Kelancaran (1–5)</label>
+          <input type="number" class="form-control" id="modal-edit-kelancaran-nilai" min="1" max="5" value="${pn?.nilai_kelancaran ?? ''}" placeholder="4" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Bagian 4: Catatan Sesi -->
+    <div style="padding:16px;background:#2b1506;border-radius:12px;border:1.5px solid rgba(240,175,67,0.25);">
+      <h4 style="color:#F0AF43;margin:0 0 10px;font-size:0.95rem;font-weight:800;display:flex;align-items:center;gap:8px;">
+        <i class="fa-solid fa-comment-dots"></i> Catatan Sesi / Perkembangan
+      </h4>
+      <div class="form-group" style="margin:0;">
+        <textarea class="form-control" id="modal-edit-catatan" rows="3" placeholder="Tuliskan catatan perkembangan hafalan, penilaian, keaktifan santri…">${escapeHtml(rep.catatan_sesi || rep.perkembangan_materi || km?.catatan_hafalan || pn?.catatan || '')}</textarea>
+      </div>
+    </div>
+  </div>`
+
+  const footerHtml = `
+    <button class="btn btn-ghost" onclick="closeMentorModal()" style="color:#ffffff;border:1px solid rgba(255,255,255,0.2);font-weight:700;">Batal</button>
+    <button class="btn btn-primary" id="btn-modal-submit-edit" style="min-width:170px;font-weight:800;">
+      <i class="fa-solid fa-check"></i> Simpan Perubahan
+    </button>
+  `
+
+  showMentorModal(`<i class="fa-solid fa-pen-to-square" style="color:#F0AF43;margin-right:8px;"></i> Edit Laporan — ${formatTanggalLaporan(rep.tanggal)}`, bodyHtml, footerHtml)
+
+  document.getElementById('btn-modal-submit-edit').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-modal-submit-edit')
+    const tglSesi     = document.getElementById('modal-edit-tgl').value || rep.tanggal
+    const statusHadir = document.getElementById('modal-edit-status').value
+    const materi      = document.getElementById('modal-edit-materi').value.trim()
+    const kitab       = document.getElementById('modal-edit-kitab').value.trim()
+    const halaman     = document.getElementById('modal-edit-halaman').value.trim()
+    const kelancaranV = document.getElementById('modal-edit-kelancaran').value
+    const nilaiStr    = document.getElementById('modal-edit-nilai').value
+    const adab        = parseInt(document.getElementById('modal-edit-adab').value) || null
+    const tajwid      = parseInt(document.getElementById('modal-edit-tajwid').value) || null
+    const kelancaranN = parseInt(document.getElementById('modal-edit-kelancaran-nilai').value) || null
+    const catatan     = document.getElementById('modal-edit-catatan').value.trim()
+
+    btn.disabled = true
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan…'
+
+    try {
+      // 1. Update Kehadiran
+      await mentorService.updateKehadiran(rep.id, {
+        tanggal: tglSesi,
+        status_hadir: statusHadir,
+        materi_pembahasan: materi || null,
+        perkembangan_materi: catatan || null,
+        catatan_sesi: catatan || null,
+      })
+
+      // 2. Update/Add Kemajuan
+      if (km && km.id) {
+        await mentorService.updateKemajuan(km.id, {
+          tanggal: tglSesi,
+          kitab_surat: kitab || km.kitab_surat,
+          halaman_ayat: halaman || null,
+          status_kelancaran: kelancaranV,
+          catatan_hafalan: catatan || null,
+        })
+      } else if (kitab) {
+        await mentorService.addKemajuan({
+          id_peserta: pesertaId,
+          id_mentor: state.profile.id,
+          tanggal: tglSesi,
+          kitab_surat: kitab,
+          halaman_ayat: halaman || null,
+          status_kelancaran: kelancaranV,
+          catatan_hafalan: catatan || null,
+        })
+      }
+
+      // 3. Update/Add Penilaian
+      if (nilaiStr) {
+        const nilai = parseFloat(nilaiStr)
+        if (!isNaN(nilai)) {
+          if (pn && pn.id) {
+            await mentorService.updatePenilaian(pn.id, {
+              tanggal: tglSesi,
+              nilai_angka: nilai,
+              nilai_adab: adab,
+              nilai_tajwid: tajwid,
+              nilai_kelancaran: kelancaranN,
+              catatan: catatan || null,
+            })
+          } else {
+            await mentorService.addPenilaian({
+              id_peserta: pesertaId,
+              id_mentor: state.profile.id,
+              tanggal: tglSesi,
+              nilai_angka: nilai,
+              nilai_adab: adab,
+              nilai_tajwid: tajwid,
+              nilai_kelancaran: kelancaranN,
+              catatan: catatan || null,
+            })
+          }
+        }
+      }
+
+      closeMentorModal()
+      showToast('Data kehadiran dan laporan berhasil diperbarui! ✅', 'success')
+      loadPesertaHistory(pesertaId, showToast)
+    } catch (err) {
+      btn.disabled = false
+      btn.innerHTML = '<i class="fa-solid fa-check"></i> Simpan Perubahan'
+      showToast('Gagal update laporan: ' + err.message, 'error')
+    }
+  })
+}
+
+// ── HAPUS LAPORAN ──────────────────────────────────────────
+window.deleteLaporan = async (kehadiranId, pesertaId) => {
+  if (!confirm('Apakah Anda yakin ingin menghapus data laporan kehadiran sesi ini?')) return
   try {
-    const [kemajuan, penilaian, catatan, kehadiran] = await Promise.all([
-      mentorService.getKemajuan(pesertaId, 8),
-      mentorService.getPenilaian(pesertaId, 8),
-      mentorService.getCatatan(pesertaId),
-      mentorService.getRiwayatKehadiran(pesertaId, 10),
-    ])
-    panel.innerHTML = `
-    <h4 style="color:var(--cream-100);margin-bottom:18px;display:flex;align-items:center;gap:8px;">
-      <i class="fa-solid fa-clock-rotate-left" style="color:#F0AF43;"></i> Riwayat Peserta Didik
-    </h4>
-
-    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:20px;">
-      <!-- Kolom Hafalan -->
-      <div style="background:rgba(255,255,255,0.02);padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.05);">
-        <div style="font-size:12px;font-weight:700;color:var(--brown-300);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">
-          <i class="fa-solid fa-book-quran" style="margin-right:6px;"></i> Hafalan Terakhir
-        </div>
-        ${kemajuan.length===0?'<p style="font-size:12px;color:var(--text-card-muted);margin:0;">Belum ada catatan</p>':
-          kemajuan.slice(0,4).map(k=>`
-          <div style="padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:8px;margin-bottom:6px;">
-            <div style="font-size:12.5px;color:var(--cream-100);font-weight:600;">${k.kitab_surat} — ${k.halaman_ayat||''}</div>
-            <div style="font-size:11px;color:var(--text-card-muted);margin-top:2px;">${formatDate(k.tanggal)} • ${kelancaran(k.status_kelancaran)}</div>
-          </div>`).join('')}
-      </div>
-
-      <!-- Kolom Penilaian -->
-      <div style="background:rgba(255,255,255,0.02);padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.05);">
-        <div style="font-size:12px;font-weight:700;color:var(--brown-300);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">
-          <i class="fa-solid fa-star" style="margin-right:6px;"></i> Penilaian Terakhir
-        </div>
-        ${penilaian.length===0?'<p style="font-size:12px;color:var(--text-card-muted);margin:0;">Belum ada penilaian</p>':
-          penilaian.slice(0,4).map(n=>`
-          <div style="padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:8px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;">
-            <div>
-              <div style="font-size:13px;color:var(--cream-100);font-weight:700;">${n.nilai_angka}</div>
-              <div style="font-size:11px;color:var(--text-card-muted);">${formatDate(n.tanggal)}</div>
-            </div>
-            <div style="font-size:11px;color:var(--text-card-muted);text-align:right;">
-              Adab ${n.nilai_adab||'-'} • Tajwid ${n.nilai_tajwid||'-'} • Lancar ${n.nilai_kelancaran||'-'}
-            </div>
-          </div>`).join('')}
-      </div>
-
-      <!-- Kolom Absensi -->
-      <div style="background:rgba(255,255,255,0.02);padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.05);">
-        <div style="font-size:12px;font-weight:700;color:var(--brown-300);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">
-          <i class="fa-solid fa-calendar-check" style="margin-right:6px;"></i> Riwayat Absensi
-        </div>
-        ${kehadiran.length===0?'<p style="font-size:12px;color:var(--text-card-muted);margin:0;">Belum ada absensi</p>':
-          kehadiran.slice(0,4).map(k=>`
-          <div style="padding:7px 12px;background:rgba(255,255,255,0.04);border-radius:8px;margin-bottom:5px;">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
-              <span style="font-size:12px;font-weight:700;color:${khColor(k.status_hadir)};">${khIcon(k.status_hadir)} ${k.status_hadir}</span>
-              <span style="font-size:11px;color:var(--text-card-muted);">${formatDate(k.tanggal)}</span>
-            </div>
-            ${k.materi_pembahasan?`<div style="font-size:11px;color:var(--text-card-muted);">📚 ${k.materi_pembahasan}</div>`:''}
-            ${k.perkembangan_materi?`<div style="font-size:11px;color:var(--text-card-muted);font-style:italic;">${k.perkembangan_materi}</div>`:''}
-          </div>`).join('')}
-      </div>
-    </div>`
-  } catch(e) {
-    if (panel) panel.innerHTML = `<p style="color:#e05c4b;font-size:13px;">Gagal memuat riwayat.</p>`
+    await mentorService.deleteKehadiran(kehadiranId)
+    showToast('Laporan berhasil dihapus.', 'info')
+    loadPesertaHistory(pesertaId, showToast)
+  } catch (err) {
+    showToast('Gagal menghapus laporan: ' + err.message, 'error')
   }
 }
+
+function showMentorModal(title, bodyHtml, footerHtml) {
+  const m = document.getElementById('mentor-modal')
+  if (!m) return
+  document.getElementById('mentor-modal-title').innerHTML = title
+  document.getElementById('mentor-modal-body').innerHTML = bodyHtml
+  document.getElementById('mentor-modal-footer').innerHTML = footerHtml
+  m.classList.add('show')
+}
+
+function closeMentorModal() {
+  document.getElementById('mentor-modal')?.classList.remove('show')
+}
+window.closeMentorModal = closeMentorModal
 
 function renderGantiPassword(main, showToast) {
   main.innerHTML = `
@@ -1029,16 +1670,88 @@ function renderGantiPassword(main, showToast) {
 function jenisLabel(jenis) {
   return jenis === 'bimbel' ? 'Bimbel Kelompok' : jenis === 'privat' ? 'Privat' : jenis || '-'
 }
+
+function khBadgeStyle(s) {
+  if (s === 'hadir') {
+    return 'background:#064e3b;color:#a7f3d0;border:1.5px solid #10b981;font-weight:800;'
+  } else if (s === 'izin') {
+    return 'background:#78350f;color:#fde68a;border:1.5px solid #f59e0b;font-weight:800;'
+  } else if (s === 'sakit') {
+    return 'background:#1e3a8a;color:#bfdbfe;border:1.5px solid #3b82f6;font-weight:800;'
+  } else {
+    return 'background:#7f1d1d;color:#fecaca;border:1.5px solid #ef4444;font-weight:800;'
+  }
+}
+
+function kelancaranBadge(s) {
+  if (s === 'lancar') {
+    return '<span style="display:inline-flex;align-items:center;gap:5px;background:#064e3b;color:#a7f3d0;border:1px solid #10b981;padding:3px 10px;border-radius:14px;font-size:11.5px;font-weight:800;"><i class="fa-solid fa-circle-check"></i> Lancar</span>'
+  } else if (s === 'cukup') {
+    return '<span style="display:inline-flex;align-items:center;gap:5px;background:#78350f;color:#fde68a;border:1px solid #f59e0b;padding:3px 10px;border-radius:14px;font-size:11.5px;font-weight:800;"><i class="fa-solid fa-circle-question"></i> Cukup</span>'
+  } else {
+    return '<span style="display:inline-flex;align-items:center;gap:5px;background:#7f1d1d;color:#fecaca;border:1px solid #ef4444;padding:3px 10px;border-radius:14px;font-size:11.5px;font-weight:800;"><i class="fa-solid fa-rotate-left"></i> Perlu Diulang</span>'
+  }
+}
+
 function kelancaran(s) {
   return s === 'lancar' ? '<span class="ms" style="font-size:15px;color:#10b981;vertical-align:middle;">check_circle</span> Lancar' : s === 'cukup' ? '<span class="ms" style="font-size:15px;color:#F0AF43;vertical-align:middle;">help</span> Cukup' : '<span class="ms" style="font-size:15px;color:#ef4444;vertical-align:middle;">replay</span> Perlu Diulang'
 }
+
+function khBg(s) {
+  return s === 'hadir' ? 'rgba(16,185,129,0.15)' : s === 'izin' ? 'rgba(240,175,67,0.15)' : s === 'sakit' ? 'rgba(96,165,250,0.15)' : 'rgba(239,68,68,0.15)'
+}
+
+function khBorder(s) {
+  return s === 'hadir' ? 'rgba(16,185,129,0.3)' : s === 'izin' ? 'rgba(240,175,67,0.3)' : s === 'sakit' ? 'rgba(96,165,250,0.3)' : 'rgba(239,68,68,0.3)'
+}
+
 function khColor(s) {
-  return s==='hadir'?'#10b981':s==='izin'?'#F0AF43':s==='sakit'?'#60a5fa':'#e05c4b'
+  return s === 'hadir' ? '#10b981' : s === 'izin' ? '#F0AF43' : s === 'sakit' ? '#60a5fa' : '#e05c4b'
 }
+
 function khIcon(s) {
-  return s==='hadir'?'<span class="ms" style="font-size:15px;color:#10b981;">check_circle</span>':s==='izin'?'<span class="ms" style="font-size:15px;color:#F0AF43;">description</span>':s==='sakit'?'<span class="ms" style="font-size:15px;color:#60a5fa;">sick</span>':'<span class="ms" style="font-size:15px;color:#ef4444;">cancel</span>'
+  return s === 'hadir' 
+    ? '<i class="fa-solid fa-circle-check" style="color:#a7f3d0;"></i>' 
+    : s === 'izin' 
+    ? '<i class="fa-solid fa-file-lines" style="color:#fde68a;"></i>' 
+    : s === 'sakit' 
+    ? '<i class="fa-solid fa-head-side-cough" style="color:#bfdbfe;"></i>' 
+    : '<i class="fa-solid fa-circle-xmark" style="color:#fecaca;"></i>'
 }
+
 function formatDate(d) {
   if (!d) return '-'
-  return new Date(d).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'})
+  return new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function formatTanggalLaporan(dateStr) {
+  if (!dateStr) return '-'
+  try {
+    const raw = String(dateStr).split('T')[0]
+    const parts = raw.split('-')
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10)
+      const monthIdx = parseInt(parts[1], 10) - 1
+      const day = parseInt(parts[2], 10)
+      const d = new Date(year, monthIdx, day)
+      const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
+      const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+      const dayName = days[d.getDay()]
+      const monthName = months[monthIdx]
+      return `${dayName}, ${day} ${monthName} ${year}`
+    }
+    return dateStr
+  } catch (e) {
+    return dateStr
+  }
+}
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return ''
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
 }

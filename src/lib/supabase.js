@@ -463,6 +463,41 @@ export const mentorService = {
     return this.bulkSimpanAbsensi([record])
   },
 
+  async updateKehadiran(id, updates) {
+    if (isConfigured) {
+      const { data, error } = await supabase
+        .from('kehadiran')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) throw new Error('Gagal update kehadiran: ' + error.message)
+      return data
+    }
+    const all = getLocalStore('kehadiran', DEMO_KEHADIRAN)
+    const idx = all.findIndex(k => Number(k.id) === Number(id))
+    if (idx !== -1) {
+      all[idx] = { ...all[idx], ...updates }
+      setLocalStore('kehadiran', all)
+      return all[idx]
+    }
+    return updates
+  },
+
+  async deleteKehadiran(id) {
+    if (isConfigured) {
+      const { error } = await supabase
+        .from('kehadiran')
+        .delete()
+        .eq('id', id)
+      if (error) throw new Error('Gagal hapus kehadiran: ' + error.message)
+      return true
+    }
+    const all = getLocalStore('kehadiran', DEMO_KEHADIRAN).filter(k => Number(k.id) !== Number(id))
+    setLocalStore('kehadiran', all)
+    return true
+  },
+
   async getRiwayatKehadiran(pesertaId, limit = 30) {
     if (isConfigured) {
       try {
@@ -491,6 +526,41 @@ export const mentorService = {
     return data
   },
 
+  async updateKemajuan(id, updates) {
+    if (isConfigured) {
+      const { data, error } = await supabase
+        .from('kemajuan')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) throw new Error('Gagal update kemajuan: ' + error.message)
+      return data
+    }
+    const all = getLocalStore('kemajuan', DEMO_KEMAJUAN)
+    const idx = all.findIndex(k => Number(k.id) === Number(id))
+    if (idx !== -1) {
+      all[idx] = { ...all[idx], ...updates }
+      setLocalStore('kemajuan', all)
+      return all[idx]
+    }
+    return updates
+  },
+
+  async deleteKemajuan(id) {
+    if (isConfigured) {
+      const { error } = await supabase
+        .from('kemajuan')
+        .delete()
+        .eq('id', id)
+      if (error) throw new Error('Gagal hapus kemajuan: ' + error.message)
+      return true
+    }
+    const all = getLocalStore('kemajuan', DEMO_KEMAJUAN).filter(k => Number(k.id) !== Number(id))
+    setLocalStore('kemajuan', all)
+    return true
+  },
+
   async getPenilaian(pesertaId, limit = 20) {
     if (isConfigured) {
       try {
@@ -508,6 +578,41 @@ export const mentorService = {
     return data
   },
 
+  async updatePenilaian(id, updates) {
+    if (isConfigured) {
+      const { data, error } = await supabase
+        .from('penilaian')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) throw new Error('Gagal update penilaian: ' + error.message)
+      return data
+    }
+    const all = getLocalStore('penilaian', DEMO_PENILAIAN)
+    const idx = all.findIndex(p => Number(p.id) === Number(id))
+    if (idx !== -1) {
+      all[idx] = { ...all[idx], ...updates }
+      setLocalStore('penilaian', all)
+      return all[idx]
+    }
+    return updates
+  },
+
+  async deletePenilaian(id) {
+    if (isConfigured) {
+      const { error } = await supabase
+        .from('penilaian')
+        .delete()
+        .eq('id', id)
+      if (error) throw new Error('Gagal hapus penilaian: ' + error.message)
+      return true
+    }
+    const all = getLocalStore('penilaian', DEMO_PENILAIAN).filter(p => Number(p.id) !== Number(id))
+    setLocalStore('penilaian', all)
+    return true
+  },
+
   async getCatatan(pesertaId) {
     return []
   },
@@ -522,6 +627,26 @@ export const mentorService = {
 
   async addPelajaranTambahan(data_) {
     return { id: Date.now(), ...data_ }
+  },
+
+  async updatePeserta(pesertaId, updates) {
+    const pId = Number(pesertaId)
+    if (isConfigured) {
+      try {
+        const { data, error } = await supabase.from('peserta_didik').update(updates).eq('id', pId).select().single()
+        if (!error && data) return data
+      } catch(e) {
+        console.error('mentorService.updatePeserta error:', e)
+      }
+    }
+    const all = getLocalStore('peserta', DEMO_PESERTA)
+    const idx = all.findIndex(p => Number(p.id) === pId)
+    if (idx !== -1) {
+      all[idx] = { ...all[idx], ...updates }
+      setLocalStore('peserta', all)
+      return all[idx]
+    }
+    return { id: pId, ...updates }
   },
 
   async updatePassword(newPassword) {
