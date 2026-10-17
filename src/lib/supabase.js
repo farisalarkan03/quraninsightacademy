@@ -8,7 +8,7 @@ import { createClient } from '@supabase/supabase-js'
 // Konfigurasi Supabase — hardcoded untuk memastikan berjalan di semua environment
 const SUPABASE_URL         = import.meta.env.VITE_SUPABASE_URL  || 'https://wawamhpdthlttfttwjyc.supabase.co'
 const SUPABASE_ANON        = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indhd2FtaHBkdGhsdHRmdHR3anljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk2MjE4MzYsImV4cCI6MjEwNTE5NzgzNn0.zx35_sMK7z4CSw6b9OXzkFwpp3AsnVO1hOjQa42lAtg'
-const SUPABASE_SERVICE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || ''
+const SUPABASE_SERVICE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indhd2FtaHBkdGhsdHRmdHR3anljIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4OTYyMTgzNiwiZXhwIjoyMTA1MTk3ODM2fQ.Y0YJb_boBNxiefIhyrD8Nss5EtaGW5o8KLCPnRjb16s'
 
 export const isConfigured = true
 
