@@ -1161,67 +1161,23 @@ window.shareToWhatsApp = (pesertaId) => {
 
   closeMentorModal()
 
-  const kehadiranList = hist?.pesertaId === pesertaId ? hist.kehadiranList : []
-  const kemajuanByDate = hist?.pesertaId === pesertaId ? hist.kemajuanByDate : {}
-
-  const totalHadir = kehadiranList.filter(r => r.status_hadir === 'hadir').length
-  const totalIzin = kehadiranList.filter(r => r.status_hadir === 'izin').length
-  const totalSakit = kehadiranList.filter(r => r.status_hadir === 'sakit').length
-  const totalAlpa = kehadiranList.filter(r => !['hadir','izin','sakit'].includes(r.status_hadir)).length
-  const totalSesi = kehadiranList.length
-  const pctH = totalSesi > 0 ? Math.round((totalHadir / totalSesi) * 100) : 0
-  const now = new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' })
-
   // Link khusus laporan peserta didik (langsung mengarah ke data santri bersangkutan)
   const laporanUrl = `${window.location.origin}/wali?id=${pesertaId}`
 
-  // Hafalan terakhir
-  const kmList = hist?.pesertaId === pesertaId ? hist.kemajuanList : []
-  const lastKm = kmList && kmList.length > 0 ? kmList[0] : null
-  const lastHafalan = lastKm
-    ? `${lastKm.kitab_surat}${lastKm.halaman_ayat ? ' — ' + lastKm.halaman_ayat : ''} (${lastKm.status_kelancaran || 'cukup'})`
-    : 'Belum ada catatan'
-
-  // Build last 3 session summaries
-  const recentSesi = kehadiranList.slice(0, 3).map((rep, i) => {
-    const km = kemajuanByDate[rep.tanggal]
-    const statusIcon = rep.status_hadir==='hadir'?'✅':rep.status_hadir==='izin'?'📋':rep.status_hadir==='sakit'?'🤒':'❌'
-    let line = `${i+1}. ${formatTanggalLaporan(rep.tanggal)} — ${statusIcon} ${(rep.status_hadir||'hadir').toUpperCase()}`
-    if (rep.materi_pembahasan) line += `\n   📚 Materi: ${rep.materi_pembahasan}`
-    if (km) line += `\n   📖 Hafalan: ${km.kitab_surat}${km.halaman_ayat?' — '+km.halaman_ayat:''}`
-    if (rep.catatan_sesi || rep.perkembangan_materi) line += `\n   💬 ${rep.catatan_sesi || rep.perkembangan_materi}`
-    return line
-  }).join('\n\n')
-
   const msg = `Assalamu'alaikum Wr. Wb.
 
-Kepada Yth. Bapak/Ibu *${p.nama_wali || 'Orang Tua / Wali'}*
+Kepada Yth. Bapak/Ibu *${p.nama_wali || 'Orang Tua / Wali'}*,
 
-Berikut kami sampaikan laporan perkembangan belajar ananda *${p.nama_lengkap}* di Quran Insight Academy:
+Berikut kami sampaikan bahwa laporan perkembangan belajar ananda *${p.nama_lengkap}* di Quran Insight Academy dapat diakses melalui tautan resmi di bawah ini:
 
-👤 *Nama Santri:* ${p.nama_lengkap}
-🏫 *Kelas / Program:* ${p.kelas?.nama_kelas || jenisLabel(p.jenis)}
-📅 *Per Tanggal:* ${now}
-
-📊 *Rekap Kehadiran (Total ${totalSesi} Sesi):*
-✅ Hadir: ${totalHadir} sesi (${pctH}%)
-📋 Izin: ${totalIzin} sesi
-🤒 Sakit: ${totalSakit} sesi
-❌ Alpa: ${totalAlpa} sesi
-
-📖 *Hafalan Terakhir:*
-${lastHafalan}
-
-📝 *Laporan Sesi Terbaru:*
-${recentSesi || 'Belum ada laporan sesi.'}
-
-📄 *Laporan Lengkap & Download PDF:*
-Untuk melihat rekapan lengkap grafik nilai, materi setiap sesi, catatan ustadz/ustadzah, serta mengunduh/mencetak dokumen PDF resmi rapor ananda, silakan klik tautan resmi di bawah ini:
 👉 ${laporanUrl}
 
-Alhamdulillah, kami terus mendampingi perkembangan ananda. Jazakumullah Khairan Katsiran atas amanah dan kerjasamanya.
+Melalui tautan tersebut, Bapak/Ibu dapat melihat catatan kehadiran, capaian materi & hafalan, evaluasi mentor, serta mengunduh dokumen PDF rapor resmi ananda.
 
-_Pengajar Quran Insight Academy_`
+Jazakumullah Khairan Katsiran atas perhatian dan kerjasamanya.
+
+Wassalamu'alaikum Wr. Wb.
+_Quran Insight Academy_`
 
   const waNum = formatWaNumber(typedWa)
   const waUrl = `https://wa.me/${waNum}?text=${encodeURIComponent(msg)}`
