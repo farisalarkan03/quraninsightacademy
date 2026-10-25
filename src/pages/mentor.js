@@ -1491,6 +1491,9 @@ window.openEditLaporanModal = (kehadiranId, pesertaId) => {
     const kelancaranN = parseInt(document.getElementById('modal-edit-kelancaran-nilai').value) || null
     const catatan     = document.getElementById('modal-edit-catatan').value.trim()
 
+    const tanggalBerubah = tglSesi !== rep.tanggal
+    const tanggalLama = rep.tanggal
+
     btn.disabled = true
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan…'
 
@@ -1504,16 +1507,38 @@ window.openEditLaporanModal = (kehadiranId, pesertaId) => {
         catatan_sesi: catatan || null,
       })
 
-      // 2. Update/Add Kemajuan
-      if (km && km.id) {
-        await mentorService.updateKemajuan(km.id, {
-          tanggal: tglSesi,
-          kitab_surat: kitab || km.kitab_surat,
-          halaman_ayat: halaman || null,
-          status_kelancaran: kelancaranV,
-          catatan_hafalan: catatan || null,
-        })
+      // 2. Handle Kemajuan — jika tanggal berubah, hapus data lama lalu insert baru
+      if (tanggalBerubah && km && km.id) {
+        // Hapus kemajuan di tanggal lama
+        await mentorService.deleteKemajuan(km.id)
+        // Insert baru di tanggal baru (jika masih ada data kitab)
+        if (kitab) {
+          await mentorService.addKemajuan({
+            id_peserta: pesertaId,
+            id_mentor: state.profile.id,
+            tanggal: tglSesi,
+            kitab_surat: kitab,
+            halaman_ayat: halaman || null,
+            status_kelancaran: kelancaranV,
+            catatan_hafalan: catatan || null,
+          })
+        }
+      } else if (km && km.id) {
+        // Tanggal sama — update in place
+        if (kitab) {
+          await mentorService.updateKemajuan(km.id, {
+            tanggal: tglSesi,
+            kitab_surat: kitab,
+            halaman_ayat: halaman || null,
+            status_kelancaran: kelancaranV,
+            catatan_hafalan: catatan || null,
+          })
+        } else {
+          // Kitab dikosongkan — hapus kemajuan yang sudah ada
+          await mentorService.deleteKemajuan(km.id)
+        }
       } else if (kitab) {
+        // Belum ada kemajuan — insert baru
         await mentorService.addKemajuan({
           id_peserta: pesertaId,
           id_mentor: state.profile.id,
@@ -1525,32 +1550,51 @@ window.openEditLaporanModal = (kehadiranId, pesertaId) => {
         })
       }
 
-      // 3. Update/Add Penilaian
-      if (nilaiStr) {
-        const nilai = parseFloat(nilaiStr)
+      // 3. Handle Penilaian — jika tanggal berubah, hapus data lama lalu insert baru
+      const nilai = nilaiStr ? parseFloat(nilaiStr) : NaN
+      if (tanggalBerubah && pn && pn.id) {
+        // Hapus penilaian di tanggal lama
+        await mentorService.deletePenilaian(pn.id)
+        // Insert baru di tanggal baru (jika ada nilai)
         if (!isNaN(nilai)) {
-          if (pn && pn.id) {
-            await mentorService.updatePenilaian(pn.id, {
-              tanggal: tglSesi,
-              nilai_angka: nilai,
-              nilai_adab: adab,
-              nilai_tajwid: tajwid,
-              nilai_kelancaran: kelancaranN,
-              catatan: catatan || null,
-            })
-          } else {
-            await mentorService.addPenilaian({
-              id_peserta: pesertaId,
-              id_mentor: state.profile.id,
-              tanggal: tglSesi,
-              nilai_angka: nilai,
-              nilai_adab: adab,
-              nilai_tajwid: tajwid,
-              nilai_kelancaran: kelancaranN,
-              catatan: catatan || null,
-            })
-          }
+          await mentorService.addPenilaian({
+            id_peserta: pesertaId,
+            id_mentor: state.profile.id,
+            tanggal: tglSesi,
+            nilai_angka: nilai,
+            nilai_adab: adab,
+            nilai_tajwid: tajwid,
+            nilai_kelancaran: kelancaranN,
+            catatan: catatan || null,
+          })
         }
+      } else if (pn && pn.id) {
+        // Tanggal sama — update in place
+        if (!isNaN(nilai)) {
+          await mentorService.updatePenilaian(pn.id, {
+            tanggal: tglSesi,
+            nilai_angka: nilai,
+            nilai_adab: adab,
+            nilai_tajwid: tajwid,
+            nilai_kelancaran: kelancaranN,
+            catatan: catatan || null,
+          })
+        } else {
+          // Nilai dikosongkan — hapus penilaian yang sudah ada
+          await mentorService.deletePenilaian(pn.id)
+        }
+      } else if (!isNaN(nilai)) {
+        // Belum ada penilaian — insert baru
+        await mentorService.addPenilaian({
+          id_peserta: pesertaId,
+          id_mentor: state.profile.id,
+          tanggal: tglSesi,
+          nilai_angka: nilai,
+          nilai_adab: adab,
+          nilai_tajwid: tajwid,
+          nilai_kelancaran: kelancaranN,
+          catatan: catatan || null,
+        })
       }
 
       closeMentorModal()
@@ -1566,10 +1610,21 @@ window.openEditLaporanModal = (kehadiranId, pesertaId) => {
 
 // ── HAPUS LAPORAN ──────────────────────────────────────────
 window.deleteLaporan = async (kehadiranId, pesertaId) => {
-  if (!confirm('Apakah Anda yakin ingin menghapus data laporan kehadiran sesi ini?')) return
+  if (!confirm('Apakah Anda yakin ingin menghapus data laporan kehadiran sesi ini?\n\nData kemajuan hafalan dan penilaian pada tanggal yang sama juga akan ikut terhapus.')) return
   try {
+    // Cari tanggal kehadiran dari history cache untuk menghapus data terkait
+    const history = window._currentPesertaHistory
+    const rep = history?.kehadiranList?.find(k => Number(k.id) === Number(kehadiranId))
+    const tanggalKehadiran = rep?.tanggal
+
+    // Hapus kemajuan & penilaian pada tanggal yang sama (agar tidak jadi data hantu)
+    if (tanggalKehadiran) {
+      await mentorService.deleteRelatedByKehadiran(pesertaId, tanggalKehadiran)
+    }
+
+    // Hapus kehadiran utama
     await mentorService.deleteKehadiran(kehadiranId)
-    showToast('Laporan berhasil dihapus.', 'info')
+    showToast('Laporan beserta data kemajuan & penilaian terkait berhasil dihapus.', 'info')
     loadPesertaHistory(pesertaId, showToast)
   } catch (err) {
     showToast('Gagal menghapus laporan: ' + err.message, 'error')

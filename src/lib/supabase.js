@@ -662,6 +662,55 @@ export const mentorService = {
     const kehadiran = await this.getRiwayatKehadiran(pesertaId, 60)
     return { kemajuan, penilaian, kehadiran }
   },
+
+  // Hapus semua kemajuan untuk peserta pada tanggal tertentu
+  async deleteKemajuanByPesertaTanggal(pesertaId, tanggal) {
+    if (isConfigured) {
+      const { error } = await supabase
+        .from('kemajuan')
+        .delete()
+        .eq('id_peserta', Number(pesertaId))
+        .eq('tanggal', tanggal)
+      if (error) throw new Error('Gagal hapus kemajuan terkait: ' + error.message)
+      return true
+    }
+    const all = getLocalStore('kemajuan', DEMO_KEMAJUAN)
+      .filter(k => !(Number(k.id_peserta) === Number(pesertaId) && k.tanggal === tanggal))
+    setLocalStore('kemajuan', all)
+    return true
+  },
+
+  // Hapus semua penilaian untuk peserta pada tanggal tertentu
+  async deletePenilaianByPesertaTanggal(pesertaId, tanggal) {
+    if (isConfigured) {
+      const { error } = await supabase
+        .from('penilaian')
+        .delete()
+        .eq('id_peserta', Number(pesertaId))
+        .eq('tanggal', tanggal)
+      if (error) throw new Error('Gagal hapus penilaian terkait: ' + error.message)
+      return true
+    }
+    const all = getLocalStore('penilaian', DEMO_PENILAIAN)
+      .filter(p => !(Number(p.id_peserta) === Number(pesertaId) && p.tanggal === tanggal))
+    setLocalStore('penilaian', all)
+    return true
+  },
+
+  // Hapus semua data terkait kehadiran (kemajuan + penilaian) pada tanggal yang sama
+  async deleteRelatedByKehadiran(pesertaId, tanggal) {
+    const results = await Promise.allSettled([
+      this.deleteKemajuanByPesertaTanggal(pesertaId, tanggal),
+      this.deletePenilaianByPesertaTanggal(pesertaId, tanggal),
+    ])
+    // Log errors but don't throw — partial cleanup is better than none
+    results.forEach((r, i) => {
+      if (r.status === 'rejected') {
+        console.warn(`deleteRelatedByKehadiran: partial failure [${i}]:`, r.reason)
+      }
+    })
+    return true
+  },
 }
 
 // ────────────────────────────────────────────────────────────
