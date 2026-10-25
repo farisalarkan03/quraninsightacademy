@@ -228,10 +228,35 @@ grant select on public.profiles to anon;
 grant select on public.kelas to anon;
 
 -- ────────────────────────────────────────────────────────────
+-- 6. PEMBERSIHAN DATA DUPLIKAT & UNIQUE INDEX
+--    Menghapus rekaman kemajuan & penilaian yang tidak sengaja
+--    terpencet >1 kali (hanya mempertahankan ID terbaru/terakhir).
+-- ────────────────────────────────────────────────────────────
+delete from public.kemajuan a
+using public.kemajuan b
+where a.id_peserta = b.id_peserta
+  and a.tanggal = b.tanggal
+  and a.id < b.id;
+
+delete from public.penilaian a
+using public.penilaian b
+where a.id_peserta = b.id_peserta
+  and a.tanggal = b.tanggal
+  and a.id < b.id;
+
+-- Cegah duplikasi di masa depan dengan unique index
+create unique index if not exists uq_kemajuan_peserta_tanggal
+  on public.kemajuan (id_peserta, tanggal);
+
+create unique index if not exists uq_penilaian_peserta_tanggal
+  on public.penilaian (id_peserta, tanggal);
+
+-- ────────────────────────────────────────────────────────────
 -- SELESAI!
 -- Setelah menjalankan skrip ini:
 -- ✅ Hapus laporan di mentor → kemajuan & penilaian ikut terhapus
 -- ✅ Edit tanggal laporan → data lama terhapus, data baru tersimpan
--- ✅ Portal wali selalu menampilkan data terbaru tanpa duplikasi
--- ✅ Data antara portal mentor dan portal wali sinkron
+-- ✅ Data duplikat kemajuan & penilaian yang tidak sengaja terpencet >1x dibersihkan
+-- ✅ Unique index mencegah entri ganda di masa depan
+-- ✅ Print PDF & Portal wali menampilkan 1 data fix per tanggal sesi
 -- ────────────────────────────────────────────────────────────

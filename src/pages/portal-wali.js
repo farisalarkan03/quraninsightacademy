@@ -638,12 +638,38 @@ function buildResultCard(p) {
 }
 
 function buildDetailHTML(data) {
-  const { peserta, mentor, kelas, kemajuan, penilaian, kehadiran_summary, riwayat_kehadiran, catatan_mentor } = data
-  const kh = kehadiran_summary || {}
-  const totalKh = (kh.hadir||0)+(kh.izin||0)+(kh.sakit||0)+(kh.alpa||0)
-  const pctH = totalKh > 0 ? Math.round((kh.hadir/totalKh)*100) : 0
-  const avgNilai = (penilaian||[]).length > 0
-    ? ((penilaian.reduce((s,n)=>s+(n.nilai_angka||0),0)/penilaian.length).toFixed(1))
+  const { peserta, mentor, kelas, catatan_mentor } = data || {}
+
+  // Deduplikasi data kemajuan, penilaian, dan kehadiran per tanggal agar aman dari dobel submit
+  const dedupByDate = (list) => {
+    if (!Array.isArray(list)) return []
+    const m = new Map()
+    list.forEach(item => {
+      if (!item || !item.tanggal) return
+      const k = String(item.tanggal).trim()
+      const ex = m.get(k)
+      if (!ex || (Number(item.id) || 0) > (Number(ex.id) || 0)) {
+        m.set(k, item)
+      }
+    })
+    return Array.from(m.values()).sort((a, b) => String(b.tanggal || '').localeCompare(String(a.tanggal || '')))
+  }
+
+  const kemajuan = dedupByDate(data?.kemajuan)
+  const penilaian = dedupByDate(data?.penilaian)
+  const riwayat_kehadiran = dedupByDate(data?.riwayat_kehadiran)
+
+  const kh = data?.kehadiran_summary || {}
+  const hadirCount = riwayat_kehadiran.length > 0 ? riwayat_kehadiran.filter(h => h.status_hadir === 'hadir').length : (kh.hadir || 0)
+  const izinCount  = riwayat_kehadiran.length > 0 ? riwayat_kehadiran.filter(h => h.status_hadir === 'izin').length : (kh.izin || 0)
+  const sakitCount = riwayat_kehadiran.length > 0 ? riwayat_kehadiran.filter(h => h.status_hadir === 'sakit').length : (kh.sakit || 0)
+  const alpaCount  = riwayat_kehadiran.length > 0 ? riwayat_kehadiran.filter(h => h.status_hadir === 'alpa' || (!['hadir','izin','sakit'].includes(h.status_hadir) && h.status_hadir)).length : (kh.alpa || 0)
+  const totalKh = hadirCount + izinCount + sakitCount + alpaCount
+  const pctH = totalKh > 0 ? Math.round((hadirCount / totalKh) * 100) : 0
+
+  const validNilai = penilaian.filter(n => n.nilai_angka !== null && n.nilai_angka !== undefined && !isNaN(parseFloat(n.nilai_angka)))
+  const avgNilai = validNilai.length > 0
+    ? (validNilai.reduce((s, n) => s + parseFloat(n.nilai_angka), 0) / validNilai.length).toFixed(1)
     : '-'
   const kelasLabel = kelas?.nama_kelas || (peserta?.jenis === 'privat' ? 'Program Privat' : '-')
 

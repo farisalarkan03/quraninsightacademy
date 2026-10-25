@@ -510,14 +510,25 @@ export const mentorService = {
   },
 
   async getKemajuan(pesertaId, limit = 20) {
+    let rows = []
     if (isConfigured) {
       try {
-        const { data, error } = await supabase.from('kemajuan').select('*').eq('id_peserta', pesertaId).order('tanggal', { ascending: false }).limit(limit)
-        if (!error && data) return data
+        const { data, error } = await supabase.from('kemajuan').select('*').eq('id_peserta', pesertaId).order('tanggal', { ascending: false }).limit(limit * 2)
+        if (!error && data) rows = data
       } catch(e) {}
     }
-    const all = getLocalStore('kemajuan', DEMO_KEMAJUAN)
-    return all.filter(k => k.id_peserta === Number(pesertaId)).slice(0, limit)
+    if (!rows.length) {
+      rows = getLocalStore('kemajuan', DEMO_KEMAJUAN).filter(k => k.id_peserta === Number(pesertaId))
+    }
+    const map = new Map()
+    rows.forEach(r => {
+      if (!r || !r.tanggal) return
+      const ex = map.get(r.tanggal)
+      if (!ex || (Number(r.id) || 0) > (Number(ex.id) || 0)) {
+        map.set(r.tanggal, r)
+      }
+    })
+    return Array.from(map.values()).sort((a, b) => String(b.tanggal || '').localeCompare(String(a.tanggal || ''))).slice(0, limit)
   },
 
   async addKemajuan(kemajuanData) {
@@ -562,14 +573,25 @@ export const mentorService = {
   },
 
   async getPenilaian(pesertaId, limit = 20) {
+    let rows = []
     if (isConfigured) {
       try {
-        const { data, error } = await supabase.from('penilaian').select('*').eq('id_peserta', pesertaId).order('tanggal', { ascending: false }).limit(limit)
-        if (!error && data) return data
+        const { data, error } = await supabase.from('penilaian').select('*').eq('id_peserta', pesertaId).order('tanggal', { ascending: false }).limit(limit * 2)
+        if (!error && data) rows = data
       } catch(e) {}
     }
-    const all = getLocalStore('penilaian', DEMO_PENILAIAN)
-    return all.filter(p => p.id_peserta === Number(pesertaId)).slice(0, limit)
+    if (!rows.length) {
+      rows = getLocalStore('penilaian', DEMO_PENILAIAN).filter(p => p.id_peserta === Number(pesertaId))
+    }
+    const map = new Map()
+    rows.forEach(r => {
+      if (!r || !r.tanggal) return
+      const ex = map.get(r.tanggal)
+      if (!ex || (Number(r.id) || 0) > (Number(ex.id) || 0)) {
+        map.set(r.tanggal, r)
+      }
+    })
+    return Array.from(map.values()).sort((a, b) => String(b.tanggal || '').localeCompare(String(a.tanggal || ''))).slice(0, limit)
   },
 
   async addPenilaian(penilaianData) {
@@ -753,10 +775,64 @@ export const waliService = {
   // Detail lengkap peserta (untuk tampilan wali)
   async getPesertaDetail(pesertaId) {
     const pId = Number(pesertaId)
+    const dedup = (list) => {
+      if (!Array.isArray(list)) return []
+      const m = new Map()
+      list.forEach(item => {
+        if (!item || !item.tanggal) return
+        const k = String(item.tanggal).trim()
+        const ex = m.get(k)
+        if (!ex || (Number(item.id) || 0) > (Number(ex.id) || 0)) {
+          m.set(k, item)
+        }
+      })
+      return Array.from(m.values()).sort((a, b) => String(b.tanggal || '').localeCompare(String(a.tanggal || '')))
+    }
+
     if (isConfigured) {
       try {
         const { data, error } = await supabase.rpc('get_peserta_detail_wali', { p_peserta_id: pId })
-        if (!error && data && data.peserta) return data
+        if (!error && data && data.peserta) {
+          data.kemajuan = dedup(data.kemajuan)
+          data.penilaian = dedup(data.penilaian)
+          data.riwayat_kehadiran = dedup(data.riwayat_kehadiran)
+          return data
+        }
+      } catch(e) {}
+
+      // Fallback query langsung jika RPC belum dieksekusi di database Supabase
+      try {
+        const [pd, kh, km, pn] = await Promise.all([
+          supabase.from('peserta_didik').select('*, mentor:profiles(nama), kelas(nama_kelas)').eq('id', pId).single(),
+          supabase.from('kehadiran').select('*').eq('id_peserta', pId).order('tanggal', { ascending: false }),
+          supabase.from('kemajuan').select('*').eq('id_peserta', pId).order('tanggal', { ascending: false }),
+          supabase.from('penilaian').select('*').eq('id_peserta', pId).order('tanggal', { ascending: false }),
+        ])
+        if (pd.data) {
+          const khList = dedup(kh.data || [])
+          const kmList = dedup(km.data || [])
+          const pnList = dedup(pn.data || [])
+          const hadirCount = khList.filter(h => h.status_hadir === 'hadir').length
+          const izinCount  = khList.filter(h => h.status_hadir === 'izin').length
+          const sakitCount = khList.filter(h => h.status_hadir === 'sakit').length
+          const alpaCount  = khList.filter(h => h.status_hadir === 'alpa').length
+          return {
+            peserta: pd.data,
+            mentor: pd.data.mentor || { nama: 'Belum ditentukan' },
+            kelas: pd.data.kelas || { nama_kelas: pd.data.jenis === 'privat' ? 'Program Privat' : '-' },
+            kemajuan: kmList,
+            penilaian: pnList,
+            kehadiran_summary: {
+              hadir: hadirCount,
+              izin: izinCount,
+              sakit: sakitCount,
+              alpa: alpaCount,
+              total: khList.length
+            },
+            riwayat_kehadiran: khList,
+            catatan_mentor: []
+          }
+        }
       } catch(e) {}
     }
 
@@ -769,9 +845,9 @@ export const waliService = {
     const mentorList = getLocalStore('profiles', DEMO_PROFILES)
     const k = kelasList.find(c => c.id === p?.id_kelas)
     const m = mentorList.find(x => x.id === p?.id_mentor)
-    const kemajuan = getLocalStore('kemajuan', DEMO_KEMAJUAN).filter(x => x.id_peserta === pId)
-    const kehadiran = getLocalStore('kehadiran', DEMO_KEHADIRAN).filter(x => x.id_peserta === pId)
-    const penilaian = getLocalStore('penilaian', DEMO_PENILAIAN).filter(x => x.id_peserta === pId)
+    const kemajuan = dedup(getLocalStore('kemajuan', DEMO_KEMAJUAN).filter(x => x.id_peserta === pId))
+    const kehadiran = dedup(getLocalStore('kehadiran', DEMO_KEHADIRAN).filter(x => x.id_peserta === pId))
+    const penilaian = dedup(getLocalStore('penilaian', DEMO_PENILAIAN).filter(x => x.id_peserta === pId))
 
     const hadirCount = kehadiran.filter(h => h.status_hadir === 'hadir').length
     const izinCount  = kehadiran.filter(h => h.status_hadir === 'izin').length

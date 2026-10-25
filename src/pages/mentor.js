@@ -1108,8 +1108,13 @@ window.generatePesertaReport = (pesertaId) => {
   closeMentorModal()
 
   const kehadiranList = (hist?.pesertaId === pesertaId && hist.kehadiranList) ? hist.kehadiranList : []
-  const kemajuanList = (hist?.pesertaId === pesertaId && hist.kemajuanList) ? hist.kemajuanList : []
-  const penilaianList = (hist?.pesertaId === pesertaId && hist.penilaianList) ? hist.penilaianList : []
+  // Ambil data kemajuan & penilaian yang sudah ter-filter 1 entri per tanggal (data fix dari mentor)
+  const kemajuanList = (hist?.pesertaId === pesertaId && hist.kemajuanByDate)
+    ? Object.values(hist.kemajuanByDate)
+    : ((hist?.pesertaId === pesertaId && hist.kemajuanList) ? hist.kemajuanList : [])
+  const penilaianList = (hist?.pesertaId === pesertaId && hist.penilaianByDate)
+    ? Object.values(hist.penilaianByDate)
+    : ((hist?.pesertaId === pesertaId && hist.penilaianList) ? hist.penilaianList : [])
 
   const hadirCount = kehadiranList.filter(r => r.status_hadir === 'hadir').length
   const izinCount  = kehadiranList.filter(r => r.status_hadir === 'izin').length
@@ -1319,6 +1324,10 @@ window.openTambahLaporanModal = (pesertaId) => {
         catatan_sesi: catatan || null,
       })
 
+      // Bersihkan data kemajuan & penilaian lama/duplikat di tanggal ini agar tidak ganda
+      await mentorService.deleteKemajuanByPesertaTanggal(pesertaId, tglSesi)
+      await mentorService.deletePenilaianByPesertaTanggal(pesertaId, tglSesi)
+
       // 2. Simpan Kemajuan jika diisi
       if (kitab) {
         await mentorService.addKemajuan({
@@ -1507,38 +1516,13 @@ window.openEditLaporanModal = (kehadiranId, pesertaId) => {
         catatan_sesi: catatan || null,
       })
 
-      // 2. Handle Kemajuan — jika tanggal berubah, hapus data lama lalu insert baru
-      if (tanggalBerubah && km && km.id) {
-        // Hapus kemajuan di tanggal lama
-        await mentorService.deleteKemajuan(km.id)
-        // Insert baru di tanggal baru (jika masih ada data kitab)
-        if (kitab) {
-          await mentorService.addKemajuan({
-            id_peserta: pesertaId,
-            id_mentor: state.profile.id,
-            tanggal: tglSesi,
-            kitab_surat: kitab,
-            halaman_ayat: halaman || null,
-            status_kelancaran: kelancaranV,
-            catatan_hafalan: catatan || null,
-          })
-        }
-      } else if (km && km.id) {
-        // Tanggal sama — update in place
-        if (kitab) {
-          await mentorService.updateKemajuan(km.id, {
-            tanggal: tglSesi,
-            kitab_surat: kitab,
-            halaman_ayat: halaman || null,
-            status_kelancaran: kelancaranV,
-            catatan_hafalan: catatan || null,
-          })
-        } else {
-          // Kitab dikosongkan — hapus kemajuan yang sudah ada
-          await mentorService.deleteKemajuan(km.id)
-        }
-      } else if (kitab) {
-        // Belum ada kemajuan — insert baru
+      // 2. Handle Kemajuan
+      if (tanggalBerubah) {
+        await mentorService.deleteKemajuanByPesertaTanggal(pesertaId, tanggalLama)
+      }
+      // Hapus data kemajuan lama/duplikat di tglSesi agar hanya ada 1 data fix dari mentor
+      await mentorService.deleteKemajuanByPesertaTanggal(pesertaId, tglSesi)
+      if (kitab) {
         await mentorService.addKemajuan({
           id_peserta: pesertaId,
           id_mentor: state.profile.id,
@@ -1550,41 +1534,14 @@ window.openEditLaporanModal = (kehadiranId, pesertaId) => {
         })
       }
 
-      // 3. Handle Penilaian — jika tanggal berubah, hapus data lama lalu insert baru
+      // 3. Handle Penilaian
+      if (tanggalBerubah) {
+        await mentorService.deletePenilaianByPesertaTanggal(pesertaId, tanggalLama)
+      }
+      // Hapus data penilaian lama/duplikat di tglSesi agar hanya ada 1 data fix dari mentor
+      await mentorService.deletePenilaianByPesertaTanggal(pesertaId, tglSesi)
       const nilai = nilaiStr ? parseFloat(nilaiStr) : NaN
-      if (tanggalBerubah && pn && pn.id) {
-        // Hapus penilaian di tanggal lama
-        await mentorService.deletePenilaian(pn.id)
-        // Insert baru di tanggal baru (jika ada nilai)
-        if (!isNaN(nilai)) {
-          await mentorService.addPenilaian({
-            id_peserta: pesertaId,
-            id_mentor: state.profile.id,
-            tanggal: tglSesi,
-            nilai_angka: nilai,
-            nilai_adab: adab,
-            nilai_tajwid: tajwid,
-            nilai_kelancaran: kelancaranN,
-            catatan: catatan || null,
-          })
-        }
-      } else if (pn && pn.id) {
-        // Tanggal sama — update in place
-        if (!isNaN(nilai)) {
-          await mentorService.updatePenilaian(pn.id, {
-            tanggal: tglSesi,
-            nilai_angka: nilai,
-            nilai_adab: adab,
-            nilai_tajwid: tajwid,
-            nilai_kelancaran: kelancaranN,
-            catatan: catatan || null,
-          })
-        } else {
-          // Nilai dikosongkan — hapus penilaian yang sudah ada
-          await mentorService.deletePenilaian(pn.id)
-        }
-      } else if (!isNaN(nilai)) {
-        // Belum ada penilaian — insert baru
+      if (!isNaN(nilai)) {
         await mentorService.addPenilaian({
           id_peserta: pesertaId,
           id_mentor: state.profile.id,

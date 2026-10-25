@@ -86,27 +86,70 @@ export function exportToJSON(data, filename = 'export') {
   downloadBlob(blob, `${filename}.json`)
 }
 
+// Helper: Deduplikasi entri array berdasarkan tanggal (ambil entri terbaru/terlengkap)
+function deduplicateByDate(items, dateField = 'tanggal') {
+  if (!Array.isArray(items)) return []
+  const map = new Map()
+  items.forEach(item => {
+    if (!item || !item[dateField]) return
+    const key = String(item[dateField]).trim()
+    const existing = map.get(key)
+    if (!existing) {
+      map.set(key, item)
+    } else {
+      // Prioritaskan entri yang punya ID lebih besar (terbaru dibuat / disimpan)
+      const existingId = Number(existing.id) || 0
+      const itemId = Number(item.id) || 0
+      if (itemId > existingId) {
+        map.set(key, item)
+      } else if (itemId === existingId) {
+        const existingScore = (existing.kitab_surat ? 1 : 0) + (existing.nilai_angka !== undefined && existing.nilai_angka !== null ? 1 : 0)
+        const itemScore = (item.kitab_surat ? 1 : 0) + (item.nilai_angka !== undefined && item.nilai_angka !== null ? 1 : 0)
+        if (itemScore >= existingScore) {
+          map.set(key, item)
+        }
+      }
+    }
+  })
+  return Array.from(map.values()).sort((a, b) => String(b[dateField] || '').localeCompare(String(a[dateField] || '')))
+}
+
 // ────────────────────────────────────────────────────────────
 // Generate PDF print preview via browser print
 // ────────────────────────────────────────────────────────────
 export function printRaporPeserta(pesertaData) {
-  const { peserta, mentor, kelas, kemajuan, penilaian, kehadiran_summary, riwayat_kehadiran, catatan_mentor } = pesertaData
-  const kehadiran = kehadiran_summary || {}
-  const nilaiList = (penilaian || []).slice(0, 10)
-  const kemajuanList = (kemajuan || []).slice(0, 10)
-  // Kumpulkan catatan sesi dari riwayat kehadiran (catatan_sesi atau perkembangan_materi)
-  const catatanSesiList = (riwayat_kehadiran || [])
+  const { peserta, mentor, kelas, kemajuan, penilaian, kehadiran_summary, riwayat_kehadiran, catatan_mentor } = pesertaData || {}
+  
+  // Deduplikasi data kemajuan, penilaian & kehadiran per tanggal
+  // Menghindari duplikat jika mentor tidak sengaja menekan tombol simpan lebih dari 1 kali
+  const cleanKemajuan = deduplicateByDate(kemajuan, 'tanggal')
+  const cleanPenilaian = deduplicateByDate(penilaian, 'tanggal')
+  const cleanKehadiran = deduplicateByDate(riwayat_kehadiran, 'tanggal')
+
+  const kemajuanList = cleanKemajuan.slice(0, 30)
+  const nilaiList = cleanPenilaian.slice(0, 30)
+
+  // Kumpulkan catatan sesi dari riwayat kehadiran yang sudah bersih
+  const catatanSesiList = cleanKehadiran
     .filter(h => (h.catatan_sesi || h.perkembangan_materi))
     .map(h => ({
       tanggal: h.tanggal || '',
       status: h.status_hadir || '',
       catatan: h.catatan_sesi || h.perkembangan_materi || ''
     }))
-    .slice(0, 20)
-  const totalPertemuan = (kehadiran.hadir || 0) + (kehadiran.izin || 0) + (kehadiran.sakit || 0) + (kehadiran.alpa || 0)
-  const pctHadir = totalPertemuan > 0 ? Math.round((kehadiran.hadir / totalPertemuan) * 100) : 0
-  const avgNilai = nilaiList.length > 0
-    ? (nilaiList.reduce((s, n) => s + (n.nilai_angka || 0), 0) / nilaiList.length).toFixed(1)
+    .slice(0, 30)
+
+  // Hitung ringkasan kehadiran akurat dari data yang sudah bersih
+  const hadirCount = cleanKehadiran.length > 0 ? cleanKehadiran.filter(h => h.status_hadir === 'hadir').length : (kehadiran_summary?.hadir || 0)
+  const izinCount  = cleanKehadiran.length > 0 ? cleanKehadiran.filter(h => h.status_hadir === 'izin').length : (kehadiran_summary?.izin || 0)
+  const sakitCount = cleanKehadiran.length > 0 ? cleanKehadiran.filter(h => h.status_hadir === 'sakit').length : (kehadiran_summary?.sakit || 0)
+  const alpaCount  = cleanKehadiran.length > 0 ? cleanKehadiran.filter(h => h.status_hadir === 'alpa' || (!['hadir','izin','sakit'].includes(h.status_hadir) && h.status_hadir)).length : (kehadiran_summary?.alpa || 0)
+  const totalPertemuan = hadirCount + izinCount + sakitCount + alpaCount
+  const pctHadir = totalPertemuan > 0 ? Math.round((hadirCount / totalPertemuan) * 100) : (kehadiran_summary?.total ? Math.round(((kehadiran_summary.hadir || 0) / kehadiran_summary.total) * 100) : 0)
+
+  const validNilai = nilaiList.filter(n => n.nilai_angka !== null && n.nilai_angka !== undefined && !isNaN(parseFloat(n.nilai_angka)))
+  const avgNilai = validNilai.length > 0
+    ? (validNilai.reduce((s, n) => s + parseFloat(n.nilai_angka), 0) / validNilai.length).toFixed(1)
     : '-'
 
   const html = `<!DOCTYPE html>
@@ -174,17 +217,25 @@ export function printRaporPeserta(pesertaData) {
 
 <h2 class="section">Rekap Kehadiran</h2>
 <div class="stat-row">
-  <div class="stat-box"><div class="n">${kehadiran.hadir || 0}</div><div class="l">Hadir</div></div>
-  <div class="stat-box"><div class="n">${kehadiran.izin || 0}</div><div class="l">Izin</div></div>
-  <div class="stat-box"><div class="n">${kehadiran.sakit || 0}</div><div class="l">Sakit</div></div>
-  <div class="stat-box"><div class="n">${kehadiran.alpa || 0}</div><div class="l">Alpa</div></div>
+  <div class="stat-box"><div class="n">${hadirCount}</div><div class="l">Hadir</div></div>
+  <div class="stat-box"><div class="n">${izinCount}</div><div class="l">Izin</div></div>
+  <div class="stat-box"><div class="n">${sakitCount}</div><div class="l">Sakit</div></div>
+  <div class="stat-box"><div class="n">${alpaCount}</div><div class="l">Alpa</div></div>
   <div class="stat-box" style="background:#059669;"><div class="n" style="color:#fff;">${pctHadir}%</div><div class="l">Kehadiran</div></div>
 </div>
 
 <h2 class="section">Riwayat Kemajuan Hafalan</h2>
 <table>
   <tr><th>Tanggal</th><th>Kitab / Surah</th><th>Halaman / Ayat</th><th>Status</th></tr>
-  ${kemajuanList.map(k => `<tr><td>${k.tanggal||''}</td><td>${k.kitab_surat||''}</td><td>${k.halaman_ayat||''}</td><td>${k.status_kelancaran||''}</td></tr>`).join('')}
+  ${kemajuanList.length > 0
+    ? kemajuanList.map(k => `<tr>
+        <td>${k.tanggal || ''}</td>
+        <td>${k.kitab_surat || '-'}</td>
+        <td>${k.halaman_ayat || '-'}</td>
+        <td><span style="font-weight:600;text-transform:capitalize;">${k.status_kelancaran || '-'}</span></td>
+      </tr>`).join('')
+    : '<tr><td colspan="4" style="text-align:center;color:#81511D;font-style:italic;padding:12px;">Belum ada catatan kemajuan hafalan</td></tr>'
+  }
 </table>
 
 
