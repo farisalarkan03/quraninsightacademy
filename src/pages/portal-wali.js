@@ -1175,3 +1175,13 @@ function formatDateShort(d) {
   if (!d) return '-'
   return new Date(d).toLocaleDateString('id-ID', { day:'numeric', month:'short' })
 }
+
+function escapeHtml(str) {
+  if (!str) return ''
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
