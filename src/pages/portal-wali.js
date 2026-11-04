@@ -516,6 +516,7 @@ function setupWaliEvents(navigate, showToast, directId = null) {
         showToast('Data peserta didik tidak ditemukan.', 'error')
         return
       }
+      window._currentWaliData = data
       document.getElementById('detail-modal-title').textContent = `Profil — ${data.peserta?.nama_lengkap || ''}`
       document.getElementById('detail-modal-body').innerHTML = buildDetailHTML(data)
       // Render charts
@@ -526,16 +527,133 @@ function setupWaliEvents(navigate, showToast, directId = null) {
     }
   }
 
-  window.printRapor = async function(id, nama) {
-    try {
-      const data = await waliService.getPesertaDetail(id)
-      if (data && data.peserta) {
-        printRaporPeserta(data)
-      } else {
-        showToast('Data peserta didik belum lengkap untuk dicetak.', 'error')
+  window.openPrintOptionsWali = async function(id) {
+    let data = window._currentWaliData
+    if (!data || Number(data.peserta?.id) !== Number(id)) {
+      data = await waliService.getPesertaDetail(id)
+      window._currentWaliData = data
+    }
+    if (!data || !data.peserta) {
+      showToast('Data peserta didik belum lengkap untuk dicetak.', 'error')
+      return
+    }
+
+    const rekapanList = data.rekapan || []
+    if (rekapanList.length === 0) {
+      printRaporPeserta(data)
+      return
+    }
+
+    // Modal pilihan cetak rapor
+    const existing = document.getElementById('wali-print-choice-modal')
+    if (existing) existing.remove()
+
+    const modal = document.createElement('div')
+    modal.className = 'modal-backdrop show'
+    modal.id = 'wali-print-choice-modal'
+    modal.style.zIndex = '99999'
+    modal.innerHTML = `
+      <div class="modal modal-md" style="background:#fdf8f3;border:1.5px solid #F0AF43;border-radius:14px;padding:24px;box-shadow:0 8px 32px rgba(0,0,0,0.25);max-width:500px;width:90%;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <h3 style="margin:0;font-size:1.15rem;font-weight:800;color:#221104;display:flex;align-items:center;gap:8px;">
+            <i class="fa-solid fa-file-pdf" style="color:#e05c4b;"></i> Pilih Rapor yang Ingin Dicetak
+          </h3>
+          <button onclick="document.getElementById('wali-print-choice-modal').remove()" style="background:none;border:none;color:#81511D;font-size:22px;cursor:pointer;padding:0;line-height:1;">&times;</button>
+        </div>
+        <p style="font-size:13px;color:#81511D;margin:0 0 16px;line-height:1.5;">
+          Tersedia laporan sesi berjalan serta rekapan resmi untuk ananda <strong>${escapeHtml(data.peserta.nama_lengkap)}</strong>:
+        </p>
+        <div style="display:flex;flex-direction:column;gap:10px;max-height:320px;overflow-y:auto;padding-right:4px;">
+          <!-- Cetak Sesi Berjalan -->
+          <button onclick="document.getElementById('wali-print-choice-modal').remove();printRaporPeserta(window._currentWaliData)" style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:#ffffff;border:1.5px solid rgba(129,81,29,0.3);border-radius:10px;cursor:pointer;text-align:left;transition:all 0.2s;">
+            <div style="width:38px;height:38px;border-radius:8px;background:#221104;display:flex;align-items:center;justify-content:center;color:#F0AF43;flex-shrink:0;">
+              <i class="fa-solid fa-list-check"></i>
+            </div>
+            <div style="flex:1;">
+              <div style="font-weight:800;font-size:13.5px;color:#221104;">Laporan Sesi Berjalan / Keseluruhan</div>
+              <div style="font-size:11.5px;color:#81511D;">Cetak semua riwayat sesi aktif yang tercatat</div>
+            </div>
+          </button>
+
+          <!-- List Rekapan Tersimpan -->
+          ${rekapanList.map(rep => `
+          <button onclick="document.getElementById('wali-print-choice-modal').remove();window.printRekapWali(${rep.id})" style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:#ffffff;border:1.5px solid #10b981;border-radius:10px;cursor:pointer;text-align:left;transition:all 0.2s;">
+            <div style="width:38px;height:38px;border-radius:8px;background:#064e3b;display:flex;align-items:center;justify-content:center;color:#a7f3d0;flex-shrink:0;">
+              <i class="fa-solid fa-award"></i>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:800;font-size:13.5px;color:#065f46;">${escapeHtml(rep.judul_rekap)}</div>
+              <div style="font-size:11.5px;color:#81511D;">${rep.total_sesi} Sesi • Rata Nilai: ${rep.rata_nilai || '-'}</div>
+            </div>
+            <i class="fa-solid fa-print" style="color:#10b981;"></i>
+          </button>`).join('')}
+        </div>
+        <div style="margin-top:16px;text-align:right;">
+          <button onclick="document.getElementById('wali-print-choice-modal').remove()" class="btn btn-secondary btn-sm" style="font-weight:700;">Tutup</button>
+        </div>
+      </div>
+    `
+    document.body.appendChild(modal)
+  }
+
+  window.printRapor = function(id, nama) {
+    window.openPrintOptionsWali(id)
+  }
+
+  window.switchWaliTab = function(tabName) {
+    const btnTerbaru = document.getElementById('wali-tab-btn-terbaru')
+    const btnLampau = document.getElementById('wali-tab-btn-lampau')
+    const contentTerbaru = document.getElementById('wali-tab-content-terbaru')
+    const contentLampau = document.getElementById('wali-tab-content-lampau')
+
+    if (tabName === 'terbaru') {
+      if (btnTerbaru) {
+        btnTerbaru.style.background = '#221104'
+        btnTerbaru.style.color = '#F0AF43'
+        btnTerbaru.style.borderColor = 'transparent'
       }
-    } catch(e) {
-      showToast('Gagal mencetak rapor: ' + e.message, 'error')
+      if (btnLampau) {
+        btnLampau.style.background = '#ffffff'
+        btnLampau.style.color = '#4F280C'
+        btnLampau.style.borderColor = 'rgba(129,81,29,0.3)'
+      }
+      if (contentTerbaru) contentTerbaru.style.display = 'block'
+      if (contentLampau) contentLampau.style.display = 'none'
+    } else {
+      if (btnLampau) {
+        btnLampau.style.background = '#221104'
+        btnLampau.style.color = '#F0AF43'
+        btnLampau.style.borderColor = 'transparent'
+      }
+      if (btnTerbaru) {
+        btnTerbaru.style.background = '#ffffff'
+        btnTerbaru.style.color = '#4F280C'
+        btnTerbaru.style.borderColor = 'rgba(129,81,29,0.3)'
+      }
+      if (contentTerbaru) contentTerbaru.style.display = 'none'
+      if (contentLampau) contentLampau.style.display = 'block'
+    }
+  }
+
+  window.printRekapWali = function(rekapanId) {
+    const data = window._currentWaliData
+    if (!data) return
+    const rep = (data.rekapan || []).find(r => Number(r.id) === Number(rekapanId))
+    if (!rep) {
+      alert('Data rekapan tidak ditemukan.')
+      return
+    }
+    printRaporPeserta(data, { rekapan: rep })
+  }
+
+  window.toggleRekapSesiDetail = function(rekapanId) {
+    const el = document.getElementById(`rekap-sesi-detail-${rekapanId}`)
+    if (!el) return
+    const isHidden = el.style.display === 'none'
+    el.style.display = isHidden ? 'block' : 'none'
+    const btnText = document.getElementById(`btn-toggle-text-${rekapanId}`)
+    if (btnText) {
+      btnText.textContent = isHidden ? 'Sembunyikan Rincian Sesi' : 'Lihat Rincian Sesi Rekapan Ini'
     }
   }
 }
@@ -673,6 +791,9 @@ function buildDetailHTML(data) {
     : '-'
   const kelasLabel = kelas?.nama_kelas || (peserta?.jenis === 'privat' ? 'Program Privat' : '-')
 
+  const rekapanList = data?.rekapan || []
+  const latestRekapan = rekapanList[0] || null
+
   return `
   <div style="padding:4px 0;color:#1a0a02;">
     <!-- Profile Header -->
@@ -691,115 +812,266 @@ function buildDetailHTML(data) {
         </div>
       </div>
       <div class="wali-student-action-row">
-        <button onclick="printRapor(${peserta?.id},'${peserta?.nama_lengkap}')" class="wali-print-btn">
+        <button onclick="openPrintOptionsWali(${peserta?.id})" class="wali-print-btn">
           <i class="fa-solid fa-file-pdf"></i> Cetak / Simpan PDF
         </button>
       </div>
     </div>
 
-    <!-- Stats Row -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:20px;">
-      ${[
-        [avgNilai, 'Rata Nilai', scoreColor(parseFloat(avgNilai)), 'fa-star'],
-        [pctH+'%', 'Kehadiran', pctH>=80?'#10b981':pctH>=60?'#F0AF43':'#e05c4b', 'fa-calendar-check'],
-        [kh.hadir||0, 'Total Hadir', '#10b981', 'fa-circle-check'],
-        [(kh.izin||0)+(kh.sakit||0), 'Izin/Sakit', '#60a5fa', 'fa-memo-circle-info'],
-        [kh.alpa||0, 'Alpa', '#e05c4b', 'fa-circle-exclamation'],
-        [(penilaian||[]).length, 'Total Penilaian', '#F0AF43', 'fa-clipboard-check'],
-      ].map(([val,lbl,clr,icon]) => `
-      <div style="background:white;border:1px solid rgba(129,81,29,0.12);border-radius:12px;padding:14px 16px;text-align:center;">
-        <div style="font-size:24px;font-weight:800;color:${clr};margin-bottom:4px;">${val}</div>
-        <div style="font-size:11px;color:#81511D;text-transform:uppercase;letter-spacing:0.5px;">${lbl}</div>
-      </div>`).join('')}
+    <!-- Tabs: Laporan Terbaru / Berjalan vs Arsip Rekapan Lampau -->
+    <div style="display:flex;gap:10px;margin-bottom:20px;border-bottom:1.5px solid rgba(129,81,29,0.18);padding-bottom:12px;flex-wrap:wrap;">
+      <button id="wali-tab-btn-terbaru" onclick="switchWaliTab('terbaru')" style="padding:10px 20px;border-radius:10px;border:none;font-weight:800;font-size:13.5px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;background:#221104;color:#F0AF43;box-shadow:0 3px 10px rgba(0,0,0,0.15);transition:all 0.2s;">
+        <i class="fa-solid fa-sparkles"></i> Laporan Terbaru / Berjalan
+      </button>
+      <button id="wali-tab-btn-lampau" onclick="switchWaliTab('lampau')" style="padding:10px 20px;border-radius:10px;border:1px solid rgba(129,81,29,0.3);font-weight:700;font-size:13.5px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;background:#ffffff;color:#4F280C;transition:all 0.2s;">
+        <i class="fa-solid fa-box-archive"></i> Riwayat Rekapan Lampau
+        ${rekapanList.length > 0 ? `<span style="background:#F0AF43;color:#1a0a02;font-size:11px;font-weight:800;padding:2px 8px;border-radius:12px;">${rekapanList.length}</span>` : ''}
+      </button>
     </div>
 
-    <!-- Charts -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-bottom:20px;">
-      <div style="background:white;border:1px solid rgba(129,81,29,0.12);border-radius:12px;padding:16px;">
-        <div style="font-size:13px;font-weight:700;color:#1a0a02;margin-bottom:12px;">
-          <i class="fa-solid fa-chart-line" style="color:#F0AF43;"></i> Tren Nilai
+    <!-- TAB CONTENT 1: LAPORAN TERBARU / BERJALAN -->
+    <div id="wali-tab-content-terbaru">
+      <!-- Highlight Rekapan Terkini Jika Ada -->
+      ${latestRekapan ? `
+      <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:16px 20px;margin-bottom:20px;box-shadow:0 4px 16px rgba(16,185,129,0.1);">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
+          <span style="font-weight:800;color:#166534;font-size:14.5px;display:inline-flex;align-items:center;gap:8px;">
+            <i class="fa-solid fa-award" style="color:#10b981;"></i> Rekapan Terkini: ${escapeHtml(latestRekapan.judul_rekap)}
+          </span>
+          <button onclick="window.printRekapWali(${latestRekapan.id})" style="padding:6px 14px;background:#166534;color:#ffffff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+            <i class="fa-solid fa-file-pdf"></i> Cetak Rapor Ini
+          </button>
         </div>
-        <canvas id="chart-nilai" height="160"></canvas>
-      </div>
-      <div style="background:white;border:1px solid rgba(129,81,29,0.12);border-radius:12px;padding:16px;">
-        <div style="font-size:13px;font-weight:700;color:#1a0a02;margin-bottom:12px;">
-          <i class="fa-solid fa-chart-pie" style="color:#10b981;"></i> Rekap Kehadiran
+        ${latestRekapan.catatan_evaluasi ? `<div style="font-size:13px;color:#1e293b;line-height:1.6;margin-bottom:6px;"><strong>Evaluasi Mentor:</strong> ${escapeHtml(latestRekapan.catatan_evaluasi)}</div>` : ''}
+        ${latestRekapan.rekomendasi ? `<div style="font-size:13px;color:#166534;line-height:1.6;margin-bottom:4px;"><strong>Rekomendasi Kelanjutan:</strong> ${escapeHtml(latestRekapan.rekomendasi)}</div>` : ''}
+        <div style="font-size:11.5px;color:#64748b;margin-top:6px;">
+          ${latestRekapan.tanggal_mulai ? `Periode: ${formatDate(latestRekapan.tanggal_mulai)} s/d ${formatDate(latestRekapan.tanggal_selesai || latestRekapan.tanggal_mulai)} • ` : ''}Total ${latestRekapan.total_sesi} Sesi • Rata Nilai: <strong>${latestRekapan.rata_nilai || '-'}</strong>
         </div>
-        <canvas id="chart-kehadiran" height="160"></canvas>
       </div>
-    </div>
+      ` : ''}
 
-    <!-- Kemajuan Hafalan -->
-    <div style="background:white;border:1px solid rgba(129,81,29,0.12);border-radius:12px;padding:16px;margin-bottom:16px;">
-      <h4 style="color:#1a0a02;margin-bottom:14px;font-size:14px;">
-        <i class="fa-solid fa-book-quran" style="color:#F0AF43;"></i> Riwayat Kemajuan Hafalan
-      </h4>
-      ${(kemajuan||[]).length === 0 ? '<p style="color:#81511D;font-size:13px;">Belum ada catatan kemajuan.</p>' :
-        `<div style="display:flex;flex-direction:column;gap:0;">
-          ${(kemajuan||[]).slice(0,10).map((k,i) => `
-          <div style="display:flex;align-items:flex-start;gap:14px;padding:12px 0;
-            border-bottom:${i<(kemajuan.length-1)?'1px solid rgba(129,81,29,0.1)':'none'};">
-            <div style="width:32px;height:32px;border-radius:50%;
-              background:${k.status_kelancaran==='lancar'?'rgba(16,185,129,0.15)':k.status_kelancaran==='cukup'?'rgba(240,175,67,0.15)':'rgba(239,68,68,0.15)'};
-              display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <span class="ms" style="font-size:18px;color:${k.status_kelancaran==='lancar'?'#10b981':k.status_kelancaran==='cukup'?'#F0AF43':'#ef4444'};">
-                ${k.status_kelancaran==='lancar'?'check_circle':k.status_kelancaran==='cukup'?'help':'replay'}
-              </span>
-            </div>
-            <div style="flex:1;">
-              <div style="font-weight:600;color:#1a0a02;font-size:13.5px;">
-                ${k.kitab_surat} ${k.halaman_ayat ? '— '+k.halaman_ayat : ''}
-              </div>
-              ${k.catatan_hafalan ? `<div style="font-size:12px;color:#81511D;margin-top:2px;font-style:italic;">"${k.catatan_hafalan}"</div>` : ''}
-            </div>
-            <div style="font-size:11px;color:#81511D;white-space:nowrap;">${formatDate(k.tanggal)}</div>
-          </div>`).join('')}
-        </div>`}
-    </div>
-
-    <!-- Riwayat Kehadiran & Materi -->
-    <div style="background:white;border:1px solid rgba(129,81,29,0.12);border-radius:12px;padding:16px;margin-bottom:16px;">
-      <h4 style="color:#1a0a02;margin-bottom:14px;font-size:14px;">
-        <i class="fa-solid fa-calendar-days" style="color:#10b981;"></i> Riwayat Kehadiran & Materi
-      </h4>
-      ${(riwayat_kehadiran||[]).length === 0 ? '<p style="color:#81511D;font-size:13px;">Belum ada catatan absensi.</p>' :
-        `<div style="overflow-x:auto;">
-          <table style="width:100%;border-collapse:collapse;font-size:13px;">
-            <thead>
-              <tr style="background:#f8f4ee;">
-                <th style="padding:9px 12px;text-align:left;color:#4F280C;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;border-bottom:1px solid rgba(129,81,29,0.12);">Tanggal</th>
-                <th style="padding:9px 12px;text-align:left;color:#4F280C;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;border-bottom:1px solid rgba(129,81,29,0.12);">Status</th>
-                <th style="padding:9px 12px;text-align:left;color:#4F280C;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;border-bottom:1px solid rgba(129,81,29,0.12);">Materi Pembahasan</th>
-                <th style="padding:9px 12px;text-align:left;color:#4F280C;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;border-bottom:1px solid rgba(129,81,29,0.12);">Catatan</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${(riwayat_kehadiran||[]).slice(0,20).map((kh,i) => `
-              <tr style="border-bottom:1px solid rgba(129,81,29,0.07);${i%2===1?'background:#fdf8f3;':''}">
-                <td style="padding:9px 12px;color:#1a0a02;">${formatDate(kh.tanggal)}</td>
-                <td style="padding:9px 12px;">${statusBadge(kh.status_hadir)}</td>
-                <td style="padding:9px 12px;color:#4F280C;">${kh.materi_pembahasan||'-'}</td>
-                <td style="padding:9px 12px;color:#81511D;font-size:12px;font-style:italic;">${kh.catatan_sesi||kh.perkembangan_materi||'-'}</td>
-              </tr>`).join('')}
-            </tbody>
-          </table>
-        </div>`}
-    </div>
-
-    <!-- Catatan Mentor -->
-    ${(catatan_mentor||[]).length > 0 ? `
-    <div style="background:white;border:1px solid rgba(129,81,29,0.12);border-radius:12px;padding:16px;">
-      <h4 style="color:#1a0a02;margin-bottom:14px;font-size:14px;">
-        <i class="fa-solid fa-comment-dots" style="color:#60a5fa;"></i> Catatan Ustadz/Ustadzah
-      </h4>
-      <div style="display:flex;flex-direction:column;gap:10px;">
-        ${(catatan_mentor||[]).slice(0,5).map(c => `
-        <div style="background:#f8f4ee;border-left:3px solid #F0AF43;border-radius:0 10px 10px 0;padding:12px 16px;">
-          <div style="font-size:11px;color:#81511D;margin-bottom:4px;">${formatDate(c.tanggal)}</div>
-          <div style="font-size:13.5px;color:#1a0a02;line-height:1.7;">${c.isi_catatan}</div>
+      <!-- Stats Row -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:20px;">
+        ${[
+          [avgNilai, 'Rata Nilai', scoreColor(parseFloat(avgNilai)), 'fa-star'],
+          [pctH+'%', 'Kehadiran', pctH>=80?'#10b981':pctH>=60?'#F0AF43':'#e05c4b', 'fa-calendar-check'],
+          [kh.hadir||0, 'Total Hadir', '#10b981', 'fa-circle-check'],
+          [(kh.izin||0)+(kh.sakit||0), 'Izin/Sakit', '#60a5fa', 'fa-memo-circle-info'],
+          [kh.alpa||0, 'Alpa', '#e05c4b', 'fa-circle-exclamation'],
+          [(penilaian||[]).length, 'Total Penilaian', '#F0AF43', 'fa-clipboard-check'],
+        ].map(([val,lbl,clr,icon]) => `
+        <div style="background:white;border:1px solid rgba(129,81,29,0.12);border-radius:12px;padding:14px 16px;text-align:center;">
+          <div style="font-size:24px;font-weight:800;color:${clr};margin-bottom:4px;">${val}</div>
+          <div style="font-size:11px;color:#81511D;text-transform:uppercase;letter-spacing:0.5px;">${lbl}</div>
         </div>`).join('')}
       </div>
-    </div>` : ''}
+
+      <!-- Charts -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-bottom:20px;">
+        <div style="background:white;border:1px solid rgba(129,81,29,0.12);border-radius:12px;padding:16px;">
+          <div style="font-size:13px;font-weight:700;color:#1a0a02;margin-bottom:12px;">
+            <i class="fa-solid fa-chart-line" style="color:#F0AF43;"></i> Tren Nilai
+          </div>
+          <canvas id="chart-nilai" height="160"></canvas>
+        </div>
+        <div style="background:white;border:1px solid rgba(129,81,29,0.12);border-radius:12px;padding:16px;">
+          <div style="font-size:13px;font-weight:700;color:#1a0a02;margin-bottom:12px;">
+            <i class="fa-solid fa-chart-pie" style="color:#10b981;"></i> Rekap Kehadiran
+          </div>
+          <canvas id="chart-kehadiran" height="160"></canvas>
+        </div>
+      </div>
+
+      <!-- Kemajuan Hafalan -->
+      <div style="background:white;border:1px solid rgba(129,81,29,0.12);border-radius:12px;padding:16px;margin-bottom:16px;">
+        <h4 style="color:#1a0a02;margin-bottom:14px;font-size:14px;">
+          <i class="fa-solid fa-book-quran" style="color:#F0AF43;"></i> Riwayat Kemajuan Hafalan
+        </h4>
+        ${(kemajuan||[]).length === 0 ? '<p style="color:#81511D;font-size:13px;">Belum ada catatan kemajuan.</p>' :
+          `<div style="display:flex;flex-direction:column;gap:0;">
+            ${(kemajuan||[]).slice(0,10).map((k,i) => `
+            <div style="display:flex;align-items:flex-start;gap:14px;padding:12px 0;
+              border-bottom:${i<(kemajuan.length-1)?'1px solid rgba(129,81,29,0.1)':'none'};">
+              <div style="width:32px;height:32px;border-radius:50%;
+                background:${k.status_kelancaran==='lancar'?'rgba(16,185,129,0.15)':k.status_kelancaran==='cukup'?'rgba(240,175,67,0.15)':'rgba(239,68,68,0.15)'};
+                display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <span class="ms" style="font-size:18px;color:${k.status_kelancaran==='lancar'?'#10b981':k.status_kelancaran==='cukup'?'#F0AF43':'#ef4444'};">
+                  ${k.status_kelancaran==='lancar'?'check_circle':k.status_kelancaran==='cukup'?'help':'replay'}
+                </span>
+              </div>
+              <div style="flex:1;">
+                <div style="font-weight:600;color:#1a0a02;font-size:13.5px;">
+                  ${k.kitab_surat} ${k.halaman_ayat ? '— '+k.halaman_ayat : ''}
+                </div>
+                ${k.catatan_hafalan ? `<div style="font-size:12px;color:#81511D;margin-top:2px;font-style:italic;">"${k.catatan_hafalan}"</div>` : ''}
+              </div>
+              <div style="font-size:11px;color:#81511D;white-space:nowrap;">${formatDate(k.tanggal)}</div>
+            </div>`).join('')}
+          </div>`}
+      </div>
+
+      <!-- Riwayat Kehadiran & Materi Sesi -->
+      <div style="background:white;border:1px solid rgba(129,81,29,0.12);border-radius:12px;padding:16px;margin-bottom:16px;">
+        <h4 style="color:#1a0a02;margin-bottom:14px;font-size:14px;">
+          <i class="fa-solid fa-calendar-days" style="color:#10b981;"></i> Riwayat Sesi Kehadiran & Materi
+        </h4>
+        ${(riwayat_kehadiran||[]).length === 0 ? '<p style="color:#81511D;font-size:13px;">Belum ada catatan absensi.</p>' :
+          `<div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+              <thead>
+                <tr style="background:#f8f4ee;">
+                  <th style="padding:9px 12px;text-align:left;color:#4F280C;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;border-bottom:1px solid rgba(129,81,29,0.12);">Tanggal</th>
+                  <th style="padding:9px 12px;text-align:left;color:#4F280C;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;border-bottom:1px solid rgba(129,81,29,0.12);">Status</th>
+                  <th style="padding:9px 12px;text-align:left;color:#4F280C;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;border-bottom:1px solid rgba(129,81,29,0.12);">Materi Pembahasan</th>
+                  <th style="padding:9px 12px;text-align:left;color:#4F280C;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;border-bottom:1px solid rgba(129,81,29,0.12);">Catatan</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${(riwayat_kehadiran||[]).slice(0,20).map((kh,i) => `
+                <tr style="border-bottom:1px solid rgba(129,81,29,0.07);${i%2===1?'background:#fdf8f3;':''}">
+                  <td style="padding:9px 12px;color:#1a0a02;">${formatDate(kh.tanggal)}</td>
+                  <td style="padding:9px 12px;">${statusBadge(kh.status_hadir)}</td>
+                  <td style="padding:9px 12px;color:#4F280C;">${kh.materi_pembahasan||'-'}</td>
+                  <td style="padding:9px 12px;color:#81511D;font-size:12px;font-style:italic;">${kh.catatan_sesi||kh.perkembangan_materi||'-'}</td>
+                </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>`}
+      </div>
+
+      <!-- Catatan Mentor -->
+      ${(catatan_mentor||[]).length > 0 ? `
+      <div style="background:white;border:1px solid rgba(129,81,29,0.12);border-radius:12px;padding:16px;">
+        <h4 style="color:#1a0a02;margin-bottom:14px;font-size:14px;">
+          <i class="fa-solid fa-comment-dots" style="color:#60a5fa;"></i> Catatan Ustadz/Ustadzah
+        </h4>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          ${(catatan_mentor||[]).slice(0,5).map(c => `
+          <div style="background:#f8f4ee;border-left:3px solid #F0AF43;border-radius:0 10px 10px 0;padding:12px 16px;">
+            <div style="font-size:11px;color:#81511D;margin-bottom:4px;">${formatDate(c.tanggal)}</div>
+            <div style="font-size:13.5px;color:#1a0a02;line-height:1.7;">${c.isi_catatan}</div>
+          </div>`).join('')}
+        </div>
+      </div>` : ''}
+    </div>
+
+    <!-- TAB CONTENT 2: RIWAYAT REKAPAN LAMPAU -->
+    <div id="wali-tab-content-lampau" style="display:none;">
+      ${rekapanList.length === 0 ? `
+      <div style="text-align:center;padding:48px 20px;background:white;border:1.5px dashed rgba(129,81,29,0.25);border-radius:14px;">
+        <div style="font-size:44px;margin-bottom:12px;">📚</div>
+        <h4 style="margin:0 0 8px;color:#221104;font-size:16px;font-weight:800;">Belum Ada Arsip Rekapan Lampau</h4>
+        <p style="margin:0 auto;font-size:13px;color:#81511D;line-height:1.6;max-width:440px;">
+          Seluruh aktivitas ananda saat ini masih tercatat di <strong>Laporan Terbaru / Berjalan</strong>. Rekapan bulanan atau rekapan paket yang telah selesai akan diarsipkan di sini setelah mentor menerbitkan rekapan resmi.
+        </p>
+      </div>
+      ` : `
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div style="font-size:13px;color:#81511D;">
+          Berikut arsip rekapan resmi perkembangan ananda <strong>${escapeHtml(peserta?.nama_lengkap || '')}</strong>:
+        </div>
+        ${rekapanList.map(rep => {
+          // Cari sesi-sesi yang masuk rekapan ini
+          const sesiIds = Array.isArray(rep.sesi_ids) ? rep.sesi_ids.map(Number) : []
+          let matchingSesi = []
+          if (sesiIds.length > 0) {
+            matchingSesi = riwayat_kehadiran.filter(h => sesiIds.includes(Number(h.id)))
+          } else if (rep.periode_bulan) {
+            matchingSesi = riwayat_kehadiran.filter(h => String(h.tanggal || '').startsWith(rep.periode_bulan))
+          } else if (rep.tanggal_mulai && rep.tanggal_selesai) {
+            matchingSesi = riwayat_kehadiran.filter(h => h.tanggal >= rep.tanggal_mulai && h.tanggal <= rep.tanggal_selesai)
+          }
+
+          return `
+          <div style="background:white;border:1.5px solid rgba(129,81,29,0.18);border-radius:14px;padding:20px;box-shadow:0 4px 16px rgba(0,0,0,0.05);">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid rgba(129,81,29,0.12);">
+              <div>
+                <span style="font-size:16px;font-weight:800;color:#221104;display:inline-flex;align-items:center;gap:8px;">
+                  <i class="fa-solid fa-award" style="color:#10b981;"></i> ${escapeHtml(rep.judul_rekap)}
+                </span>
+                <div style="font-size:12px;color:#81511D;margin-top:2px;">
+                  ${rep.tanggal_mulai ? `Periode: ${formatDate(rep.tanggal_mulai)} s/d ${formatDate(rep.tanggal_selesai || rep.tanggal_mulai)} • ` : ''}Total ${rep.total_sesi} Sesi
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button onclick="window.printRekapWali(${rep.id})" style="padding:8px 14px;background:#221104;color:#F0AF43;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+                  <i class="fa-solid fa-file-pdf"></i> Cetak PDF Rapor
+                </button>
+              </div>
+            </div>
+
+            <!-- Stats Ringkas -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin:14px 0;">
+              <div style="background:#f8f4ee;padding:10px;border-radius:8px;text-align:center;">
+                <div style="font-size:18px;font-weight:800;color:#10b981;">${rep.total_hadir || 0}</div>
+                <div style="font-size:10px;color:#81511D;text-transform:uppercase;">Hadir</div>
+              </div>
+              <div style="background:#f8f4ee;padding:10px;border-radius:8px;text-align:center;">
+                <div style="font-size:18px;font-weight:800;color:#F0AF43;">${(rep.total_izin||0)+(rep.total_sakit||0)}</div>
+                <div style="font-size:10px;color:#81511D;text-transform:uppercase;">Izin/Sakit</div>
+              </div>
+              <div style="background:#f8f4ee;padding:10px;border-radius:8px;text-align:center;">
+                <div style="font-size:18px;font-weight:800;color:#e05c4b;">${rep.total_alpa || 0}</div>
+                <div style="font-size:10px;color:#81511D;text-transform:uppercase;">Alpa</div>
+              </div>
+              <div style="background:#f8f4ee;padding:10px;border-radius:8px;text-align:center;">
+                <div style="font-size:18px;font-weight:800;color:#221104;">${rep.rata_nilai || '-'}</div>
+                <div style="font-size:10px;color:#81511D;text-transform:uppercase;">Rata Nilai</div>
+              </div>
+            </div>
+
+            ${rep.capaian_hafalan ? `
+            <div style="font-size:12.5px;color:#4F280C;margin-bottom:8px;">
+              <strong>Capaian Hafalan Terakhir:</strong> ${escapeHtml(rep.capaian_hafalan)}
+            </div>` : ''}
+
+            ${rep.catatan_evaluasi ? `
+            <div style="background:#fdf8f3;border-left:3px solid #10b981;border-radius:0 8px 8px 0;padding:10px 14px;font-size:13px;color:#1a0a02;line-height:1.6;margin-bottom:8px;">
+              <strong>Evaluasi Mentor:</strong> ${escapeHtml(rep.catatan_evaluasi)}
+            </div>` : ''}
+
+            ${rep.rekomendasi ? `
+            <div style="background:#f0fdf4;border-left:3px solid #059669;border-radius:0 8px 8px 0;padding:10px 14px;font-size:13px;color:#166534;line-height:1.6;margin-bottom:12px;">
+              <strong>Rekomendasi Kelanjutan:</strong> ${escapeHtml(rep.rekomendasi)}
+            </div>` : ''}
+
+            <!-- Tombol Toggle Rincian Sesi -->
+            <div style="margin-top:10px;">
+              <button onclick="window.toggleRekapSesiDetail(${rep.id})" style="background:none;border:none;color:#81511D;font-weight:800;font-size:12.5px;cursor:pointer;padding:0;text-decoration:underline;">
+                <span id="btn-toggle-text-${rep.id}">Lihat Rincian Sesi Rekapan Ini</span>
+              </button>
+            </div>
+
+            <!-- Rincian Sesi (Collapsible) -->
+            <div id="rekap-sesi-detail-${rep.id}" style="display:none;margin-top:12px;padding-top:12px;border-top:1px dashed rgba(129,81,29,0.2);">
+              <h5 style="margin:0 0 10px;font-size:12px;color:#4F280C;text-transform:uppercase;letter-spacing:0.5px;">Daftar Sesi Rekapan:</h5>
+              ${matchingSesi.length === 0 ? '<div style="font-size:12px;color:#81511D;">Tidak ada data detail sesi.</div>' : `
+              <div style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                  <thead>
+                    <tr style="background:#f8f4ee;">
+                      <th style="padding:6px 10px;text-align:left;color:#4F280C;">Tanggal</th>
+                      <th style="padding:6px 10px;text-align:left;color:#4F280C;">Status</th>
+                      <th style="padding:6px 10px;text-align:left;color:#4F280C;">Materi</th>
+                      <th style="padding:6px 10px;text-align:left;color:#4F280C;">Catatan Sesi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${matchingSesi.map(s => `
+                    <tr style="border-bottom:1px solid rgba(129,81,29,0.08);">
+                      <td style="padding:6px 10px;">${formatDate(s.tanggal)}</td>
+                      <td style="padding:6px 10px;">${statusBadge(s.status_hadir)}</td>
+                      <td style="padding:6px 10px;">${escapeHtml(s.materi_pembahasan || '-')}</td>
+                      <td style="padding:6px 10px;color:#81511D;font-style:italic;">${escapeHtml(s.catatan_sesi || s.perkembangan_materi || '-')}</td>
+                    </tr>`).join('')}
+                  </tbody>
+                </table>
+              </div>`}
+            </div>
+          </div>`
+        }).join('')}
+      </div>`}
+    </div>
   </div>`
 }
 

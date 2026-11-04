@@ -117,14 +117,34 @@ function deduplicateByDate(items, dateField = 'tanggal') {
 // ────────────────────────────────────────────────────────────
 // Generate PDF print preview via browser print
 // ────────────────────────────────────────────────────────────
-export function printRaporPeserta(pesertaData) {
+export function printRaporPeserta(pesertaData, options = {}) {
   const { peserta, mentor, kelas, kemajuan, penilaian, kehadiran_summary, riwayat_kehadiran, catatan_mentor } = pesertaData || {}
+  const rekapan = options.rekapan || pesertaData.rekapan_terpilih || null
   
   // Deduplikasi data kemajuan, penilaian & kehadiran per tanggal
   // Menghindari duplikat jika mentor tidak sengaja menekan tombol simpan lebih dari 1 kali
-  const cleanKemajuan = deduplicateByDate(kemajuan, 'tanggal')
-  const cleanPenilaian = deduplicateByDate(penilaian, 'tanggal')
-  const cleanKehadiran = deduplicateByDate(riwayat_kehadiran, 'tanggal')
+  let cleanKemajuan = deduplicateByDate(kemajuan, 'tanggal')
+  let cleanPenilaian = deduplicateByDate(penilaian, 'tanggal')
+  let cleanKehadiran = deduplicateByDate(riwayat_kehadiran, 'tanggal')
+
+  // Jika mencetak rekapan tertentu, filter sesi sesuai rekapan
+  if (rekapan) {
+    if (Array.isArray(rekapan.sesi_ids) && rekapan.sesi_ids.length > 0) {
+      const allowedIds = new Set(rekapan.sesi_ids.map(Number))
+      cleanKehadiran = cleanKehadiran.filter(h => allowedIds.has(Number(h.id)))
+      const dates = new Set(cleanKehadiran.map(h => h.tanggal).filter(Boolean))
+      cleanKemajuan = cleanKemajuan.filter(k => dates.has(k.tanggal))
+      cleanPenilaian = cleanPenilaian.filter(p => dates.has(p.tanggal))
+    } else if (rekapan.periode_bulan) {
+      cleanKehadiran = cleanKehadiran.filter(h => String(h.tanggal || '').startsWith(rekapan.periode_bulan))
+      cleanKemajuan = cleanKemajuan.filter(k => String(k.tanggal || '').startsWith(rekapan.periode_bulan))
+      cleanPenilaian = cleanPenilaian.filter(p => String(p.tanggal || '').startsWith(rekapan.periode_bulan))
+    } else if (rekapan.tanggal_mulai && rekapan.tanggal_selesai) {
+      cleanKehadiran = cleanKehadiran.filter(h => h.tanggal >= rekapan.tanggal_mulai && h.tanggal <= rekapan.tanggal_selesai)
+      cleanKemajuan = cleanKemajuan.filter(k => k.tanggal >= rekapan.tanggal_mulai && k.tanggal <= rekapan.tanggal_selesai)
+      cleanPenilaian = cleanPenilaian.filter(p => p.tanggal >= rekapan.tanggal_mulai && p.tanggal <= rekapan.tanggal_selesai)
+    }
+  }
 
   const kemajuanList = cleanKemajuan.slice(0, 30)
   const nilaiList = cleanPenilaian.slice(0, 30)
@@ -140,31 +160,39 @@ export function printRaporPeserta(pesertaData) {
     .slice(0, 30)
 
   // Hitung ringkasan kehadiran akurat dari data yang sudah bersih
-  const hadirCount = cleanKehadiran.length > 0 ? cleanKehadiran.filter(h => h.status_hadir === 'hadir').length : (kehadiran_summary?.hadir || 0)
-  const izinCount  = cleanKehadiran.length > 0 ? cleanKehadiran.filter(h => h.status_hadir === 'izin').length : (kehadiran_summary?.izin || 0)
-  const sakitCount = cleanKehadiran.length > 0 ? cleanKehadiran.filter(h => h.status_hadir === 'sakit').length : (kehadiran_summary?.sakit || 0)
-  const alpaCount  = cleanKehadiran.length > 0 ? cleanKehadiran.filter(h => h.status_hadir === 'alpa' || (!['hadir','izin','sakit'].includes(h.status_hadir) && h.status_hadir)).length : (kehadiran_summary?.alpa || 0)
+  const hadirCount = rekapan?.total_hadir !== undefined && rekapan?.total_hadir !== null ? rekapan.total_hadir : (cleanKehadiran.length > 0 ? cleanKehadiran.filter(h => h.status_hadir === 'hadir').length : (kehadiran_summary?.hadir || 0))
+  const izinCount  = rekapan?.total_izin !== undefined && rekapan?.total_izin !== null ? rekapan.total_izin : (cleanKehadiran.length > 0 ? cleanKehadiran.filter(h => h.status_hadir === 'izin').length : (kehadiran_summary?.izin || 0))
+  const sakitCount = rekapan?.total_sakit !== undefined && rekapan?.total_sakit !== null ? rekapan.total_sakit : (cleanKehadiran.length > 0 ? cleanKehadiran.filter(h => h.status_hadir === 'sakit').length : (kehadiran_summary?.sakit || 0))
+  const alpaCount  = rekapan?.total_alpa !== undefined && rekapan?.total_alpa !== null ? rekapan.total_alpa : (cleanKehadiran.length > 0 ? cleanKehadiran.filter(h => h.status_hadir === 'alpa' || (!['hadir','izin','sakit'].includes(h.status_hadir) && h.status_hadir)).length : (kehadiran_summary?.alpa || 0))
   const totalPertemuan = hadirCount + izinCount + sakitCount + alpaCount
   const pctHadir = totalPertemuan > 0 ? Math.round((hadirCount / totalPertemuan) * 100) : (kehadiran_summary?.total ? Math.round(((kehadiran_summary.hadir || 0) / kehadiran_summary.total) * 100) : 0)
 
   const validNilai = nilaiList.filter(n => n.nilai_angka !== null && n.nilai_angka !== undefined && !isNaN(parseFloat(n.nilai_angka)))
-  const avgNilai = validNilai.length > 0
-    ? (validNilai.reduce((s, n) => s + parseFloat(n.nilai_angka), 0) / validNilai.length).toFixed(1)
-    : '-'
+  const avgNilai = rekapan?.rata_nilai !== undefined && rekapan?.rata_nilai !== null
+    ? Number(rekapan.rata_nilai).toFixed(1)
+    : (validNilai.length > 0 ? (validNilai.reduce((s, n) => s + parseFloat(n.nilai_angka), 0) / validNilai.length).toFixed(1) : '-')
+
+  const subTitle = rekapan?.judul_rekap
+    ? `Laporan ${rekapan.judul_rekap}`
+    : (peserta?.jenis === 'privat' ? 'Laporan Perkembangan Program Privat' : 'Laporan Perkembangan Peserta Didik')
+
+  const badgeText = rekapan?.judul_rekap
+    ? `${(peserta?.jenis || 'BIMBEL').toUpperCase()} — ${rekapan.judul_rekap.toUpperCase()}`
+    : (peserta?.jenis?.toUpperCase() || 'BIMBEL')
 
   const html = `<!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<title>Rapor — ${peserta?.nama_lengkap || ''}</title>
+<title>Rapor — ${peserta?.nama_lengkap || ''} — ${rekapan?.judul_rekap || 'QIA'}</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Plus Jakarta Sans', sans-serif; color: #1a0a02; background: #fff; padding: 20px; }
   .header { text-align: center; border-bottom: 3px solid #F0AF43; padding-bottom: 16px; margin-bottom: 20px; }
   .header h1 { font-size: 22px; color: #221104; }
-  .header p { color: #81511D; font-size: 13px; }
-  .badge { display: inline-block; background: #221104; color: #F0AF43; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-top: 8px; }
+  .header p { color: #81511D; font-size: 14px; font-weight: 700; margin-top: 4px; }
+  .badge { display: inline-block; background: #221104; color: #F0AF43; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; margin-top: 8px; }
   .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
   .info-card { background: #fdf0e2; border: 1px solid #e8d4bc; border-radius: 10px; padding: 14px; }
   .info-card h3 { font-size: 12px; color: #81511D; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
@@ -186,14 +214,15 @@ export function printRaporPeserta(pesertaData) {
   .badge-izin  { background: #fef3c7; color: #92400e; }
   .badge-sakit { background: #dbeafe; color: #1e40af; }
   .badge-alpa  { background: #fee2e2; color: #991b1b; }
+  .rekap-eval-card { background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 10px; padding: 14px 18px; margin-bottom: 18px; }
   .footer { text-align: center; font-size: 11px; color: #81511D; margin-top: 24px; border-top: 1px solid #e8d4bc; padding-top: 12px; }
 </style>
 </head>
 <body>
 <div class="header">
   <h1>Quran Insight Academy</h1>
-  <p>Laporan Perkembangan Peserta Didik</p>
-  <span class="badge">${peserta?.jenis?.toUpperCase() || 'BIMBEL'}</span>
+  <p>${subTitle}</p>
+  <span class="badge">${badgeText}</span>
 </div>
 
 <div class="info-grid">
@@ -203,7 +232,7 @@ export function printRaporPeserta(pesertaData) {
   </div>
   <div class="info-card">
     <h3>Kelas / Program</h3>
-    <div class="val">${kelas?.nama_kelas || (peserta?.jenis === 'privat' ? 'Privat' : '-')}</div>
+    <div class="val">${kelas?.nama_kelas || (peserta?.jenis === 'privat' ? 'Program Privat' : '-')}</div>
   </div>
   <div class="info-card">
     <h3>Mentor / Ustadz</h3>
@@ -215,7 +244,18 @@ export function printRaporPeserta(pesertaData) {
   </div>
 </div>
 
-<h2 class="section">Rekap Kehadiran</h2>
+${rekapan ? `
+<div class="rekap-eval-card">
+  <div style="font-size:13px;font-weight:700;color:#166534;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+    📋 Evaluasi Rekapan: ${rekapan.judul_rekap || 'Rekapan'}
+  </div>
+  ${rekapan.catatan_evaluasi ? `<div style="font-size:13px;color:#1e293b;line-height:1.6;margin-bottom:8px;"><strong>Catatan Mentor:</strong> ${rekapan.catatan_evaluasi}</div>` : ''}
+  ${rekapan.rekomendasi ? `<div style="font-size:13px;color:#166534;line-height:1.6;margin-bottom:6px;"><strong>Rekomendasi Kelanjutan:</strong> ${rekapan.rekomendasi}</div>` : ''}
+  ${rekapan.capaian_hafalan ? `<div style="font-size:12.5px;color:#334155;"><strong>Capaian Hafalan Terakhir:</strong> ${rekapan.capaian_hafalan}</div>` : ''}
+</div>
+` : ''}
+
+<h2 class="section">Rekap Kehadiran ${rekapan ? `(${totalPertemuan} Sesi)` : ''}</h2>
 <div class="stat-row">
   <div class="stat-box"><div class="n">${hadirCount}</div><div class="l">Hadir</div></div>
   <div class="stat-box"><div class="n">${izinCount}</div><div class="l">Izin</div></div>
@@ -237,7 +277,6 @@ export function printRaporPeserta(pesertaData) {
     : '<tr><td colspan="4" style="text-align:center;color:#81511D;font-style:italic;padding:12px;">Belum ada catatan kemajuan hafalan</td></tr>'
   }
 </table>
-
 
 ${catatanSesiList.length ? `
 <h2 class="section">Catatan Sesi</h2>

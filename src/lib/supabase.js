@@ -733,6 +733,83 @@ export const mentorService = {
     })
     return true
   },
+
+  // ── REKAPAN LAPORAN SERVICES (BIMBEL BULANAN & PRIVAT PAKET) ──
+  async getRekapanList(pesertaId) {
+    const pId = Number(pesertaId)
+    if (isConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('rekapan_laporan')
+          .select('*')
+          .eq('id_peserta', pId)
+          .order('created_at', { ascending: false })
+        if (!error && data) return data
+      } catch(e) {
+        console.warn('getRekapanList supabase error:', e)
+      }
+    }
+    const all = getLocalStore('rekapan_laporan', [])
+    return all.filter(r => Number(r.id_peserta) === pId)
+  },
+
+  async createRekapan(record) {
+    if (isConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('rekapan_laporan')
+          .insert(record)
+          .select()
+          .single()
+        if (!error && data) return data
+        if (error) console.warn('createRekapan remote error, fallback local:', error.message)
+      } catch(e) {
+        console.warn('createRekapan exception:', e)
+      }
+    }
+    const all = getLocalStore('rekapan_laporan', [])
+    const newRec = { id: Date.now(), created_at: new Date().toISOString(), ...record }
+    all.unshift(newRec)
+    setLocalStore('rekapan_laporan', all)
+    return newRec
+  },
+
+  async updateRekapan(id, updates) {
+    if (isConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('rekapan_laporan')
+          .update(updates)
+          .eq('id', id)
+          .select()
+          .single()
+        if (!error && data) return data
+      } catch(e) {}
+    }
+    const all = getLocalStore('rekapan_laporan', [])
+    const idx = all.findIndex(r => Number(r.id) === Number(id))
+    if (idx !== -1) {
+      all[idx] = { ...all[idx], ...updates, updated_at: new Date().toISOString() }
+      setLocalStore('rekapan_laporan', all)
+      return all[idx]
+    }
+    return updates
+  },
+
+  async deleteRekapan(id) {
+    if (isConfigured) {
+      try {
+        const { error } = await supabase
+          .from('rekapan_laporan')
+          .delete()
+          .eq('id', id)
+        if (!error) return true
+      } catch(e) {}
+    }
+    const all = getLocalStore('rekapan_laporan', []).filter(r => Number(r.id) !== Number(id))
+    setLocalStore('rekapan_laporan', all)
+    return true
+  },
 }
 
 // ────────────────────────────────────────────────────────────
@@ -789,6 +866,8 @@ export const waliService = {
       return Array.from(m.values()).sort((a, b) => String(b.tanggal || '').localeCompare(String(a.tanggal || '')))
     }
 
+    const rekapan = await this.getRekapanPeserta(pId)
+
     if (isConfigured) {
       try {
         const { data, error } = await supabase.rpc('get_peserta_detail_wali', { p_peserta_id: pId })
@@ -796,6 +875,7 @@ export const waliService = {
           data.kemajuan = dedup(data.kemajuan)
           data.penilaian = dedup(data.penilaian)
           data.riwayat_kehadiran = dedup(data.riwayat_kehadiran)
+          data.rekapan = rekapan
           return data
         }
       } catch(e) {}
@@ -830,6 +910,7 @@ export const waliService = {
               total: khList.length
             },
             riwayat_kehadiran: khList,
+            rekapan,
             catatan_mentor: []
           }
         }
@@ -868,8 +949,25 @@ export const waliService = {
         total: kehadiran.length
       },
       riwayat_kehadiran: kehadiran,
+      rekapan,
       catatan_mentor: []
     }
+  },
+
+  async getRekapanPeserta(pesertaId) {
+    const pId = Number(pesertaId)
+    if (isConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('rekapan_laporan')
+          .select('*')
+          .eq('id_peserta', pId)
+          .order('created_at', { ascending: false })
+        if (!error && data) return data
+      } catch(e) {}
+    }
+    const all = getLocalStore('rekapan_laporan', [])
+    return all.filter(r => Number(r.id_peserta) === pId)
   },
 
   // Data chart nilai & kehadiran untuk Portal Wali

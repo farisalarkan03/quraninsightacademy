@@ -787,6 +787,33 @@ function openPesertaDetail(pesertaId, main, showToast) {
       ` : ''}
     </div>
 
+    <!-- Card Rekapan Laporan (Bimbel: Bulanan / Privat: Paket) -->
+    <div id="rekapan-section-container" class="card" style="padding:22px 26px;border:1.5px solid rgba(240,175,67,0.45);background:#180902;border-radius:16px;box-shadow:0 8px 32px rgba(26,10,2,0.35);">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding-bottom:14px;border-bottom:1px solid rgba(240,175,67,0.25);">
+        <div>
+          <h3 style="color:#ffffff;margin:0 0 4px;font-size:1.2rem;font-weight:800;display:flex;align-items:center;gap:10px;">
+            <i class="fa-solid fa-file-invoice" style="color:#F0AF43;"></i>
+            <span>${p.jenis === 'privat' ? 'Rekapan Paket Program Privat' : 'Rekapan Bulanan Santri Bimbel'}</span>
+          </h3>
+          <div style="font-size:12.5px;color:#e8d4bc;font-weight:500;">
+            ${p.jenis === 'privat' 
+              ? 'Tentukan jumlah pertemuan paket secara fleksibel. Ketika paket selesai, buat rekapan untuk disinkronkan ke wali.' 
+              : 'Terbitkan rekapan resmi per bulan untuk capaian hafalan, rata-rata nilai, dan evaluasi bulanan.'}
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="window.openBuatRekapModal(${pesertaId})" style="display:inline-flex;align-items:center;gap:8px;font-weight:800;padding:10px 20px;font-size:13.5px;background:linear-gradient(135deg,#10b981,#059669);color:#ffffff;border:none;border-radius:10px;box-shadow:0 4px 14px rgba(16,185,129,0.35);cursor:pointer;">
+          <i class="fa-solid fa-plus-circle"></i> ${p.jenis === 'privat' ? 'Rekap Paket Selesai' : 'Buat Rekapan Bulanan'}
+        </button>
+      </div>
+
+      <!-- Container list rekapan tersimpan -->
+      <div id="rekapan-cards-list" style="margin-top:16px;">
+        <div style="font-size:13px;color:#d8bfa2;text-align:center;padding:16px;">
+          <i class="fa-solid fa-spinner fa-spin"></i> Memuat data rekapan…
+        </div>
+      </div>
+    </div>
+
     <!-- Histori Laporan yang di-input -->
     <div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap;">
@@ -817,18 +844,20 @@ function openPesertaDetail(pesertaId, main, showToast) {
 
 async function loadPesertaHistory(pesertaId, showToast) {
   const container = document.getElementById('laporan-history-list')
+  const rekapanContainer = document.getElementById('rekapan-cards-list')
   if (!container) return
 
   try {
-    const [kehadiranList, kemajuanList, penilaianList] = await Promise.all([
+    const [kehadiranList, kemajuanList, penilaianList, rekapanList] = await Promise.all([
       mentorService.getRiwayatKehadiran(pesertaId, 50),
       mentorService.getKemajuan(pesertaId, 50),
       mentorService.getPenilaian(pesertaId, 50),
+      mentorService.getRekapanList(pesertaId),
     ])
 
     // Update count badge
     const badge = document.getElementById('histori-count-badge')
-    if (badge) badge.textContent = `${kehadiranList.length} Laporan Tercatat`
+    if (badge) badge.textContent = `${kehadiranList.length} Sesi Tercatat • ${rekapanList.length} Rekapan`
 
     // Map kemajuan & penilaian by date
     const kemajuanByDate = {}
@@ -840,6 +869,16 @@ async function loadPesertaHistory(pesertaId, showToast) {
       if (p.tanggal && !penilaianByDate[p.tanggal]) penilaianByDate[p.tanggal] = p
     })
 
+    // Map sesi id ke judul rekapan
+    const sesiToRekapMap = {}
+    rekapanList.forEach(r => {
+      if (Array.isArray(r.sesi_ids)) {
+        r.sesi_ids.forEach(sid => {
+          sesiToRekapMap[sid] = r.judul_rekap
+        })
+      }
+    })
+
     // Store in global window for modal edit access
     window._currentPesertaHistory = {
       pesertaId,
@@ -847,14 +886,73 @@ async function loadPesertaHistory(pesertaId, showToast) {
       kemajuanList,
       penilaianList,
       kemajuanByDate,
-      penilaianByDate
+      penilaianByDate,
+      rekapanList,
+      sesiToRekapMap
+    }
+
+    // ── RENDER REKAPAN CARDS ──
+    if (rekapanContainer) {
+      if (rekapanList.length === 0) {
+        rekapanContainer.innerHTML = `
+        <div style="padding:16px 20px;background:#200d03;border:1.5px dashed rgba(240,175,67,0.35);border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+          <div style="font-size:13px;color:#e8d4bc;">
+            Belum ada rekapan resmi yang diterbitkan untuk peserta ini. Klik tombol <strong>"${state.selectedPeserta?.jenis === 'privat' ? 'Rekap Paket Selesai' : 'Buat Rekapan Bulanan'}"</strong> untuk membuat rekapan.
+          </div>
+        </div>`
+      } else {
+        rekapanContainer.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          ${rekapanList.map(rep => `
+          <div style="background:#200d03;border:1.5px solid rgba(16,185,129,0.35);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <span style="font-size:15px;font-weight:800;color:#ffffff;display:inline-flex;align-items:center;gap:8px;">
+                  <i class="fa-solid fa-award" style="color:#10b981;"></i> ${escapeHtml(rep.judul_rekap)}
+                </span>
+                <span style="background:#064e3b;color:#a7f3d0;border:1px solid #10b981;font-size:11px;font-weight:800;padding:2px 8px;border-radius:10px;">
+                  ${rep.total_sesi} Sesi
+                </span>
+                ${rep.tanggal_mulai ? `<span style="font-size:12px;color:#cbd5e1;">${formatDate(rep.tanggal_mulai)} s/d ${formatDate(rep.tanggal_selesai || rep.tanggal_mulai)}</span>` : ''}
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <button onclick="window.printRekapanItem(${rep.id}, ${pesertaId})" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#251105;border:1.5px solid #F0AF43;color:#F0AF43;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;">
+                  <i class="fa-solid fa-file-pdf"></i> Cetak PDF Rapor
+                </button>
+                <button onclick="window.deleteRekapanItem(${rep.id}, ${pesertaId})" title="Hapus rekapan" style="background:#450a0a;border:1px solid #ef4444;color:#fecaca;padding:7px 11px;border-radius:8px;cursor:pointer;font-size:12px;">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Stats Ringkas -->
+            <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12.5px;color:#e8d4bc;padding-top:6px;border-top:1px dashed rgba(240,175,67,0.2);">
+              <span>Hadir: <strong style="color:#4ade80;">${rep.total_hadir || 0}</strong></span>
+              <span>Izin: <strong style="color:#fbbf24;">${rep.total_izin || 0}</strong></span>
+              <span>Sakit: <strong style="color:#60a5fa;">${rep.total_sakit || 0}</strong></span>
+              <span>Alpa: <strong style="color:#f87171;">${rep.total_alpa || 0}</strong></span>
+              ${rep.rata_nilai ? `<span>Rata Nilai: <strong style="color:#F0AF43;">${rep.rata_nilai}</strong></span>` : ''}
+              ${rep.capaian_hafalan ? `<span>Hafalan Terakhir: <strong style="color:#ffffff;">${escapeHtml(rep.capaian_hafalan)}</strong></span>` : ''}
+            </div>
+
+            ${rep.catatan_evaluasi ? `
+            <div style="font-size:12.5px;color:#fdf0e2;line-height:1.5;background:#180902;padding:8px 12px;border-radius:8px;border-left:3px solid #10b981;">
+              <strong>Evaluasi Mentor:</strong> ${escapeHtml(rep.catatan_evaluasi)}
+            </div>` : ''}
+            ${rep.rekomendasi ? `
+            <div style="font-size:12.5px;color:#a7f3d0;line-height:1.5;background:#064e3b;padding:8px 12px;border-radius:8px;">
+              <strong>Rekomendasi:</strong> ${escapeHtml(rep.rekomendasi)}
+            </div>` : ''}
+          </div>`).join('')}
+        </div>`
+      }
     }
 
     if (kehadiranList.length === 0) {
       container.innerHTML = `
       <div class="card" style="text-align:center;padding:48px 24px;background:#180902;border:1.5px dashed rgba(240,175,67,0.5);border-radius:14px;box-shadow:0 6px 24px rgba(26,10,2,0.25);">
         <div style="font-size:44px;margin-bottom:12px;">📋</div>
-        <h4 style="color:#ffffff;margin:0 0 8px;font-size:18px;font-weight:800;">Belum Ada Histori Laporan</h4>
+        <h4 style="color:#ffffff;margin:0 0 8px;font-size:18px;font-weight:800;">Belum Ada Histori Laporan Sesi</h4>
         <p style="font-size:14px;color:#e8d4bc;margin:0 auto 20px;max-width:440px;line-height:1.6;font-weight:500;">
           Belum ada data kehadiran atau laporan sesi yang dicatat untuk peserta didik ini. Klik tombol di bawah untuk menambah laporan baru.
         </p>
@@ -867,6 +965,7 @@ async function loadPesertaHistory(pesertaId, showToast) {
 
     container.innerHTML = kehadiranList.map(rep => {
       const status = rep.status_hadir || 'hadir'
+      const rekapJudul = sesiToRekapMap[rep.id]
 
       return `
       <div class="card report-history-card" style="
@@ -894,9 +993,19 @@ async function loadPesertaHistory(pesertaId, showToast) {
               <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:800;${khBadgeStyle(status)}">
                 ${khIcon(status)} ${status.toUpperCase()}
               </span>
+              ${rekapJudul ? `
+                <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:3px 9px;border-radius:12px;background:#064e3b;color:#a7f3d0;border:1px solid #10b981;font-weight:800;">
+                  <i class="fa-solid fa-box-archive"></i> ${escapeHtml(rekapJudul)}
+                </span>
+              ` : `
+                <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:3px 9px;border-radius:12px;background:#2d1708;color:#fbbf24;border:1px solid rgba(240,175,67,0.3);font-weight:700;">
+                  <i class="fa-solid fa-clock"></i> Sesi Berjalan
+                </span>
+              `}
             </div>
             <div style="font-size:13px;color:#e8d4bc;margin-top:4px;font-weight:600;">
               <i class="fa-regular fa-clock" style="color:#F0AF43;margin-right:5px;"></i> Tanggal Sesi: <strong style="color:#ffffff;font-weight:800;">${formatDate(rep.tanggal)}</strong>
+              ${rep.materi_pembahasan ? ` • Materi: <span style="color:#cbd5e1;">${escapeHtml(rep.materi_pembahasan)}</span>` : ''}
             </div>
           </div>
         </div>
@@ -955,6 +1064,8 @@ function formatWaNumber(phone) {
 window.openShareModal = (pesertaId) => {
   const p = state.pesertaList.find(x => x.id === pesertaId)
   if (!p) return
+  const hist = window._currentPesertaHistory || {}
+  const rekapanList = hist.rekapanList || []
 
   const bodyHtml = `
   <div style="display:flex;flex-direction:column;gap:16px;">
@@ -988,17 +1099,38 @@ window.openShareModal = (pesertaId) => {
 
     <p style="font-size:13.5px;color:#e8d4bc;margin:0;line-height:1.6;">Pilih opsi laporan yang ingin dibagikan:</p>
     <div style="display:flex;flex-direction:column;gap:10px;">
+      <!-- Opsi 1: Cetak Full / Berjalan -->
       <button onclick="window.generatePesertaReport(${pesertaId})" style="display:flex;align-items:center;gap:12px;padding:14px 18px;background:#251105;border:1.5px solid rgba(240,175,67,0.4);border-radius:12px;cursor:pointer;text-align:left;transition:all 0.2s;" onmouseover="this.style.borderColor='#F0AF43'" onmouseout="this.style.borderColor='rgba(240,175,67,0.4)'">
         <div style="width:42px;height:42px;background:linear-gradient(135deg,#b91c1c,#ef4444);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
           <i class="fa-solid fa-file-pdf" style="color:#ffffff;font-size:18px;"></i>
         </div>
         <div>
-          <div style="color:#ffffff;font-weight:800;font-size:14px;">Cetak / Simpan sebagai PDF</div>
-          <div style="color:#d8bfa2;font-size:12px;margin-top:2px;">Buka dialog cetak rapor resmi untuk disimpan sebagai file PDF</div>
+          <div style="color:#ffffff;font-weight:800;font-size:14px;">Cetak Rapor Keseluruhan / Sesi Berjalan (PDF)</div>
+          <div style="color:#d8bfa2;font-size:12px;margin-top:2px;">Buka dialog cetak rapor lengkap semua sesi aktif santri</div>
         </div>
         <i class="fa-solid fa-chevron-right" style="color:#F0AF43;margin-left:auto;"></i>
       </button>
 
+      <!-- Opsi Rekapan Tersimpan (Jika ada) -->
+      ${rekapanList.length > 0 ? `
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
+        <div style="font-size:12px;color:#F0AF43;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;">
+          Pilih Rapor Rekapan Tertentu:
+        </div>
+        ${rekapanList.map(rep => `
+        <button onclick="closeMentorModal();window.printRekapanItem(${rep.id}, ${pesertaId})" style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:#1c0d03;border:1.5px solid rgba(16,185,129,0.4);border-radius:10px;cursor:pointer;text-align:left;transition:all 0.2s;">
+          <div style="width:36px;height:36px;background:#064e3b;border:1px solid #10b981;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#a7f3d0;">
+            <i class="fa-solid fa-file-invoice"></i>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="color:#ffffff;font-weight:800;font-size:13.5px;">Cetak Rapor: ${escapeHtml(rep.judul_rekap)}</div>
+            <div style="color:#cbd5e1;font-size:11.5px;">${rep.total_sesi} Sesi • Rata Nilai: ${rep.rata_nilai || '-'}</div>
+          </div>
+          <i class="fa-solid fa-print" style="color:#10b981;"></i>
+        </button>`).join('')}
+      </div>` : ''}
+
+      <!-- Opsi Kirim WhatsApp -->
       <button onclick="window.shareToWhatsApp(${pesertaId})" style="display:flex;align-items:center;gap:12px;padding:14px 18px;background:#251105;border:1.5px solid rgba(37,211,102,0.4);border-radius:12px;cursor:pointer;text-align:left;transition:all 0.2s;" onmouseover="this.style.borderColor='#25D366'" onmouseout="this.style.borderColor='rgba(37,211,102,0.4)'">
         <div style="width:42px;height:42px;background:linear-gradient(135deg,#128C7E,#25D366);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
           <i class="fa-brands fa-whatsapp" style="color:#ffffff;font-size:20px;"></i>
@@ -1014,6 +1146,441 @@ window.openShareModal = (pesertaId) => {
 
   const footerHtml = `<button class="btn btn-ghost" onclick="closeMentorModal()" style="color:#ffffff;border:1px solid rgba(255,255,255,0.2);font-weight:700;">Tutup</button>`
   showMentorModal(`<i class="fa-solid fa-share-nodes" style="color:#F0AF43;margin-right:8px;"></i> Bagikan Laporan — ${escapeHtml(p.nama_lengkap)}`, bodyHtml, footerHtml)
+}
+
+// ── REKAPAN HANDLERS (BIMBEL BULANAN & PRIVAT PAKET) ──────
+window.openBuatRekapModal = (pesertaId) => {
+  const p = state.pesertaList.find(x => x.id === pesertaId)
+  if (!p) return
+
+  const history = window._currentPesertaHistory || {}
+  const kehadiranList = history.kehadiranList || []
+  const kemajuanByDate = history.kemajuanByDate || {}
+  const penilaianByDate = history.penilaianByDate || {}
+  const rekapanList = history.rekapanList || []
+
+  // Kumpulan ID sesi yang sudah masuk rekapan
+  const alreadyRekapSesiIds = new Set()
+  rekapanList.forEach(r => {
+    if (Array.isArray(r.sesi_ids)) {
+      r.sesi_ids.forEach(id => alreadyRekapSesiIds.add(Number(id)))
+    }
+  })
+
+  if (p.jenis === 'privat') {
+    // ── REKAPAN PAKET PRIVAT (FLEKSIBEL) ──
+    const nextNomorPaket = (rekapanList.filter(r => r.jenis === 'privat').length) + 1
+    const defaultJudul = `Paket ${nextNomorPaket}`
+
+    const bodyHtml = `
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div style="padding:12px 16px;background:#251105;border-radius:10px;border-left:4px solid #10b981;font-size:13.5px;color:#ffffff;line-height:1.5;">
+        Rekap paket privat untuk <strong>${escapeHtml(p.nama_lengkap)}</strong>. Tentukan nama paket & pilih sesi-sesi yang masuk dalam paket ini secara fleksibel.
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:14px;">
+        <div class="form-group">
+          <label class="form-label" style="color:#F0AF43;font-weight:700;">Nama / Judul Paket</label>
+          <input type="text" class="form-control" id="modal-rekap-judul" value="${defaultJudul}" placeholder="Contoh: Paket 1 (8 Pertemuan)" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="color:#F0AF43;font-weight:700;">Nomor Paket</label>
+          <input type="number" class="form-control" id="modal-rekap-nomor-paket" value="${nextNomorPaket}" min="1" />
+        </div>
+      </div>
+
+      <!-- Pemilihan Sesi yang Masuk Paket -->
+      <div style="padding:14px;background:#200d03;border:1.5px solid rgba(240,175,67,0.3);border-radius:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+          <label style="color:#F0AF43;font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;">
+            Pilih Sesi Pertemuan Paket:
+          </label>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button type="button" class="btn btn-sm btn-ghost" onclick="window._quickSelectSesi(4)" style="color:#F0AF43;border:1px solid rgba(240,175,67,0.3);font-size:11px;padding:3px 8px;">4 Sesi</button>
+            <button type="button" class="btn btn-sm btn-ghost" onclick="window._quickSelectSesi(8)" style="color:#F0AF43;border:1px solid rgba(240,175,67,0.3);font-size:11px;padding:3px 8px;">8 Sesi</button>
+            <button type="button" class="btn btn-sm btn-ghost" onclick="window._quickSelectSesi(12)" style="color:#F0AF43;border:1px solid rgba(240,175,67,0.3);font-size:11px;padding:3px 8px;">12 Sesi</button>
+            <button type="button" class="btn btn-sm btn-ghost" onclick="window._quickSelectSesi('unrecapped')" style="color:#10b981;border:1px solid rgba(16,185,129,0.3);font-size:11px;padding:3px 8px;">Belum Direkap</button>
+          </div>
+        </div>
+
+        <div id="sesi-checkbox-list" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-right:4px;">
+          ${kehadiranList.length === 0 ? '<div style="color:#d8bfa2;font-size:12.5px;">Belum ada sesi kehadiran tercatat.</div>' : kehadiranList.map((kh, idx) => {
+            const isAlready = alreadyRekapSesiIds.has(Number(kh.id))
+            const checked = !isAlready && idx < 8 ? 'checked' : ''
+            return `
+            <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#180902;border:1px solid ${isAlready ? 'rgba(255,255,255,0.1)' : 'rgba(240,175,67,0.25)'};border-radius:8px;cursor:pointer;font-size:13px;color:#ffffff;">
+              <input type="checkbox" class="sesi-rekap-check" value="${kh.id}" data-tanggal="${kh.tanggal}" data-status="${kh.status_hadir}" ${checked} onchange="window._updateLiveRekapSummary()" />
+              <span style="font-weight:700;color:#F0AF43;">${formatDate(kh.tanggal)}</span>
+              <span style="font-size:11.5px;padding:2px 8px;border-radius:10px;font-weight:700;${khBadgeStyle(kh.status_hadir)}">${(kh.status_hadir||'hadir').toUpperCase()}</span>
+              <span style="color:#d8bfa2;font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(kh.materi_pembahasan || kh.catatan_sesi || 'Sesi Belajar')}</span>
+              ${isAlready ? '<span style="font-size:10px;color:#94a3b8;border:1px solid #64748b;padding:1px 6px;border-radius:6px;">Sudah di paket lain</span>' : ''}
+            </label>`
+          }).join('')}
+        </div>
+
+        <!-- Live Ringkasan Sesi Terpilih -->
+        <div id="rekap-live-summary" style="margin-top:12px;padding:10px 14px;background:#2d1708;border-radius:8px;font-size:12.5px;color:#ffffff;">
+          Memuat ringkasan sesi…
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" style="color:#F0AF43;font-weight:700;">Catatan Evaluasi Akhir Paket</label>
+        <textarea class="form-control" id="modal-rekap-evaluasi" rows="3" placeholder="Tuliskan evaluasi capaian hafalan, tajwid, adab, dan pemahaman santri selama paket ini…"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" style="color:#F0AF43;font-weight:700;">Rekomendasi Kelanjutan</label>
+        <textarea class="form-control" id="modal-rekap-rekomendasi" rows="2" placeholder="Contoh: Direkomendasikan melanjutkan ke Paket berikutnya untuk kelancaran Juz 30 / naik jilid…"></textarea>
+      </div>
+    </div>`
+
+    const footerHtml = `
+      <button class="btn btn-ghost" onclick="closeMentorModal()" style="color:#ffffff;border:1px solid rgba(255,255,255,0.2);font-weight:700;">Batal</button>
+      <button class="btn btn-primary" id="btn-submit-rekap" style="min-width:180px;font-weight:800;background:linear-gradient(135deg,#10b981,#059669);color:#ffffff;border:none;">
+        <i class="fa-solid fa-floppy-disk"></i> Simpan Rekap Paket
+      </button>`
+
+    showMentorModal(`<i class="fa-solid fa-box-check" style="color:#10b981;margin-right:8px;"></i> Rekap Paket Privat — ${escapeHtml(p.nama_lengkap)}`, bodyHtml, footerHtml)
+
+    // Quick select helper
+    window._quickSelectSesi = (countOrType) => {
+      const checks = Array.from(document.querySelectorAll('.sesi-rekap-check'))
+      checks.forEach(c => c.checked = false)
+      if (typeof countOrType === 'number') {
+        checks.slice(0, countOrType).forEach(c => c.checked = true)
+      } else if (countOrType === 'unrecapped') {
+        checks.forEach(c => {
+          if (!alreadyRekapSesiIds.has(Number(c.value))) c.checked = true
+        })
+      }
+      window._updateLiveRekapSummary()
+    }
+
+    // Live summary helper
+    window._updateLiveRekapSummary = () => {
+      const selectedChecks = Array.from(document.querySelectorAll('.sesi-rekap-check:checked'))
+      const selectedIds = new Set(selectedChecks.map(c => Number(c.value)))
+      const selectedSesi = kehadiranList.filter(kh => selectedIds.has(Number(kh.id)))
+      
+      const countHadir = selectedSesi.filter(s => s.status_hadir === 'hadir').length
+      const countIzin  = selectedSesi.filter(s => s.status_hadir === 'izin').length
+      const countSakit = selectedSesi.filter(s => s.status_hadir === 'sakit').length
+      const countAlpa  = selectedSesi.filter(s => s.status_hadir === 'alpa').length
+      
+      const dates = selectedSesi.map(s => s.tanggal).filter(Boolean)
+      const scores = dates.map(d => penilaianByDate[d]?.nilai_angka).filter(v => v !== undefined && v !== null && !isNaN(parseFloat(v)))
+      const avgScore = scores.length > 0 ? (scores.reduce((a, b) => a + parseFloat(b), 0) / scores.length).toFixed(1) : '-'
+      
+      const judulInput = document.getElementById('modal-rekap-judul')
+      if (judulInput && !judulInput.dataset.manual) {
+        judulInput.value = `Paket ${nextNomorPaket} (${selectedSesi.length} Pertemuan)`
+      }
+
+      const summaryEl = document.getElementById('rekap-live-summary')
+      if (summaryEl) {
+        summaryEl.innerHTML = `
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <span><strong>Total Sesi:</strong> ${selectedSesi.length}</span>
+          <span style="color:#4ade80;">Hadir: ${countHadir}</span>
+          <span style="color:#fbbf24;">Izin: ${countIzin}</span>
+          <span style="color:#60a5fa;">Sakit: ${countSakit}</span>
+          <span style="color:#f87171;">Alpa: ${countAlpa}</span>
+          <span><strong>Rata Nilai:</strong> <span style="color:#F0AF43;">${avgScore}</span></span>
+        </div>`
+      }
+    }
+
+    const judulInput = document.getElementById('modal-rekap-judul')
+    if (judulInput) {
+      judulInput.addEventListener('input', () => { judulInput.dataset.manual = '1' })
+    }
+
+    window._updateLiveRekapSummary()
+
+    // Handle submit
+    document.getElementById('btn-submit-rekap').addEventListener('click', async () => {
+      const btn = document.getElementById('btn-submit-rekap')
+      const judul = (document.getElementById('modal-rekap-judul')?.value || '').trim() || defaultJudul
+      const nomorPaket = parseInt(document.getElementById('modal-rekap-nomor-paket')?.value) || nextNomorPaket
+      const evaluasi = (document.getElementById('modal-rekap-evaluasi')?.value || '').trim()
+      const rekomendasi = (document.getElementById('modal-rekap-rekomendasi')?.value || '').trim()
+
+      const selectedChecks = Array.from(document.querySelectorAll('.sesi-rekap-check:checked'))
+      const sesiIds = selectedChecks.map(c => Number(c.value))
+      if (sesiIds.length === 0) {
+        alert('Mohon pilih setidaknya 1 sesi pertemuan untuk direkap dalam paket ini.')
+        return
+      }
+
+      const selectedSesi = kehadiranList.filter(kh => sesiIds.includes(Number(kh.id)))
+      const dates = selectedSesi.map(s => s.tanggal).filter(Boolean).sort()
+      const tglMulai = dates[0] || null
+      const tglSelesai = dates[dates.length - 1] || null
+
+      const countHadir = selectedSesi.filter(s => s.status_hadir === 'hadir').length
+      const countIzin  = selectedSesi.filter(s => s.status_hadir === 'izin').length
+      const countSakit = selectedSesi.filter(s => s.status_hadir === 'sakit').length
+      const countAlpa  = selectedSesi.filter(s => s.status_hadir === 'alpa').length
+
+      const scores = dates.map(d => penilaianByDate[d]?.nilai_angka).filter(v => v !== undefined && v !== null && !isNaN(parseFloat(v)))
+      const avgScore = scores.length > 0 ? parseFloat((scores.reduce((a, b) => a + parseFloat(b), 0) / scores.length).toFixed(1)) : null
+
+      // Hafalan terakhir di paket ini
+      let latestHafalan = ''
+      for (let i = 0; i < dates.length; i++) {
+        const d = dates[dates.length - 1 - i]
+        if (kemajuanByDate[d]?.kitab_surat) {
+          latestHafalan = `${kemajuanByDate[d].kitab_surat} ${kemajuanByDate[d].halaman_ayat || ''}`.trim()
+          break
+        }
+      }
+
+      btn.disabled = true
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan…'
+
+      try {
+        await mentorService.createRekapan({
+          id_peserta: pesertaId,
+          id_mentor: state.profile.id,
+          jenis: 'privat',
+          judul_rekap: judul,
+          nomor_paket: nomorPaket,
+          total_sesi: sesiIds.length,
+          tanggal_mulai: tglMulai,
+          tanggal_selesai: tglSelesai,
+          total_hadir: countHadir,
+          total_izin: countIzin,
+          total_sakit: countSakit,
+          total_alpa: countAlpa,
+          rata_nilai: avgScore,
+          capaian_hafalan: latestHafalan || null,
+          catatan_evaluasi: evaluasi || null,
+          rekomendasi: rekomendasi || null,
+          sesi_ids: sesiIds
+        })
+
+        closeMentorModal()
+        showToast('Rekapan paket privat berhasil disimpan! ✅', 'success')
+        loadPesertaHistory(pesertaId, showToast)
+      } catch (err) {
+        btn.disabled = false
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Simpan Rekap Paket'
+        showToast('Gagal simpan rekapan: ' + err.message, 'error')
+      }
+    })
+
+  } else {
+    // ── REKAPAN BULANAN BIMBEL ──
+    const monthsDetected = [...new Set(kehadiranList.map(h => (h.tanggal || '').slice(0, 7)).filter(Boolean))].sort().reverse()
+    const currentMonth = new Date().toISOString().slice(0, 7)
+    if (!monthsDetected.includes(currentMonth)) {
+      monthsDetected.unshift(currentMonth)
+    }
+
+    const formatMonthLabel = (mStr) => {
+      if (!mStr || mStr.length < 7) return mStr
+      const [year, month] = mStr.split('-')
+      const namaBulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][parseInt(month) - 1] || month
+      return `${namaBulan} ${year}`
+    }
+
+    const defaultMonth = monthsDetected[0]
+    const defaultJudul = `Rekap Bulan ${formatMonthLabel(defaultMonth)}`
+
+    const bodyHtml = `
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div style="padding:12px 16px;background:#251105;border-radius:10px;border-left:4px solid #F0AF43;font-size:13.5px;color:#ffffff;line-height:1.5;">
+        Rekapan bulanan santri bimbel untuk <strong>${escapeHtml(p.nama_lengkap)}</strong>. Sistem akan menghitung kehadiran dan nilai pada bulan terpilih secara otomatis.
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:14px;">
+        <div class="form-group">
+          <label class="form-label" style="color:#F0AF43;font-weight:700;">Pilih Bulan Periode</label>
+          <select class="form-control" id="modal-rekap-bulan" onchange="window._onBimbelMonthChange()">
+            ${monthsDetected.map(m => `<option value="${m}" ${m === defaultMonth ? 'selected' : ''}>${formatMonthLabel(m)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="color:#F0AF43;font-weight:700;">Judul Rekapan</label>
+          <input type="text" class="form-control" id="modal-rekap-judul" value="${defaultJudul}" />
+        </div>
+      </div>
+
+      <!-- Preview Sesi Bulan Terpilih -->
+      <div style="padding:14px;background:#200d03;border:1.5px solid rgba(240,175,67,0.3);border-radius:12px;">
+        <div id="rekap-bulan-live-summary" style="font-size:13px;color:#ffffff;">
+          Memuat ringkasan bulan…
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" style="color:#F0AF43;font-weight:700;">Catatan Evaluasi Bulanan</label>
+        <textarea class="form-control" id="modal-rekap-evaluasi" rows="3" placeholder="Tuliskan catatan evaluasi belajar, akhlak, dan hafalan santri bulan ini…"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" style="color:#F0AF43;font-weight:700;">Pesan / Rekomendasi untuk Orang Tua</label>
+        <textarea class="form-control" id="modal-rekap-rekomendasi" rows="2" placeholder="Contoh: Mohon bimbingan tilawah di rumah ditingkatkan pada surah-surah yang perlu diulang…"></textarea>
+      </div>
+    </div>`
+
+    const footerHtml = `
+      <button class="btn btn-ghost" onclick="closeMentorModal()" style="color:#ffffff;border:1px solid rgba(255,255,255,0.2);font-weight:700;">Batal</button>
+      <button class="btn btn-primary" id="btn-submit-rekap-bimbel" style="min-width:180px;font-weight:800;background:linear-gradient(135deg,#F0AF43,#d97706);color:#1a0a02;border:none;">
+        <i class="fa-solid fa-floppy-disk"></i> Simpan Rekapan Bulanan
+      </button>`
+
+    showMentorModal(`<i class="fa-solid fa-calendar-star" style="color:#F0AF43;margin-right:8px;"></i> Rekap Bulanan Bimbel — ${escapeHtml(p.nama_lengkap)}`, bodyHtml, footerHtml)
+
+    window._onBimbelMonthChange = () => {
+      const selectedMonth = document.getElementById('modal-rekap-bulan')?.value || defaultMonth
+      const judulEl = document.getElementById('modal-rekap-judul')
+      if (judulEl && !judulEl.dataset.manual) {
+        judulEl.value = `Rekap Bulan ${formatMonthLabel(selectedMonth)}`
+      }
+
+      const sesiBulan = kehadiranList.filter(h => (h.tanggal || '').startsWith(selectedMonth))
+      const countHadir = sesiBulan.filter(s => s.status_hadir === 'hadir').length
+      const countIzin  = sesiBulan.filter(s => s.status_hadir === 'izin').length
+      const countSakit = sesiBulan.filter(s => s.status_hadir === 'sakit').length
+      const countAlpa  = sesiBulan.filter(s => s.status_hadir === 'alpa').length
+
+      const dates = sesiBulan.map(s => s.tanggal).filter(Boolean)
+      const scores = dates.map(d => penilaianByDate[d]?.nilai_angka).filter(v => v !== undefined && v !== null && !isNaN(parseFloat(v)))
+      const avgScore = scores.length > 0 ? (scores.reduce((a, b) => a + parseFloat(b), 0) / scores.length).toFixed(1) : '-'
+
+      const summaryEl = document.getElementById('rekap-bulan-live-summary')
+      if (summaryEl) {
+        summaryEl.innerHTML = `
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px;">
+          <span><strong>Total Sesi:</strong> ${sesiBulan.length}</span>
+          <span style="color:#4ade80;">Hadir: ${countHadir}</span>
+          <span style="color:#fbbf24;">Izin: ${countIzin}</span>
+          <span style="color:#60a5fa;">Sakit: ${countSakit}</span>
+          <span style="color:#f87171;">Alpa: ${countAlpa}</span>
+          <span><strong>Rata Nilai:</strong> <span style="color:#F0AF43;">${avgScore}</span></span>
+        </div>
+        ${sesiBulan.length === 0 ? '<div style="color:#fca5a5;font-size:12px;">⚠️ Belum ada sesi kehadiran yang dicatat pada bulan ini.</div>' : ''}`
+      }
+    }
+
+    const judulEl = document.getElementById('modal-rekap-judul')
+    if (judulEl) {
+      judulEl.addEventListener('input', () => { judulEl.dataset.manual = '1' })
+    }
+
+    window._onBimbelMonthChange()
+
+    // Handle submit Bimbel
+    document.getElementById('btn-submit-rekap-bimbel').addEventListener('click', async () => {
+      const btn = document.getElementById('btn-submit-rekap-bimbel')
+      const selectedMonth = document.getElementById('modal-rekap-bulan')?.value || defaultMonth
+      const judul = (document.getElementById('modal-rekap-judul')?.value || '').trim() || `Rekap Bulan ${formatMonthLabel(selectedMonth)}`
+      const evaluasi = (document.getElementById('modal-rekap-evaluasi')?.value || '').trim()
+      const rekomendasi = (document.getElementById('modal-rekap-rekomendasi')?.value || '').trim()
+
+      const sesiBulan = kehadiranList.filter(h => (h.tanggal || '').startsWith(selectedMonth))
+      const sesiIds = sesiBulan.map(s => Number(s.id))
+      const dates = sesiBulan.map(s => s.tanggal).filter(Boolean).sort()
+      const tglMulai = dates[0] || `${selectedMonth}-01`
+      const tglSelesai = dates[dates.length - 1] || null
+
+      const countHadir = sesiBulan.filter(s => s.status_hadir === 'hadir').length
+      const countIzin  = sesiBulan.filter(s => s.status_hadir === 'izin').length
+      const countSakit = sesiBulan.filter(s => s.status_hadir === 'sakit').length
+      const countAlpa  = sesiBulan.filter(s => s.status_hadir === 'alpa').length
+
+      const scores = dates.map(d => penilaianByDate[d]?.nilai_angka).filter(v => v !== undefined && v !== null && !isNaN(parseFloat(v)))
+      const avgScore = scores.length > 0 ? parseFloat((scores.reduce((a, b) => a + parseFloat(b), 0) / scores.length).toFixed(1)) : null
+
+      let latestHafalan = ''
+      for (let i = 0; i < dates.length; i++) {
+        const d = dates[dates.length - 1 - i]
+        if (kemajuanByDate[d]?.kitab_surat) {
+          latestHafalan = `${kemajuanByDate[d].kitab_surat} ${kemajuanByDate[d].halaman_ayat || ''}`.trim()
+          break
+        }
+      }
+
+      btn.disabled = true
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan…'
+
+      try {
+        await mentorService.createRekapan({
+          id_peserta: pesertaId,
+          id_mentor: state.profile.id,
+          jenis: 'bimbel',
+          judul_rekap: judul,
+          periode_bulan: selectedMonth,
+          total_sesi: sesiIds.length,
+          tanggal_mulai: tglMulai,
+          tanggal_selesai: tglSelesai,
+          total_hadir: countHadir,
+          total_izin: countIzin,
+          total_sakit: countSakit,
+          total_alpa: countAlpa,
+          rata_nilai: avgScore,
+          capaian_hafalan: latestHafalan || null,
+          catatan_evaluasi: evaluasi || null,
+          rekomendasi: rekomendasi || null,
+          sesi_ids: sesiIds
+        })
+
+        closeMentorModal()
+        showToast('Rekapan bulanan bimbel berhasil disimpan! ✅', 'success')
+        loadPesertaHistory(pesertaId, showToast)
+      } catch (err) {
+        btn.disabled = false
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Simpan Rekapan Bulanan'
+        showToast('Gagal simpan rekapan: ' + err.message, 'error')
+      }
+    })
+  }
+}
+
+window.printRekapanItem = (rekapanId, pesertaId) => {
+  const p = state.pesertaList.find(x => x.id === pesertaId)
+  const history = window._currentPesertaHistory
+  if (!p || !history) return
+
+  const rep = (history.rekapanList || []).find(r => Number(r.id) === Number(rekapanId))
+  if (!rep) {
+    showToast('Data rekapan tidak ditemukan.', 'error')
+    return
+  }
+
+  const pesertaData = {
+    peserta: p,
+    mentor: { nama: state.profile?.nama_lengkap || state.profile?.nama || 'Mentor QIA' },
+    kelas: p.kelas || { nama_kelas: p.jenis === 'privat' ? 'Program Privat' : jenisLabel(p.jenis) },
+    kemajuan: history.kemajuanList || [],
+    penilaian: history.penilaianList || [],
+    kehadiran_summary: {
+      hadir: rep.total_hadir || 0,
+      izin: rep.total_izin || 0,
+      sakit: rep.total_sakit || 0,
+      alpa: rep.total_alpa || 0,
+      total: rep.total_sesi || 0
+    },
+    riwayat_kehadiran: history.kehadiranList || [],
+    catatan_mentor: []
+  }
+
+  printRaporPeserta(pesertaData, { rekapan: rep })
+}
+
+window.deleteRekapanItem = async (rekapanId, pesertaId) => {
+  if (!confirm('Apakah Anda yakin ingin menghapus rekapan ini? Sesi kehadiran santri tidak akan terhapus.')) {
+    return
+  }
+  try {
+    await mentorService.deleteRekapan(rekapanId)
+    showToast('Rekapan berhasil dihapus.', 'success')
+    loadPesertaHistory(pesertaId, showToast)
+  } catch (err) {
+    showToast('Gagal menghapus rekapan: ' + err.message, 'error')
+  }
 }
 
 window.saveWaInline = async (pesertaId) => {

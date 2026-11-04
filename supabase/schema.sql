@@ -568,3 +568,50 @@ create index if not exists idx_kehadiran_kelas   on public.kehadiran(id_kelas);
 create index if not exists idx_kemajuan_peserta  on public.kemajuan(id_peserta);
 create index if not exists idx_penilaian_peserta on public.penilaian(id_peserta);
 create index if not exists idx_kelas_mentor      on public.kelas(id_mentor);
+
+-- ────────────────────────────────────────────────────────────
+-- 10. REKAPAN LAPORAN (Bimbel Bulanan & Privat Paket)
+-- ────────────────────────────────────────────────────────────
+create table if not exists public.rekapan_laporan (
+  id                  serial primary key,
+  id_peserta          int not null references public.peserta_didik(id) on delete cascade,
+  id_mentor           uuid references public.profiles(id) on delete set null,
+  jenis               text not null check (jenis in ('bimbel','privat')),
+  judul_rekap         text not null,
+  periode_bulan       text,
+  nomor_paket         int,
+  total_sesi          int not null default 0,
+  tanggal_mulai       date,
+  tanggal_selesai     date,
+  total_hadir         int not null default 0,
+  total_izin          int not null default 0,
+  total_sakit         int not null default 0,
+  total_alpa          int not null default 0,
+  rata_nilai          numeric(5,2),
+  capaian_hafalan     text,
+  catatan_evaluasi    text,
+  rekomendasi         text,
+  sesi_ids            jsonb default '[]'::jsonb,
+  created_at          timestamptz default now(),
+  updated_at          timestamptz default now()
+);
+
+create index if not exists idx_rekapan_peserta on public.rekapan_laporan (id_peserta, created_at desc);
+
+alter table public.rekapan_laporan enable row level security;
+
+create policy "Mentor baca rekapan santri bimbingan" on public.rekapan_laporan for select
+  using (auth.uid() = id_mentor or exists (select 1 from public.peserta_didik pd where pd.id = id_peserta and pd.id_mentor = auth.uid()) or exists (select 1 from public.profiles pr where pr.id = auth.uid() and pr.role = 'admin'));
+
+create policy "Mentor buat rekapan" on public.rekapan_laporan for insert
+  with check (auth.uid() = id_mentor or exists (select 1 from public.profiles pr where pr.id = auth.uid() and pr.role in ('mentor', 'admin')));
+
+create policy "Mentor update rekapan" on public.rekapan_laporan for update
+  using (auth.uid() = id_mentor or exists (select 1 from public.profiles pr where pr.id = auth.uid() and pr.role in ('mentor', 'admin')));
+
+create policy "Mentor delete rekapan" on public.rekapan_laporan for delete
+  using (auth.uid() = id_mentor or exists (select 1 from public.profiles pr where pr.id = auth.uid() and pr.role in ('mentor', 'admin')));
+
+create policy "Anon baca rekapan peserta aktif" on public.rekapan_laporan for select
+  using (exists (select 1 from public.peserta_didik pd where pd.id = id_peserta and pd.status = 'aktif'));
+
