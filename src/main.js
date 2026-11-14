@@ -65,6 +65,7 @@ async function navigate(path, push = true) {
 // Expose globally so inline HTML onclick="navigate(...)" and onclick="navigateTo(...)" always work
 window.navigate = navigate
 window.navigateTo = navigate
+window.showToast = showToast
 
 // ── Intercept anchor clicks ─────────────────────────────────
 document.addEventListener('click', e => {

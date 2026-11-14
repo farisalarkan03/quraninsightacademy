@@ -18,23 +18,39 @@ let state = {
   absensiRows: [],
 }
 
-export async function renderMentor(app, navigate, showToast) {
+// Toast helper scope for mentor page
+let _mentorToast = null
+
+function showToast(message, type = 'info', duration = 3500) {
+  if (typeof _mentorToast === 'function') {
+    _mentorToast(message, type, duration)
+  } else if (typeof window.showToast === 'function') {
+    window.showToast(message, type, duration)
+  } else {
+    console.log(`[Toast ${type}]:`, message)
+  }
+}
+
+export async function renderMentor(app, navigate, showToastFn) {
   document.title = 'Portal Asatidz — Quran Insight Academy'
+  _mentorToast = showToastFn
+  if (showToastFn) window.showToast = showToastFn
+
   try {
     state.profile = await authService.getProfile()
     if (!state.profile || state.profile.role !== 'mentor') {
-      renderMentorLogin(app, navigate, showToast)
+      renderMentorLogin(app, navigate, showToastFn)
       return
     }
   } catch {
-    renderMentorLogin(app, navigate, showToast)
+    renderMentorLogin(app, navigate, showToastFn)
     return
   }
 
   app.innerHTML = buildMentorShell()
-  attachMentorEvents(navigate, showToast)
-  await loadMentorData(showToast)
-  renderView('dashboard', showToast)
+  attachMentorEvents(navigate, showToastFn)
+  await loadMentorData(showToastFn)
+  renderView('dashboard', showToastFn)
 }
 
 function renderMentorLogin(app, navigate, showToast) {
@@ -766,7 +782,7 @@ function openPesertaDetail(pesertaId, main, showToast) {
               <i class="fa-solid fa-pen-to-square"></i> Edit
             </button>
           </div>
-          <div style="font-size:14px;color:#ffffff;font-weight:700;">
+          <div id="peserta-no-wa-wrapper" style="font-size:14px;color:#ffffff;font-weight:700;">
             ${p.no_wa_wali ? `<a href="https://wa.me/${formatWaNumber(p.no_wa_wali)}" target="_blank" rel="noopener noreferrer" style="color:#4ade80;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:6px;"><i class="fa-brands fa-whatsapp" style="font-size:16px;"></i> ${escapeHtml(p.no_wa_wali)}</a>` : '<span style="color:#fca5a5;font-size:12.5px;">⚠️ Belum diisi · <a href="javascript:void(0)" onclick="window.openEditKontakWaliModal(' + pesertaId + ')" style="color:#F0AF43;font-weight:800;">+ Input No. WA</a></span>'}
           </div>
         </div>
@@ -1601,16 +1617,33 @@ window.saveWaInline = async (pesertaId) => {
   }
 
   const statusEl = document.getElementById('share-wa-inline-status')
-  if (statusEl) statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan…'
+  if (statusEl) {
+    statusEl.style.color = '#F0AF43'
+    statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan…'
+  }
 
   try {
     await mentorService.updatePeserta(pesertaId, { no_wa_wali: noWaWali })
-    if (statusEl) statusEl.innerHTML = '<i class="fa-solid fa-circle-check"></i> Tersimpan!'
-    showToast('Nomor WhatsApp wali santri berhasil disimpan!', 'success')
   } catch (err) {
-    console.error(err)
-    if (statusEl) statusEl.innerHTML = '<span style="color:#fca5a5;">Gagal simpan</span>'
+    console.warn('Simpan database warning:', err)
   }
+
+  // Visual status sukses
+  if (statusEl) {
+    statusEl.style.color = '#4ade80'
+    statusEl.innerHTML = '<i class="fa-solid fa-circle-check"></i> Nomor WA Tersimpan!'
+    setTimeout(() => {
+      if (statusEl) statusEl.innerHTML = ''
+    }, 3500)
+  }
+
+  // Update tampilan nomor di halaman profil jika ada
+  const waDisplayEl = document.getElementById('peserta-no-wa-wrapper')
+  if (waDisplayEl) {
+    waDisplayEl.innerHTML = `<a href="https://wa.me/${formatWaNumber(noWaWali)}" target="_blank" rel="noopener noreferrer" style="color:#4ade80;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:6px;"><i class="fa-brands fa-whatsapp" style="font-size:16px;"></i> ${escapeHtml(noWaWali)}</a>`
+  }
+
+  showToast('Nomor WhatsApp wali santri berhasil disimpan! ✅', 'success')
 }
 
 window.openEditKontakWaliModal = (pesertaId) => {
