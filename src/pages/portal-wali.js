@@ -776,23 +776,56 @@ function buildDetailHTML(data) {
   const kemajuan = dedupByDate(data?.kemajuan)
   const penilaian = dedupByDate(data?.penilaian)
   const riwayat_kehadiran = dedupByDate(data?.riwayat_kehadiran)
-
-  const kh = data?.kehadiran_summary || {}
-  const hadirCount = riwayat_kehadiran.length > 0 ? riwayat_kehadiran.filter(h => h.status_hadir === 'hadir').length : (kh.hadir || 0)
-  const izinCount  = riwayat_kehadiran.length > 0 ? riwayat_kehadiran.filter(h => h.status_hadir === 'izin').length : (kh.izin || 0)
-  const sakitCount = riwayat_kehadiran.length > 0 ? riwayat_kehadiran.filter(h => h.status_hadir === 'sakit').length : (kh.sakit || 0)
-  const alpaCount  = riwayat_kehadiran.length > 0 ? riwayat_kehadiran.filter(h => h.status_hadir === 'alpa' || (!['hadir','izin','sakit'].includes(h.status_hadir) && h.status_hadir)).length : (kh.alpa || 0)
-  const totalKh = hadirCount + izinCount + sakitCount + alpaCount
-  const pctH = totalKh > 0 ? Math.round((hadirCount / totalKh) * 100) : 0
-
-  const validNilai = penilaian.filter(n => n.nilai_angka !== null && n.nilai_angka !== undefined && !isNaN(parseFloat(n.nilai_angka)))
-  const avgNilai = validNilai.length > 0
-    ? (validNilai.reduce((s, n) => s + parseFloat(n.nilai_angka), 0) / validNilai.length).toFixed(1)
-    : '-'
-  const kelasLabel = kelas?.nama_kelas || (peserta?.jenis === 'privat' ? 'Program Privat' : '-')
-
   const rekapanList = data?.rekapan || []
   const latestRekapan = rekapanList[0] || null
+
+  // Kumpulkan semua ID sesi yang sudah terekap di paket/bulan lampau
+  const recappedSesiIds = new Set()
+  rekapanList.forEach(r => {
+    if (Array.isArray(r.sesi_ids)) {
+      r.sesi_ids.forEach(sid => recappedSesiIds.add(Number(sid)))
+    }
+  })
+
+  // Helper memeriksa apakah suatu sesi sudah masuk rekapan
+  const isSesiInRekapan = (h) => {
+    if (recappedSesiIds.has(Number(h.id))) return true
+    for (const r of rekapanList) {
+      if (Array.isArray(r.sesi_ids) && r.sesi_ids.length > 0) {
+        if (r.sesi_ids.map(Number).includes(Number(h.id))) return true
+      } else if (r.periode_bulan && String(h.tanggal || '').startsWith(r.periode_bulan)) {
+        return true
+      } else if (r.tanggal_mulai && r.tanggal_selesai && h.tanggal >= r.tanggal_mulai && h.tanggal <= r.tanggal_selesai) {
+        return true
+      }
+    }
+    return false
+  }
+
+  // Sesi Berjalan = Sesi yang BELUM masuk ke rekapan mana pun (mengulang dari paket baru)
+  const sesiBerjalan = riwayat_kehadiran.filter(h => !isSesiInRekapan(h))
+  const tanggalSesiBerjalan = new Set(sesiBerjalan.map(s => s.tanggal).filter(Boolean))
+
+  const kemajuanBerjalan = kemajuan.filter(k => tanggalSesiBerjalan.has(k.tanggal))
+  const penilaianBerjalan = penilaian.filter(n => tanggalSesiBerjalan.has(n.tanggal))
+
+  // Simpan data sesi berjalan untuk digunakan di renderDetailCharts
+  data._sesiBerjalan = sesiBerjalan
+  data._penilaianBerjalan = penilaianBerjalan
+
+  // Hitung metrik KHUSUS SESI BERJALAN (total hadir dikurangi sesi yang sudah terekap)
+  const hadirCount = sesiBerjalan.filter(h => h.status_hadir === 'hadir').length
+  const izinCount  = sesiBerjalan.filter(h => h.status_hadir === 'izin').length
+  const sakitCount = sesiBerjalan.filter(h => h.status_hadir === 'sakit').length
+  const alpaCount  = sesiBerjalan.filter(h => h.status_hadir === 'alpa' || (!['hadir','izin','sakit'].includes(h.status_hadir) && h.status_hadir)).length
+  const totalKh    = hadirCount + izinCount + sakitCount + alpaCount
+  const pctH       = totalKh > 0 ? Math.round((hadirCount / totalKh) * 100) : (sesiBerjalan.length === 0 ? 100 : 0)
+
+  const validNilai = penilaianBerjalan.filter(n => n.nilai_angka !== null && n.nilai_angka !== undefined && !isNaN(parseFloat(n.nilai_angka)))
+  const avgNilai = validNilai.length > 0
+    ? (validNilai.reduce((s, n) => s + parseFloat(n.nilai_angka), 0) / validNilai.length).toFixed(1)
+    : (sesiBerjalan.length === 0 && latestRekapan?.rata_nilai ? String(latestRekapan.rata_nilai) : '-')
+  const kelasLabel = kelas?.nama_kelas || (peserta?.jenis === 'privat' ? 'Program Privat' : '-')
 
   return `
   <div style="padding:4px 0;color:#1a0a02;">
@@ -833,7 +866,7 @@ function buildDetailHTML(data) {
     <div id="wali-tab-content-terbaru">
       <!-- Highlight Rekapan Terkini Jika Ada -->
       ${latestRekapan ? `
-      <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:16px 20px;margin-bottom:20px;box-shadow:0 4px 16px rgba(16,185,129,0.1);">
+      <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:16px 20px;margin-bottom:16px;box-shadow:0 4px 16px rgba(16,185,129,0.1);">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
           <span style="font-weight:800;color:#166534;font-size:14.5px;display:inline-flex;align-items:center;gap:8px;">
             <i class="fa-solid fa-award" style="color:#10b981;"></i> Rekapan Terkini: ${escapeHtml(latestRekapan.judul_rekap)}
@@ -850,15 +883,29 @@ function buildDetailHTML(data) {
       </div>
       ` : ''}
 
-      <!-- Stats Row -->
+      <!-- Status Periode / Paket Berjalan -->
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap;padding:0 2px;">
+        <div style="font-size:13px;font-weight:800;color:#221104;display:flex;align-items:center;gap:8px;">
+          <i class="fa-solid fa-clock-rotate-left" style="color:#F0AF43;"></i>
+          ${peserta?.jenis === 'privat' 
+            ? (latestRekapan ? `Sesi Paket Baru Berjalan: ${sesiBerjalan.length} Pertemuan` : `Sesi Paket Berjalan: ${sesiBerjalan.length} Pertemuan`)
+            : `Sesi Periode Berjalan: ${sesiBerjalan.length} Pertemuan`}
+        </div>
+        ${rekapanList.length > 0 ? `
+        <span style="font-size:11.5px;color:#81511D;background:#fdf0e2;border:1px solid rgba(129,81,29,0.2);padding:3px 10px;border-radius:12px;">
+          <i class="fa-solid fa-check-double" style="color:#10b981;"></i> ${latestRekapan?.total_sesi || 0} sesi lampau telah selesai direkap
+        </span>` : ''}
+      </div>
+
+      <!-- Stats Row (Khusus Sesi Berjalan) -->
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:20px;">
         ${[
           [avgNilai, 'Rata Nilai', scoreColor(parseFloat(avgNilai)), 'fa-star'],
           [pctH+'%', 'Kehadiran', pctH>=80?'#10b981':pctH>=60?'#F0AF43':'#e05c4b', 'fa-calendar-check'],
-          [kh.hadir||0, 'Total Hadir', '#10b981', 'fa-circle-check'],
-          [(kh.izin||0)+(kh.sakit||0), 'Izin/Sakit', '#60a5fa', 'fa-memo-circle-info'],
-          [kh.alpa||0, 'Alpa', '#e05c4b', 'fa-circle-exclamation'],
-          [(penilaian||[]).length, 'Total Penilaian', '#F0AF43', 'fa-clipboard-check'],
+          [hadirCount, 'Total Hadir', '#10b981', 'fa-circle-check'],
+          [(izinCount)+(sakitCount), 'Izin/Sakit', '#60a5fa', 'fa-memo-circle-info'],
+          [alpaCount, 'Alpa', '#e05c4b', 'fa-circle-exclamation'],
+          [validNilai.length, 'Total Penilaian', '#F0AF43', 'fa-clipboard-check'],
         ].map(([val,lbl,clr,icon]) => `
         <div style="background:white;border:1px solid rgba(129,81,29,0.12);border-radius:12px;padding:14px 16px;text-align:center;">
           <div style="font-size:24px;font-weight:800;color:${clr};margin-bottom:4px;">${val}</div>
@@ -876,22 +923,27 @@ function buildDetailHTML(data) {
         </div>
         <div style="background:white;border:1px solid rgba(129,81,29,0.12);border-radius:12px;padding:16px;">
           <div style="font-size:13px;font-weight:700;color:#1a0a02;margin-bottom:12px;">
-            <i class="fa-solid fa-chart-pie" style="color:#10b981;"></i> Rekap Kehadiran
+            <i class="fa-solid fa-chart-pie" style="color:#10b981;"></i> Rekap Kehadiran Sesi Berjalan
           </div>
           <canvas id="chart-kehadiran" height="160"></canvas>
         </div>
       </div>
 
-      <!-- Kemajuan Hafalan -->
+      <!-- Kemajuan Hafalan Sesi Berjalan -->
       <div style="background:white;border:1px solid rgba(129,81,29,0.12);border-radius:12px;padding:16px;margin-bottom:16px;">
         <h4 style="color:#1a0a02;margin-bottom:14px;font-size:14px;">
           <i class="fa-solid fa-book-quran" style="color:#F0AF43;"></i> Riwayat Kemajuan Hafalan
         </h4>
-        ${(kemajuan||[]).length === 0 ? '<p style="color:#81511D;font-size:13px;">Belum ada catatan kemajuan.</p>' :
+        ${kemajuanBerjalan.length === 0 ? `
+          <div style="padding:12px 14px;background:#fdf8f3;border-radius:8px;font-size:13px;color:#81511D;line-height:1.6;">
+            ${latestRekapan?.capaian_hafalan 
+              ? `<strong>Capaian hafalan terakhir paket lalu:</strong> ${escapeHtml(latestRekapan.capaian_hafalan)} <span style="display:block;font-size:11.5px;color:#81511D;margin-top:2px;">(Belum ada catatan hafalan baru di sesi berjalan ini)</span>` 
+              : 'Belum ada catatan kemajuan hafalan pada sesi berjalan.'}
+          </div>` :
           `<div style="display:flex;flex-direction:column;gap:0;">
-            ${(kemajuan||[]).slice(0,10).map((k,i) => `
+            ${kemajuanBerjalan.slice(0,10).map((k,i) => `
             <div style="display:flex;align-items:flex-start;gap:14px;padding:12px 0;
-              border-bottom:${i<(kemajuan.length-1)?'1px solid rgba(129,81,29,0.1)':'none'};">
+              border-bottom:${i<(kemajuanBerjalan.length-1)?'1px solid rgba(129,81,29,0.1)':'none'};">
               <div style="width:32px;height:32px;border-radius:50%;
                 background:${k.status_kelancaran==='lancar'?'rgba(16,185,129,0.15)':k.status_kelancaran==='cukup'?'rgba(240,175,67,0.15)':'rgba(239,68,68,0.15)'};
                 display:flex;align-items:center;justify-content:center;flex-shrink:0;">
@@ -910,13 +962,24 @@ function buildDetailHTML(data) {
           </div>`}
       </div>
 
-      <!-- Riwayat Kehadiran & Materi Sesi -->
+      <!-- Riwayat Kehadiran & Materi Sesi Berjalan -->
       <div style="background:white;border:1px solid rgba(129,81,29,0.12);border-radius:12px;padding:16px;margin-bottom:16px;">
-        <h4 style="color:#1a0a02;margin-bottom:14px;font-size:14px;">
-          <i class="fa-solid fa-calendar-days" style="color:#10b981;"></i> Riwayat Sesi Kehadiran & Materi
-        </h4>
-        ${(riwayat_kehadiran||[]).length === 0 ? '<p style="color:#81511D;font-size:13px;">Belum ada catatan absensi.</p>' :
-          `<div style="overflow-x:auto;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <h4 style="color:#1a0a02;margin:0;font-size:14px;">
+            <i class="fa-solid fa-calendar-days" style="color:#10b981;"></i> Riwayat Sesi Kehadiran & Materi (Sesi Berjalan)
+          </h4>
+          <span style="font-size:12px;color:#81511D;font-weight:700;background:#fdf0e2;padding:2px 8px;border-radius:10px;">
+            ${sesiBerjalan.length} Sesi Aktif
+          </span>
+        </div>
+        ${sesiBerjalan.length === 0 ? `
+          <div style="text-align:center;padding:24px 16px;background:#fdf8f3;border:1px dashed rgba(129,81,29,0.25);border-radius:10px;color:#81511D;font-size:13px;line-height:1.6;">
+            <i class="fa-solid fa-circle-check" style="color:#10b981;margin-right:6px;font-size:16px;"></i>
+            Semua pertemuan pada paket sebelumnya (${latestRekapan?.judul_rekap || 'Paket'}) telah selesai direkap.<br>
+            Belum ada sesi baru untuk paket berikutnya. Rincian sesi lampau dapat dilihat pada tab <strong>Riwayat Rekapan Lampau</strong> di atas.
+          </div>
+        ` : `
+          <div style="overflow-x:auto;">
             <table style="width:100%;border-collapse:collapse;font-size:13px;">
               <thead>
                 <tr style="background:#f8f4ee;">
@@ -927,7 +990,7 @@ function buildDetailHTML(data) {
                 </tr>
               </thead>
               <tbody>
-                ${(riwayat_kehadiran||[]).slice(0,20).map((kh,i) => `
+                ${sesiBerjalan.slice(0,20).map((kh,i) => `
                 <tr style="border-bottom:1px solid rgba(129,81,29,0.07);${i%2===1?'background:#fdf8f3;':''}">
                   <td style="padding:9px 12px;color:#1a0a02;">${formatDate(kh.tanggal)}</td>
                   <td style="padding:9px 12px;">${statusBadge(kh.status_hadir)}</td>
@@ -1078,8 +1141,11 @@ function buildDetailHTML(data) {
 async function renderDetailCharts(pesertaId, data) {
   try {
     const charts = await waliService.getChartDataPeserta(pesertaId)
-    // Chart Nilai
-    const nilaiData = (charts.penilaian||[]).slice(-12)
+    // Chart Nilai (gunakan sesi berjalan jika ada)
+    const rawNilai = Array.isArray(data?._penilaianBerjalan)
+      ? data._penilaianBerjalan
+      : (charts.penilaian || [])
+    const nilaiData = rawNilai.filter(n => n.nilai_angka !== null && n.nilai_angka !== undefined && !isNaN(parseFloat(n.nilai_angka))).slice(-12)
     const chartNilaiEl = document.getElementById('chart-nilai')
     if (nilaiData.length > 0 && chartNilaiEl) {
       new Chart(chartNilaiEl, {
@@ -1108,13 +1174,25 @@ async function renderDetailCharts(pesertaId, data) {
         </div>
         <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:140px;color:#81511D;opacity:0.75;font-size:12.5px;">
           <i class="fa-solid fa-chart-line" style="font-size:26px;margin-bottom:8px;color:#d97706;"></i>
-          Belum ada riwayat penilaian
+          Belum ada riwayat penilaian di sesi berjalan
         </div>`
     }
 
-    // Chart Kehadiran
-    const kh = data.kehadiran_summary || {}
-    const totalKh = (kh.hadir||0) + (kh.izin||0) + (kh.sakit||0) + (kh.alpa||0)
+    // Chart Kehadiran (gunakan sesi berjalan jika ada)
+    let hadir = 0, izin = 0, sakit = 0, alpa = 0
+    if (Array.isArray(data?._sesiBerjalan)) {
+      hadir = data._sesiBerjalan.filter(h => h.status_hadir === 'hadir').length
+      izin  = data._sesiBerjalan.filter(h => h.status_hadir === 'izin').length
+      sakit = data._sesiBerjalan.filter(h => h.status_hadir === 'sakit').length
+      alpa  = data._sesiBerjalan.filter(h => h.status_hadir === 'alpa' || (!['hadir','izin','sakit'].includes(h.status_hadir) && h.status_hadir)).length
+    } else {
+      const kh = data?.kehadiran_summary || {}
+      hadir = kh.hadir || 0
+      izin  = kh.izin || 0
+      sakit = kh.sakit || 0
+      alpa  = kh.alpa || 0
+    }
+    const totalKh = hadir + izin + sakit + alpa
     const chartKehadiranEl = document.getElementById('chart-kehadiran')
     if (totalKh > 0 && chartKehadiranEl) {
       new Chart(chartKehadiranEl, {
@@ -1122,7 +1200,7 @@ async function renderDetailCharts(pesertaId, data) {
         data: {
           labels: ['Hadir', 'Izin', 'Sakit', 'Alpa'],
           datasets: [{
-            data: [kh.hadir||0, kh.izin||0, kh.sakit||0, kh.alpa||0],
+            data: [hadir, izin, sakit, alpa],
             backgroundColor: ['#10b981','#F0AF43','#60a5fa','#e05c4b'],
           }]
         },
@@ -1138,7 +1216,7 @@ async function renderDetailCharts(pesertaId, data) {
         </div>
         <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:140px;color:#81511D;opacity:0.75;font-size:12.5px;">
           <i class="fa-solid fa-calendar-check" style="font-size:26px;margin-bottom:8px;color:#10b981;"></i>
-          Belum ada catatan absensi
+          Belum ada sesi pada paket berjalan
         </div>`
     }
   } catch(e) { /* chart tidak critical */ }
