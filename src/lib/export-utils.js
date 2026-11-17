@@ -114,6 +114,22 @@ function deduplicateByDate(items, dateField = 'tanggal') {
   return Array.from(map.values()).sort((a, b) => String(b[dateField] || '').localeCompare(String(a[dateField] || '')))
 }
 
+// Helper: amankan teks catatan (plain text) agar karakter HTML tidak merusak layout PDF
+function escapeNoteHtml(str) {
+  if (str === null || str === undefined) return ''
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
+// Helper: rapikan teks catatan — pertahankan baris baru & paragraf (CRLF -> LF)
+function formatNote(str) {
+  return escapeNoteHtml(str).replace(/\r\n?/g, '\n')
+}
+
 // ────────────────────────────────────────────────────────────
 // Generate PDF print preview via browser print
 // ────────────────────────────────────────────────────────────
@@ -208,7 +224,9 @@ export function printRaporPeserta(pesertaData, options = {}) {
   h2.section { font-size: 14px; color: #221104; border-left: 3px solid #F0AF43; padding-left: 10px; margin: 16px 0 10px; }
   .note-box { background: #fdf8f3; border: 1px solid #e8d4bc; border-left: 3px solid #F0AF43; border-radius: 6px; padding: 10px 14px; margin-bottom: 8px; }
   .note-box .note-meta { font-size: 11px; color: #81511D; margin-bottom: 4px; }
-  .note-box .note-text { font-size: 13px; color: #1a0a02; line-height: 1.6; }
+  .note-box .note-text { font-size: 13px; color: #1a0a02; line-height: 1.6; white-space: pre-line; overflow-wrap: anywhere; }
+  .note-paragraph { white-space: pre-line; overflow-wrap: anywhere; }
+  .note-cell { white-space: pre-line; overflow-wrap: anywhere; line-height: 1.6; vertical-align: top; }
   .badge-status { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; text-transform: uppercase; }
   .badge-hadir { background: #d1fae5; color: #065f46; }
   .badge-izin  { background: #fef3c7; color: #92400e; }
@@ -249,9 +267,9 @@ ${rekapan ? `
   <div style="font-size:13px;font-weight:700;color:#166534;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
     📋 Evaluasi Rekapan: ${rekapan.judul_rekap || 'Rekapan'}
   </div>
-  ${rekapan.catatan_evaluasi ? `<div style="font-size:13px;color:#1e293b;line-height:1.6;margin-bottom:8px;"><strong>Catatan Mentor:</strong> ${rekapan.catatan_evaluasi}</div>` : ''}
-  ${rekapan.rekomendasi ? `<div style="font-size:13px;color:#166534;line-height:1.6;margin-bottom:6px;"><strong>Rekomendasi Kelanjutan:</strong> ${rekapan.rekomendasi}</div>` : ''}
-  ${rekapan.capaian_hafalan ? `<div style="font-size:12.5px;color:#334155;"><strong>Capaian Hafalan Terakhir:</strong> ${rekapan.capaian_hafalan}</div>` : ''}
+  ${rekapan.catatan_evaluasi ? `<div class="note-paragraph" style="font-size:13px;color:#1e293b;line-height:1.6;margin-bottom:8px;"><strong>Catatan Mentor:</strong> ${formatNote(rekapan.catatan_evaluasi)}</div>` : ''}
+  ${rekapan.rekomendasi ? `<div class="note-paragraph" style="font-size:13px;color:#166534;line-height:1.6;margin-bottom:6px;"><strong>Rekomendasi Kelanjutan:</strong> ${formatNote(rekapan.rekomendasi)}</div>` : ''}
+  ${rekapan.capaian_hafalan ? `<div class="note-paragraph" style="font-size:12.5px;color:#334155;"><strong>Capaian Hafalan Terakhir:</strong> ${formatNote(rekapan.capaian_hafalan)}</div>` : ''}
 </div>
 ` : ''}
 
@@ -284,7 +302,7 @@ ${catatanSesiList.map(c => {
   const badgeClass = c.status === 'hadir' ? 'badge-hadir' : c.status === 'izin' ? 'badge-izin' : c.status === 'sakit' ? 'badge-sakit' : c.status === 'alpa' ? 'badge-alpa' : ''
   return `<div class="note-box">
   <div class="note-meta">${c.tanggal}${c.status ? ` &nbsp;·&nbsp; <span class="badge-status ${badgeClass}">${c.status}</span>` : ''}</div>
-  <div class="note-text">${c.catatan}</div>
+  <div class="note-text">${formatNote(c.catatan)}</div>
 </div>`
 }).join('')}` : ''}
 
@@ -292,7 +310,7 @@ ${catatan_mentor?.length ? `
 <h2 class="section">Catatan Mentor</h2>
 <table>
   <tr><th>Tanggal</th><th>Catatan</th></tr>
-  ${(catatan_mentor || []).slice(0,5).map(c => `<tr><td>${c.tanggal||''}</td><td>${c.isi_catatan||''}</td></tr>`).join('')}
+  ${(catatan_mentor || []).slice(0,5).map(c => `<tr><td style="vertical-align:top;">${c.tanggal||''}</td><td class="note-cell">${formatNote(c.isi_catatan || '')}</td></tr>`).join('')}
 </table>` : ''}
 
 <div class="footer">
