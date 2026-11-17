@@ -239,6 +239,12 @@ function buildWaliHTML(directId) {
     background: rgba(240, 175, 67, 0.22);
   }
 
+  /* Catatan multi-baris: pertahankan spasi baris & paragraf */
+  .qia-note {
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+  }
+
   /* Student Card Responsive */
   .wali-student-card {
     background: linear-gradient(135deg, #221104, #3a1c08);
@@ -875,8 +881,8 @@ function buildDetailHTML(data) {
             <i class="fa-solid fa-file-pdf"></i> Cetak Rapor Ini
           </button>
         </div>
-        ${latestRekapan.catatan_evaluasi ? `<div style="font-size:13px;color:#1e293b;line-height:1.6;margin-bottom:6px;"><strong>Evaluasi Mentor:</strong> ${escapeHtml(latestRekapan.catatan_evaluasi)}</div>` : ''}
-        ${latestRekapan.rekomendasi ? `<div style="font-size:13px;color:#166534;line-height:1.6;margin-bottom:4px;"><strong>Rekomendasi Kelanjutan:</strong> ${escapeHtml(latestRekapan.rekomendasi)}</div>` : ''}
+        ${latestRekapan.catatan_evaluasi ? `<div class="qia-note" style="font-size:13px;color:#1e293b;line-height:1.6;margin-bottom:6px;"><strong>Evaluasi Mentor:</strong> ${escapeHtml(latestRekapan.catatan_evaluasi)}</div>` : ''}
+        ${latestRekapan.rekomendasi ? `<div class="qia-note" style="font-size:13px;color:#166534;line-height:1.6;margin-bottom:4px;"><strong>Rekomendasi Kelanjutan:</strong> ${escapeHtml(latestRekapan.rekomendasi)}</div>` : ''}
         <div style="font-size:11.5px;color:#64748b;margin-top:6px;">
           ${latestRekapan.tanggal_mulai ? `Periode: ${formatDate(latestRekapan.tanggal_mulai)} s/d ${formatDate(latestRekapan.tanggal_selesai || latestRekapan.tanggal_mulai)} • ` : ''}Total ${latestRekapan.total_sesi} Sesi • Rata Nilai: <strong>${latestRekapan.rata_nilai || '-'}</strong>
         </div>
@@ -937,7 +943,7 @@ function buildDetailHTML(data) {
         ${kemajuanBerjalan.length === 0 ? `
           <div style="padding:12px 14px;background:#fdf8f3;border-radius:8px;font-size:13px;color:#81511D;line-height:1.6;">
             ${latestRekapan?.capaian_hafalan 
-              ? `<strong>Capaian hafalan terakhir paket lalu:</strong> ${escapeHtml(latestRekapan.capaian_hafalan)} <span style="display:block;font-size:11.5px;color:#81511D;margin-top:2px;">(Belum ada catatan hafalan baru di sesi berjalan ini)</span>` 
+              ? `<strong>Capaian hafalan terakhir paket lalu:</strong> <span class="qia-note" style="display:inline-block;vertical-align:top;">${escapeHtml(latestRekapan.capaian_hafalan)}</span> <span style="display:block;font-size:11.5px;color:#81511D;margin-top:2px;">(Belum ada catatan hafalan baru di sesi berjalan ini)</span>` 
               : 'Belum ada catatan kemajuan hafalan pada sesi berjalan.'}
           </div>` :
           `<div style="display:flex;flex-direction:column;gap:0;">
@@ -955,7 +961,7 @@ function buildDetailHTML(data) {
                 <div style="font-weight:600;color:#1a0a02;font-size:13.5px;">
                   ${k.kitab_surat} ${k.halaman_ayat ? '— '+k.halaman_ayat : ''}
                 </div>
-                ${k.catatan_hafalan ? `<div style="font-size:12px;color:#81511D;margin-top:2px;font-style:italic;">"${k.catatan_hafalan}"</div>` : ''}
+                ${k.catatan_hafalan ? `<div class="qia-note" style="font-size:12px;color:#81511D;margin-top:2px;font-style:italic;">"${escapeHtml(k.catatan_hafalan)}"</div>` : ''}
               </div>
               <div style="font-size:11px;color:#81511D;white-space:nowrap;">${formatDate(k.tanggal)}</div>
             </div>`).join('')}
@@ -995,7 +1001,7 @@ function buildDetailHTML(data) {
                   <td style="padding:9px 12px;color:#1a0a02;">${formatDate(kh.tanggal)}</td>
                   <td style="padding:9px 12px;">${statusBadge(kh.status_hadir)}</td>
                   <td style="padding:9px 12px;color:#4F280C;">${kh.materi_pembahasan||'-'}</td>
-                  <td style="padding:9px 12px;color:#81511D;font-size:12px;font-style:italic;">${kh.catatan_sesi||kh.perkembangan_materi||'-'}</td>
+                  <td class="qia-note" style="padding:9px 12px;color:#81511D;font-size:12px;font-style:italic;">${escapeHtml(kh.catatan_sesi||kh.perkembangan_materi||'-')}</td>
                 </tr>`).join('')}
               </tbody>
             </table>
@@ -1012,7 +1018,7 @@ function buildDetailHTML(data) {
           ${(catatan_mentor||[]).slice(0,5).map(c => `
           <div style="background:#f8f4ee;border-left:3px solid #F0AF43;border-radius:0 10px 10px 0;padding:12px 16px;">
             <div style="font-size:11px;color:#81511D;margin-bottom:4px;">${formatDate(c.tanggal)}</div>
-            <div style="font-size:13.5px;color:#1a0a02;line-height:1.7;">${c.isi_catatan}</div>
+            <div class="qia-note" style="font-size:13.5px;color:#1a0a02;line-height:1.7;">${escapeHtml(c.isi_catatan)}</div>
           </div>`).join('')}
         </div>
       </div>` : ''}
@@ -1084,17 +1090,17 @@ function buildDetailHTML(data) {
             </div>
 
             ${rep.capaian_hafalan ? `
-            <div style="font-size:12.5px;color:#4F280C;margin-bottom:8px;">
+            <div class="qia-note" style="font-size:12.5px;color:#4F280C;margin-bottom:8px;">
               <strong>Capaian Hafalan Terakhir:</strong> ${escapeHtml(rep.capaian_hafalan)}
             </div>` : ''}
 
             ${rep.catatan_evaluasi ? `
-            <div style="background:#fdf8f3;border-left:3px solid #10b981;border-radius:0 8px 8px 0;padding:10px 14px;font-size:13px;color:#1a0a02;line-height:1.6;margin-bottom:8px;">
+            <div class="qia-note" style="background:#fdf8f3;border-left:3px solid #10b981;border-radius:0 8px 8px 0;padding:10px 14px;font-size:13px;color:#1a0a02;line-height:1.6;margin-bottom:8px;">
               <strong>Evaluasi Mentor:</strong> ${escapeHtml(rep.catatan_evaluasi)}
             </div>` : ''}
 
             ${rep.rekomendasi ? `
-            <div style="background:#f0fdf4;border-left:3px solid #059669;border-radius:0 8px 8px 0;padding:10px 14px;font-size:13px;color:#166534;line-height:1.6;margin-bottom:12px;">
+            <div class="qia-note" style="background:#f0fdf4;border-left:3px solid #059669;border-radius:0 8px 8px 0;padding:10px 14px;font-size:13px;color:#166534;line-height:1.6;margin-bottom:12px;">
               <strong>Rekomendasi Kelanjutan:</strong> ${escapeHtml(rep.rekomendasi)}
             </div>` : ''}
 
@@ -1125,7 +1131,7 @@ function buildDetailHTML(data) {
                       <td style="padding:6px 10px;">${formatDate(s.tanggal)}</td>
                       <td style="padding:6px 10px;">${statusBadge(s.status_hadir)}</td>
                       <td style="padding:6px 10px;">${escapeHtml(s.materi_pembahasan || '-')}</td>
-                      <td style="padding:6px 10px;color:#81511D;font-style:italic;">${escapeHtml(s.catatan_sesi || s.perkembangan_materi || '-')}</td>
+                      <td class="qia-note" style="padding:6px 10px;color:#81511D;font-style:italic;">${escapeHtml(s.catatan_sesi || s.perkembangan_materi || '-')}</td>
                     </tr>`).join('')}
                   </tbody>
                 </table>
